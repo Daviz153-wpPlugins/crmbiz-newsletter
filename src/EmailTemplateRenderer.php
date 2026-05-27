@@ -35,16 +35,17 @@ class EmailTemplateRenderer {
             'site_url'        => home_url('/'),
         ]);
 
-        // FluentCRM Helper 로 HTML 정리, 없으면 wp_kses_post 폴백
+        // FluentCRM Helper 로 HTML 정리 — 실패하거나 미사용 시 원본 반환
+        // wp_kses_post() 는 <html>/<body>/<table> 등 이메일 구조 태그를 제거하므로 사용 불가
         if (FluentCRMBridge::isAvailable()) {
             try {
                 return \FluentCrm\App\Services\Helper::sanitizeHtml($html);
             } catch (\Throwable $e) {
-                // 폴백
+                // 폴백: 원본 HTML 반환
             }
         }
 
-        return wp_kses_post($html);
+        return $html;
     }
 
     private function buildHtml(array $d): string {

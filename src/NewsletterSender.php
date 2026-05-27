@@ -147,7 +147,7 @@ class NewsletterSender {
             ]);
             return $query->get();
         } catch (\Throwable $e) {
-            return collect(); // 빈 Eloquent 컬렉션 반환
+            return new \Illuminate\Support\Collection();
         }
     }
 

@@ -26,6 +26,14 @@ class MetaBox {
     }
 
     public function render(\WP_Post $post): void {
+        try {
+            $this->renderInner($post);
+        } catch (\Throwable $e) {
+            echo '<p style="color:#b91c1c;font-size:12px">뉴스레터 메타박스 오류: ' . esc_html($e->getMessage()) . '</p>';
+        }
+    }
+
+    private function renderInner(\WP_Post $post): void {
         wp_nonce_field('crmbiz_nl_metabox', 'crmbiz_nl_nonce');
 
         $enabled  = (bool) get_post_meta($post->ID, '_crmbiz_nl_enabled',      true);
