@@ -39,7 +39,7 @@ class EmailTemplateRenderer {
         if (FluentCRMBridge::isAvailable()) {
             try {
                 return \FluentCrm\App\Services\Helper::sanitizeHtml($html);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // 폴백
             }
         }

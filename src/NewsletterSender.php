@@ -58,7 +58,7 @@ class NewsletterSender {
             }
         }
 
-        $this->updateRecord($newsletterId, $success, $fail, $errors);
+        $this->updateRecord($newsletterId, $success, $fail, $errors, $subscribers->count());
     }
 
     /**
@@ -83,11 +83,16 @@ class NewsletterSender {
         }
 
         $post    = get_post((int) $record->post_id);
-        $tagIds  = array_filter(array_map('intval', json_decode($record->tag_ids, true) ?? []));
+        $tagIds  = array_filter(array_map('intval', json_decode($record->tag_ids,  true) ?? []));
         $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
 
         if (!$post) {
             return ['success' => false, 'message' => '포스트를 찾을 수 없습니다.'];
+        }
+
+        // 수신자 없이 발송하면 전체 구독자에게 발송되므로 반드시 가드
+        if (empty($tagIds) && empty($listIds)) {
+            return ['success' => false, 'message' => '수신자 태그/리스트가 지정되지 않았습니다.'];
         }
 
         // 상태를 sending으로 변경
@@ -115,7 +120,7 @@ class NewsletterSender {
             }
         }
 
-        $this->updateRecord($newsletterId, $success, $fail, $errors);
+        $this->updateRecord($newsletterId, $success, $fail, $errors, $subscribers->count());
 
         return [
             'success' => true,
@@ -134,13 +139,16 @@ class NewsletterSender {
     }
 
     private function getSubscribers(array $tagIds, array $listIds) {
-        $query = new \FluentCrm\App\Services\ContactsQuery([
-            'tags'     => $tagIds,
-            'lists'    => $listIds,
-            'statuses' => ['subscribed'],
-        ]);
-
-        return $query->get();
+        try {
+            $query = new \FluentCrm\App\Services\ContactsQuery([
+                'tags'     => $tagIds,
+                'lists'    => $listIds,
+                'statuses' => ['subscribed'],
+            ]);
+            return $query->get();
+        } catch (\Throwable $e) {
+            return collect(); // 빈 Eloquent 컬렉션 반환
+        }
     }
 
     private function dispatch(\WP_Post $post, $subscriber): bool {
@@ -182,20 +190,21 @@ class NewsletterSender {
         return (int) $wpdb->insert_id;
     }
 
-    private function updateRecord(int $newsletterId, int $success, int $fail, array $errors): void {
+    private function updateRecord(int $newsletterId, int $success, int $fail, array $errors, int $total = 0): void {
         global $wpdb;
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
             [
-                'status'        => $fail === 0 ? 'sent' : ($success === 0 ? 'failed' : 'sent'),
-                'success_count' => $success,
-                'fail_count'    => $fail,
-                'sent_at'       => current_time('mysql'),
-                'updated_at'    => current_time('mysql'),
-                'error_log'     => !empty($errors) ? wp_json_encode($errors) : null,
+                'status'          => ($success === 0 && $fail > 0) ? 'failed' : 'sent',
+                'recipient_count' => $total,
+                'success_count'   => $success,
+                'fail_count'      => $fail,
+                'sent_at'         => current_time('mysql'),
+                'updated_at'      => current_time('mysql'),
+                'error_log'       => !empty($errors) ? wp_json_encode($errors) : null,
             ],
             ['id' => $newsletterId],
-            ['%s', '%d', '%d', '%s', '%s', '%s'],
+            ['%s', '%d', '%d', '%d', '%s', '%s', '%s'],
             ['%d']
         );
     }

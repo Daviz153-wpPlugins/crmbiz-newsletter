@@ -16,7 +16,7 @@ class UnsubscribeHandler {
             return;
         }
 
-        $email = sanitize_email(rawurldecode($_GET['email'] ?? ''));
+        $email = sanitize_email($_GET['email'] ?? '');
         $token = sanitize_text_field($_GET['token'] ?? '');
 
         if (!$email || !$this->verifyToken($email, $token)) {
@@ -83,7 +83,7 @@ class UnsubscribeHandler {
         $token = hash_hmac('sha256', $email, wp_salt('auth'));
         return add_query_arg([
             'crmbiz_nl_action' => 'unsubscribe',
-            'email'            => rawurlencode($email),
+            'email'            => $email,
             'token'            => $token,
         ], home_url('/'));
     }

@@ -174,7 +174,7 @@ class Plugin {
                 'statuses' => ['subscribed'],
             ]);
             wp_send_json_success(['count' => $query->getModel()->count()]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             wp_send_json_success(['count' => 0]);
         }
     }
