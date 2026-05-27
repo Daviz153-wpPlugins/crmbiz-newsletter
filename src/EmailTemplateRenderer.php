@@ -147,7 +147,8 @@ class EmailTemplateRenderer {
         $html = preg_replace_callback(
             '/href="(https?:\/\/[^"]+)"/i',
             function ($matches) use ($newsletterId, $email) {
-                $url = $matches[1];
+                // HTML 엔티티 디코딩 (esc_url()이 & → &amp; 변환한 것을 복원)
+                $url = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
                 if (strpos($url, 'crmbiz_nl_action') !== false) {
                     return $matches[0];
                 }
