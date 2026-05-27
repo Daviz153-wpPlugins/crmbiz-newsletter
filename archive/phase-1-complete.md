@@ -1,7 +1,8 @@
 # Phase 1 아카이브 — MVP 발송 구현
 
 **완료일**: 2026-05-28  
-**버전**: 0.2.0
+**버전**: 0.2.0  
+**버그픽스**: 2026-05-28 (커밋 d6adbf6)
 
 ---
 
@@ -108,12 +109,36 @@ send_mode 분기
 
 ---
 
+## 버그픽스 이력
+
+### 1차 수정 (커밋 9f2d79e)
+| 버그 | 파일 | 내용 |
+|---|---|---|
+| FluentCRMBridge Fatal Error | `FluentCRMBridge.php` | `->all()->get()` → `->get()` (Collection에 get() 체인 시 null 반환 → Fatal Error) |
+| PHP 8 Error 미처리 | `FluentCRMBridge.php` | `catch(\Exception)` → `catch(\Throwable)` 전체 교체 |
+| 미리보기 링크 404 | `MetaBox.php`, `HistoryPage.php` | 미리보기 URL에 `action` 파라미터 누락 추가 |
+
+### 2차 정밀 수정 (커밋 d6adbf6)
+| # | 심각도 | 파일 | 내용 |
+|---|---|---|---|
+| 1 | **CRITICAL** | `NewsletterSender.php` | `sendManual()` 태그/리스트 빈 배열 가드 — 미설정 시 전체 구독자 발송 방지 |
+| 2 | HIGH | `NewsletterSender.php` | `getSubscribers()` `\Throwable` 예외 처리 — 빈 컬렉션 반환으로 화이트스크린 방지 |
+| 3 | HIGH | `Plugin.php`, `EmailTemplateRenderer.php` | `catch(\Exception)` → `catch(\Throwable)` |
+| 4 | MEDIUM | `NewsletterSender.php` | `updateRecord()` `recipient_count` 파라미터 추가 — 수동 발송 후 이력에 0 표시 수정 |
+| 5 | MEDIUM | `NewsletterSender.php` | `updateRecord()` 상태 판별 수정 — 성공 0건이면 `failed` |
+| 6 | MEDIUM | `UnsubscribeHandler.php` | `buildUnsubscribeUrl()` `rawurlencode` 제거 — `add_query_arg`가 이미 인코딩 |
+| 7 | MEDIUM | `UnsubscribeHandler.php` | `handleUnsubscribeRequest()` `rawurldecode` 제거 — `$_GET`은 PHP가 이미 디코딩 |
+
+---
+
 ## 알려진 제한사항
 
 - 수신자가 많으면 (100명+) HTTP 요청 타임아웃 위험 → Phase 2 큐로 해결
 - FluentCRM `countByStatus()` 는 메타박스 로딩 시 태그/리스트 수만큼 N번 쿼리 발생
   - 태그/리스트 10개이면 10번 쿼리 — 수백 개면 캐싱 필요
 - 예약 발송(`scheduled` 모드)은 UI만 있고 실제 처리는 Phase 2
+- Gutenberg 최초 발행 시 메타박스 저장과 `transition_post_status` 간 경쟁 조건 (race condition) 가능성
+  - 초안 저장 후 발행하는 일반 워크플로에서는 문제 없음
 
 ---
 
