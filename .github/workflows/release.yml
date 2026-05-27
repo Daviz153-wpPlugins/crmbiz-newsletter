@@ -1,0 +1,39 @@
+name: Release ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Build ZIP
+        run: |
+          mkdir -p build/crmbiz-newsletter
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='build/' \
+            --exclude='docs/' \
+            --exclude='archive/' \
+            --exclude='PLAN.md' \
+            --exclude='*.md' \
+            . build/crmbiz-newsletter/
+          cd build
+          zip -r ../crmbiz-newsletter-${{ steps.version.outputs.version }}.zip crmbiz-newsletter/
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: crmbiz-newsletter-${{ steps.version.outputs.version }}.zip
+          fail_on_unmatched_files: true
