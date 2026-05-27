@@ -41,11 +41,19 @@ class FluentCRMBridge {
             return [];
         }
         try {
-            $tags = FluentCrmApi('tags')->get();
-            return array_map(fn($t) => [
-                'id'    => (int) $t->id,
-                'label' => $t->title . ' (' . $t->countByStatus('subscribed') . '명)',
-            ], $tags->toArray());
+            $result = [];
+            foreach (FluentCrmApi('tags')->get() as $tag) {
+                try {
+                    $count = $tag->countByStatus('subscribed');
+                } catch (\Throwable $e) {
+                    $count = '?';
+                }
+                $result[] = [
+                    'id'    => (int) $tag->id,
+                    'label' => $tag->title . ' (' . $count . '명)',
+                ];
+            }
+            return $result;
         } catch (\Throwable $e) {
             return [];
         }
@@ -56,11 +64,19 @@ class FluentCRMBridge {
             return [];
         }
         try {
-            $lists = FluentCrmApi('lists')->get();
-            return array_map(fn($l) => [
-                'id'    => (int) $l->id,
-                'label' => $l->title . ' (' . $l->countByStatus('subscribed') . '명)',
-            ], $lists->toArray());
+            $result = [];
+            foreach (FluentCrmApi('lists')->get() as $list) {
+                try {
+                    $count = $list->countByStatus('subscribed');
+                } catch (\Throwable $e) {
+                    $count = '?';
+                }
+                $result[] = [
+                    'id'    => (int) $list->id,
+                    'label' => $list->title . ' (' . $count . '명)',
+                ];
+            }
+            return $result;
         } catch (\Throwable $e) {
             return [];
         }
