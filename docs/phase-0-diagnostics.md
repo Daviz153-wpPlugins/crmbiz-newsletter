@@ -1,120 +1,249 @@
-# Phase 0: Foundation & Email Diagnostics
+# Phase 0: 기반 구조 + 이메일 진단 (v2.0)
 
-> 목표: 이메일 1통이 확실하게 도달하는지 검증  
-> 기간: 1~2주
+> "이메일이 실제로 전달되는가?"를 검증하는 단계
 
 ---
 
 ## 목표
 
-"이메일이 실제로 가는가?"를 확인하는 단계.  
-비개발자도 관리자 페이지에서 직접 테스트할 수 있어야 합니다.
+1. 플러그인 활성화/설치 동작 확인
+2. FluentCRM 의존성 감지 (공식 API 사용)
+3. FluentSMTP 연결 상태 확인
+4. 단일 테스트 이메일 발송 성공
 
 ---
 
-## 가입 필요 서비스
+## 파일 구조 (Phase 0 완성 시)
 
-| 서비스 | 목적 | 비용 |
-|--------|------|------|
-| **Mailtrap.io** | Mock 테스트용 (실제 수신자에게 발송 안 됨) | 무료 |
-| **SendGrid** 또는 **Mailgun** | 실제 발송용 | 무료 시작 |
-
-### Mailtrap 설정 방법
-
-1. mailtrap.io 가입
-2. Email Testing → Inboxes → My Inbox → SMTP Settings 탭
-3. SMTP 정보 복사 (host, port, username, password)
-4. WordPress → FluentSMTP → SMTP 입력
-5. 이후 모든 발송은 Mailtrap 받은편지함에서 확인 (실제 수신자에게 가지 않음)
+```
+crmbiz-newsletter/
+├── crmbiz-newsletter.php
+├── autoload.php
+└── src/
+    ├── Plugin.php
+    ├── Settings.php
+    ├── Database.php
+    ├── FluentCRMBridge.php        ← Phase 0 핵심
+    └── Admin/
+        ├── SettingsPage.php
+        └── DiagnosticsPage.php    ← Phase 0 핵심
+```
 
 ---
 
-## 구현 파일
+## FluentCRMBridge.php — FluentCRM 의존성 체크
 
-### 플러그인 기반 구조
+```php
+namespace CRMBizNewsletter;
 
+class FluentCRMBridge {
+
+    public static function isAvailable(): bool {
+        return defined('FLUENTCRM') && function_exists('FluentCrmApi');
+    }
+
+    public static function getContactsApi() {
+        if (!self::isAvailable()) {
+            return null;
+        }
+        return FluentCrmApi('contacts');
+    }
+
+    public static function getTagsApi() {
+        return self::isAvailable() ? FluentCrmApi('tags') : null;
+    }
+
+    public static function getListsApi() {
+        return self::isAvailable() ? FluentCrmApi('lists') : null;
+    }
+
+    // Phase 0 진단: 태그/리스트 목록 조회 테스트
+    public static function getTagsForSelect(): array {
+        if (!self::isAvailable()) return [];
+
+        $tags = FluentCrmApi('tags')->all()->get();
+        return array_map(fn($t) => [
+            'id'    => $t->id,
+            'label' => $t->title . ' (' . $t->countByStatus('subscribed') . '명)',
+        ], $tags->toArray());
+    }
+
+    public static function getListsForSelect(): array {
+        if (!self::isAvailable()) return [];
+
+        $lists = FluentCrmApi('lists')->all()->get();
+        return array_map(fn($l) => [
+            'id'    => $l->id,
+            'label' => $l->title . ' (' . $l->countByStatus('subscribed') . '명)',
+        ], $lists->toArray());
+    }
+}
 ```
-crmbiz-newsletter.php      — 진입점, 상수, 오토로더, 훅 등록
-src/Support/Autoloader.php — PSR-4 오토로더
-src/Support/Logger.php     — debug_log_enabled 게이트 error_log 래퍼
-src/Plugin.php             — Singleton, boot()에서 WP 훅 등록
-src/Settings.php           — 옵션 래퍼 (드라이런 모드, 배치 크기 추가)
-```
-
-### 설정 페이지 (`src/Admin/SettingsPage.php`)
-
-```
-[기본 설정]
-- 발신자 이름
-- 발신자 이메일
-- 로고 URL
-- 이메일 제목 접두사
-
-[발송 설정]
-- 드라이런 모드 ON/OFF  ← 실제 발송 없이 로그만
-- 디버그 로그 ON/OFF
-- 배치 크기 (기본 25통)
-```
-
-### 이메일 진단 페이지 (`src/Admin/DiagnosticsPage.php`)
-
-메뉴: WordPress 관리자 → CRMBiz Newsletter → 이메일 진단
-
-```
-┌─ 이메일 진단 ──────────────────────────────────┐
-│                                                │
-│ 1. FluentSMTP 연결 상태                        │
-│    [연결 확인]                                  │
-│    → ✅ FluentSMTP 설정됨 (SMTP: mailtrap.io)  │
-│    → ❌ FluentSMTP 플러그인이 설치되지 않음     │
-│                                                │
-│ 2. FluentCRM 연결 상태                         │
-│    [연결 확인]                                  │
-│    → ✅ FluentCRM 활성화됨 (연락처 1,234명)    │
-│    → ❌ FluentCRM 플러그인이 설치되지 않음     │
-│                                                │
-│ 3. 테스트 이메일 발송 (단건)                   │
-│    받는 사람: [이메일 주소 입력]               │
-│    [지금 발송]                                 │
-│    → ✅ 발송 성공 (발송 시간: 0.3초)           │
-│    → ❌ 발송 실패: Connection refused          │
-│                                                │
-│ 4. 드라이런 모드 현재 상태                     │
-│    ● ON (실제 발송 안 됨, 로그만 기록)         │
-└────────────────────────────────────────────────┘
-```
-
-### 드라이런(Dry Run) 모드
-
-- 설정에서 ON 시: 실제 `wp_mail()` 호출 없이 로그만 기록
-- 이메일 내용, 수신자, 제목 전부 로그 확인 가능
-- FluentSMTP 없어도 전체 흐름 테스트 가능
 
 ---
 
-## 성공 기준
+## Settings.php — 타입 안전 설정 래퍼
 
-- [ ] 플러그인 설치 → 활성화 오류 없음
-- [ ] 설정 페이지 저장 정상 동작
-- [ ] 진단 페이지 → FluentSMTP ✅ 확인
-- [ ] 진단 페이지 → FluentCRM ✅ 확인
-- [ ] 테스트 이메일 → Mailtrap 수신함 도달 ✅
-- [ ] 드라이런 모드 ON → 로그에서 이메일 내용 확인
+```php
+namespace CRMBizNewsletter;
+
+class Settings {
+
+    private const OPTION_KEY = 'crmbiz_nl_settings';
+
+    private array $data;
+
+    public function __construct() {
+        $this->data = get_option(self::OPTION_KEY, []);
+    }
+
+    public function get(string $key, $default = null) {
+        return $this->data[$key] ?? $default;
+    }
+
+    public function set(string $key, $value): void {
+        $this->data[$key] = $value;
+        update_option(self::OPTION_KEY, $this->data);
+    }
+
+    // 발신자 설정 (FluentCRM 전역 설정 우선 사용)
+    public function getFromName(): string {
+        $custom = $this->get('from_name');
+        if ($custom) return $custom;
+
+        if (FluentCRMBridge::isAvailable()) {
+            $fcSettings = \FluentCrm\App\Services\Helper::getGlobalEmailSettings();
+            return $fcSettings['from_name'] ?? get_bloginfo('name');
+        }
+        return get_bloginfo('name');
+    }
+
+    public function getFromEmail(): string {
+        $custom = $this->get('from_email');
+        if ($custom) return $custom;
+
+        if (FluentCRMBridge::isAvailable()) {
+            $fcSettings = \FluentCrm\App\Services\Helper::getGlobalEmailSettings();
+            return $fcSettings['from_email'] ?? get_option('admin_email');
+        }
+        return get_option('admin_email');
+    }
+
+    public function isDryRun(): bool {
+        return (bool) $this->get('dry_run', false);
+    }
+
+    public function isDebugMode(): bool {
+        return (bool) $this->get('debug_mode', false);
+    }
+}
+```
 
 ---
 
-## 검증 시나리오
+## DiagnosticsPage.php — 진단 대시보드
 
-**시나리오 A (Mailtrap Mock 테스트)**
+### 체크 항목
 
-1. FluentSMTP에 Mailtrap SMTP 설정
-2. 드라이런 OFF
-3. 진단 페이지 → 테스트 이메일 발송
-4. Mailtrap 받은편지함에서 이메일 확인
+| 항목 | 확인 방법 |
+|---|---|
+| FluentCRM 활성 여부 | `defined('FLUENTCRM')` |
+| FluentSMTP 활성 여부 | `defined('FLUENTMAIL')` 또는 `class_exists('FluentMail\...')` |
+| FluentCRM 연락처 수 | `FluentCrmApi('contacts')->getInstance()->count()` |
+| 태그 목록 조회 | `FluentCRMBridge::getTagsForSelect()` |
+| 테스트 이메일 발송 | AJAX → `wp_mail()` 직접 호출 |
+| Dry-run 모드 표시 | `Settings::isDryRun()` |
 
-**시나리오 B (드라이런 로그 확인)**
+### AJAX 테스트 이메일 핸들러
 
-1. 드라이런 ON
-2. 진단 페이지 → 테스트 이메일 발송
-3. WordPress error_log에서 이메일 내용 확인
-4. 실제 이메일은 발송되지 않음 확인
+```php
+// Plugin.php 훅 등록
+add_action('wp_ajax_crmbiz_nl_test_email', [$this, 'handleTestEmail']);
+
+public function handleTestEmail(): void {
+    check_ajax_referer('crmbiz_nl_diagnostics', 'nonce');
+
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('권한 없음');
+    }
+
+    $to      = sanitize_email($_POST['test_email'] ?? '');
+    $subject = '[테스트] CRMBiz Newsletter 이메일 발송 테스트';
+    $body    = '<h1>테스트 성공</h1><p>FluentSMTP를 통해 정상 발송됨.</p>';
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+    if ($this->settings->isDryRun()) {
+        \FluentCrm\App\Services\Helper::debugLog(
+            'CRMBiz Newsletter',
+            'DRY-RUN: 테스트 이메일 건너뜀. To: ' . $to
+        );
+        wp_send_json_success(['dry_run' => true, 'to' => $to]);
+        return;
+    }
+
+    $result = wp_mail($to, $subject, $body, $headers);
+    wp_send_json($result
+        ? ['success' => true,  'message' => '발송 성공: ' . $to]
+        : ['success' => false, 'message' => '발송 실패. FluentSMTP 설정을 확인하세요.']
+    );
+}
+```
+
+---
+
+## Database.php — 테이블 생성
+
+```php
+namespace CRMBizNewsletter;
+
+class Database {
+
+    public static function install(): void {
+        global $wpdb;
+        $charset = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE {$wpdb->prefix}crmbiz_newsletters (
+            id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            post_id         BIGINT UNSIGNED NOT NULL,
+            status          VARCHAR(20) NOT NULL DEFAULT 'draft',
+            send_mode       VARCHAR(20) NOT NULL DEFAULT 'immediate',
+            scheduled_at    DATETIME NULL,
+            sent_at         DATETIME NULL,
+            recipient_count INT UNSIGNED DEFAULT 0,
+            success_count   INT UNSIGNED DEFAULT 0,
+            fail_count      INT UNSIGNED DEFAULT 0,
+            tag_ids         TEXT,
+            list_ids        TEXT,
+            error_log       TEXT,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_post_id (post_id),
+            INDEX idx_status  (status)
+        ) $charset;
+
+        CREATE TABLE {$wpdb->prefix}crmbiz_nl_unsubscribers (
+            id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            email           VARCHAR(191) NOT NULL,
+            unsubscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            token_used      VARCHAR(64),
+            UNIQUE KEY uq_email (email)
+        ) $charset;";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+
+        update_option('crmbiz_nl_db_version', '1.0.0');
+    }
+}
+```
+
+---
+
+## Phase 0 완료 기준
+
+- [ ] 플러그인 활성화 시 오류 없이 테이블 생성됨
+- [ ] 진단 페이지에서 FluentCRM 상태 초록불
+- [ ] 진단 페이지에서 FluentSMTP 상태 초록불
+- [ ] 테스트 이메일이 Mailtrap에 수신됨
+- [ ] Dry-run 모드에서 실제 발송 없이 로그 기록됨
+- [ ] 설정 저장/불러오기 정상 동작

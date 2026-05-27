@@ -1,94 +1,240 @@
-# CRMBiz Newsletter — 마스터 플랜
+# CRMBiz Newsletter — Master Plan (v2.0)
 
-> 작성일: 2026-05-27  
-> 리포지토리: pureugong/crmbiz-newsletter
-
----
-
-## 이 플러그인이 해결하는 문제
-
-**현재 FluentCRM 사용 시 고통**
-
-```
-[지금]
-포스트 작성 → 발행 → FluentCRM으로 이동 → 캠페인 생성
-→ 내용 다시 작성 (이중 작업!) → 수신자 선택 → 발송
-
-[플러그인 적용 후]
-포스트 작성 → 메타박스에서 ☑ 뉴스레터 발송 + 태그 선택 → 발행
-→ 끝. 포스트가 곧 이메일.
-```
-
-Ghost로 갈아타고 싶은 이유가 정확히 이것: **포스트 = 뉴스레터** 자동화.  
-이 플러그인은 WordPress에서 Ghost의 그 경험을 제공합니다.
+> FluentCRM 소스코드 분석 기반 고도화 버전 (2026-05-28)
 
 ---
 
-## 핵심 원칙
+## 핵심 목표
 
-| 원칙 | 내용 |
-|------|------|
-| **FluentCRM 역할** | 수신자 DB 조회만 (태그/리스트로 이메일·이름 가져오기) |
-| **이메일 발송** | `wp_mail()` → FluentSMTP가 SMTP 처리 |
-| **발송 이력·수신거부** | 플러그인 자체 DB에서 관리 |
-| **캠페인 생성 없음** | FluentCRM 캠페인 화면은 전혀 사용하지 않음 |
+**"포스트 작성 → ☑ 뉴스레터 발송 → 발행"**
 
-> **FluentCRM은 단지 연락처 주소록으로만 사용합니다.**  
-> FluentCRM에서 캠페인 만들거나 이메일 작성할 필요가 전혀 없습니다.  
-> 포스트 편집기를 벗어날 필요가 없습니다.
+Ghost의 UX를 WordPress에서 구현. FluentCRM은 연락처 DB 전용으로만 사용하고, 발송·이력·수신거부는 플러그인이 독립 관리.
 
 ---
 
-## 이메일 발송 인프라
+## FluentCRM 연동 전략 (소스 분석 결과)
 
-`wp_mail()` → FluentSMTP를 사용합니다.
+### 공식 API 진입점
 
-**FluentSMTP 연동 가능 서비스**
-
-| 서비스 | Rate Limit | 추천 규모 |
-|--------|------------|-----------|
-| **AWS SES** | 초당 14~200통 | 1만+ 구독자 |
-| **SendGrid** | 충분 | 소규모 시작 |
-| **Mailgun** | 충분 | 중소규모 |
-| **Gmail SMTP** | 500통/일 | 테스트 전용 |
-| **Mailtrap** | — | Mock 테스트 전용 |
-
-**MVP 추천**: Mailtrap(Mock 테스트) → SendGrid 또는 Mailgun(실제 발송)
-
----
-
-## Rate Limiting 해결 방법
-
-`wp_mail()` 루프 직접 실행의 문제:
-- 포스트 발행 시 브라우저가 수십 초 멈춤
-- SMTP 서버 한도 초과 시 중간 실패
-- 실패해도 재시도 없음
-
-**해결: WP Cron 배치 큐 (Phase 2)**
-
-```
-포스트 발행 → DB에 "발송 대기" 저장 → wp_schedule_single_event() → 브라우저 즉시 응답
-
-[WP Cron 실행 (1분 이내)]
-수신자 목록을 25통 배치로 분할
-배치 1 발송 → 1초 대기 → 배치 2 발송 → ... → 완료
+```php
+// 모든 FluentCRM 연동은 공식 API 함수를 통해
+FluentCrmApi('contacts')  // Contacts 클래스
+FluentCrmApi('tags')      // Tags 클래스
+FluentCrmApi('lists')     // Lists 클래스
 ```
 
+### 수신자 조회 — ContactsQuery 사용 (핵심)
+
+```php
+use FluentCrm\App\Services\ContactsQuery;
+
+$query = new ContactsQuery([
+    'tags'     => [1, 2, 3],       // 태그 ID 배열
+    'lists'    => [4, 5],          // 리스트 ID 배열
+    'statuses' => ['subscribed'],  // 구독 상태 필터 (필수)
+    'limit'    => 100,             // 배치 크기
+    'offset'   => 0,               // 페이지 오프셋
+]);
+
+$subscribers = $query->get();   // Subscriber 컬렉션 반환
+$total       = $query->getModel()->count();
+```
+
+- `tags` + `lists` 동시 지정 시 OR 조건으로 합산
+- `statuses: ['subscribed']` 필수 — unsubscribed/bounced 자동 제외
+- `limit/offset`으로 배치 분할 (Phase 2 큐 시스템의 기반)
+
+### 수신자 수 미리보기
+
+```php
+// 태그별 구독자 수
+$tag = FluentCrmApi('tags')->find($tagId);
+$count = $tag->countByStatus('subscribed');
+
+// 리스트별 구독자 수
+$list = FluentCrmApi('lists')->find($listId);
+$count = $list->countByStatus('subscribed');
+```
+
+### 이메일 개인화 — 스마트 코드 파싱
+
+```php
+// FluentCRM 내장 파서 활용
+$personalizedHtml = apply_filters(
+    'fluent_crm/parse_campaign_email_text',
+    $rawHtml,
+    $subscriber  // Subscriber 모델 인스턴스
+);
+
+// 사용 가능한 머지 태그
+// {{first_name}}, {{last_name}}, {{email}}
+// {{business.name}}, {{business.url}}
+// Helper::getGlobalSmartCodes() 로 전체 목록 조회
+```
+
+### 전역 이메일 설정 조회
+
+```php
+use FluentCrm\App\Services\Helper;
+
+$emailSettings = Helper::getGlobalEmailSettings();
+// 반환: from_name, from_email, reply_to 등
+```
+
+### FluentCRM 이벤트 훅 연동
+
+| FluentCRM 훅 | 트리거 시점 | 우리 플러그인 대응 |
+|---|---|---|
+| `fluentcrm_after_subscribers_deleted` | 연락처 삭제 | 수신거부 레코드 정리 |
+| `fluentcrm_subscriber_status_to_subscribed` | 재구독 발생 | 수신거부 테이블에서 제거 |
+| `fluent_crm/parse_campaign_email_text` | (필터) | 머지 태그 파싱에 재사용 |
+
 ---
 
-## 전체 로드맵
+## 아키텍처 다이어그램
 
-| Phase | 기간 | 목표 | 핵심 |
-|-------|------|------|------|
-| **Phase 0** | 1~2주 | 이메일 1통 확실히 도달 검증 | 진단 페이지 + Mailtrap Mock |
-| **Phase 1** | 2~3주 | 포스트 발행 시 5~20명 발송 성공 | 메타박스 + FluentCRM + 즉시 발송 |
-| **Phase 2** | 2~3주 | 100~1,000명 안정 발송 | WP Cron 배치 큐 + 예약 발송 |
-| **Phase 3** | 이후 | 오픈 추적, 재발송, 구독 폼 | 고급 기능 |
+```
+WordPress Post
+      │
+      ▼ (transition_post_status)
+ CRMBiz_Hooks
+      │
+      ├─→ [메타 플래그 확인] → 비활성이면 종료
+      │
+      ▼
+ NewsletterSender
+      │
+      ├─→ ContactsQuery (tag_ids + list_ids + status=subscribed)
+      │         └─→ FluentCRM fc_subscribers / fc_subscriber_pivot
+      │
+      ├─→ [수신거부 테이블 교차 제외]
+      │         └─→ wp_crmbiz_nl_unsubscribers
+      │
+      ├─→ EmailTemplateRenderer
+      │         ├─→ apply_filters('fluent_crm/parse_campaign_email_text')
+      │         └─→ Helper::getEmailFooterContent()
+      │
+      └─→ wp_mail() × N명
+                └─→ FluentSMTP (SMTP 배달)
+```
 
 ---
 
-## 세부 페이즈 문서
+## 데이터베이스 스키마
 
-- [Phase 0: Foundation & Email Diagnostics](./phase-0-diagnostics.md)
-- [Phase 1: WordPress MVP](./phase-1-mvp.md)
-- [Phase 2: 큐 + Rate Limiting 안정화](./phase-2-queue.md)
+### wp_crmbiz_newsletters
+
+```sql
+CREATE TABLE wp_crmbiz_newsletters (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    post_id         BIGINT UNSIGNED NOT NULL,
+    status          ENUM('draft','pending','sending','sent','failed','scheduled') DEFAULT 'draft',
+    send_mode       ENUM('immediate','manual','scheduled') DEFAULT 'immediate',
+    scheduled_at    DATETIME NULL,
+    sent_at         DATETIME NULL,
+    recipient_count INT UNSIGNED DEFAULT 0,
+    success_count   INT UNSIGNED DEFAULT 0,
+    fail_count      INT UNSIGNED DEFAULT 0,
+    tag_ids         TEXT,   -- JSON: FluentCRM tag ID 배열
+    list_ids        TEXT,   -- JSON: FluentCRM list ID 배열
+    error_log       TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_post_id (post_id),
+    INDEX idx_status  (status)
+);
+```
+
+### wp_crmbiz_nl_queue (Phase 2 추가)
+
+```sql
+CREATE TABLE wp_crmbiz_nl_queue (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    newsletter_id   BIGINT UNSIGNED NOT NULL,
+    subscriber_email VARCHAR(191) NOT NULL,
+    subscriber_name  VARCHAR(191),
+    status          ENUM('pending','sent','failed') DEFAULT 'pending',
+    attempts        TINYINT UNSIGNED DEFAULT 0,
+    error_message   TEXT,
+    scheduled_at    DATETIME NULL,
+    processed_at    DATETIME NULL,
+    INDEX idx_newsletter_status (newsletter_id, status),
+    INDEX idx_scheduled (scheduled_at)
+);
+```
+
+### wp_crmbiz_nl_unsubscribers
+
+```sql
+CREATE TABLE wp_crmbiz_nl_unsubscribers (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email           VARCHAR(191) NOT NULL,
+    unsubscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    token_used      VARCHAR(64),
+    UNIQUE KEY uq_email (email)
+);
+```
+
+---
+
+## 클래스 구조
+
+```
+crmbiz-newsletter/
+├── crmbiz-newsletter.php          # 플러그인 진입점
+├── autoload.php                   # PSR-4 오토로더
+└── src/
+    ├── Plugin.php                 # 싱글톤, 훅 등록
+    ├── Settings.php               # 설정 래퍼 (get_option 타입 안전)
+    ├── Database.php               # 테이블 생성/업그레이드
+    ├── FluentCRMBridge.php        # FluentCRM API 래퍼 (단일 접점)
+    ├── NewsletterSender.php       # 발송 오케스트레이터
+    ├── EmailTemplateRenderer.php  # 포스트 → HTML 이메일
+    ├── UnsubscribeHandler.php     # HMAC 토큰 수신거부 처리
+    ├── Queue/
+    │   ├── QueueManager.php       # WP Cron 배치 관리 (Phase 2)
+    │   └── BatchProcessor.php     # 배치 실행 (Phase 2)
+    └── Admin/
+        ├── SettingsPage.php       # 설정 페이지
+        ├── HistoryPage.php        # 발송 이력 페이지
+        ├── DiagnosticsPage.php    # 진단 대시보드 (Phase 0)
+        └── MetaBox.php            # 포스트 편집 메타박스
+```
+
+---
+
+## 보안 원칙
+
+| 위협 | 대응 |
+|---|---|
+| SQL Injection | 모든 쿼리 `$wpdb->prepare()` 사용 |
+| XSS | `esc_html()`, `wp_kses_post()` 출력 이스케이핑 |
+| CSRF | 모든 폼/AJAX에 `wp_nonce_verify()` |
+| 수신거부 위조 | HMAC-SHA256 토큰 (`hash_hmac('sha256', $email, NONCE_KEY)`) |
+| HTML 이메일 인젝션 | `Helper::sanitizeHtml()` 또는 `wp_kses_post()` |
+| 컴플라이언스 | `Helper::hasComplianceText()` 로 수신거부 링크 존재 검증 |
+
+---
+
+## 개발 단계 요약
+
+| Phase | 목표 | 핵심 구현 |
+|---|---|---|
+| 0 | 기반 + 진단 | 플러그인 뼈대, 설정 페이지, 테스트 이메일 발송 |
+| 1 | MVP | 메타박스, ContactsQuery 연동, wp_mail 발송, 수신거부 |
+| 2 | 큐 | WP Cron 배치, Queue 테이블, 재시도 로직 |
+| 3 | 고급 기능 | 오픈 추적, 클릭 추적, 재구독 폼 |
+
+---
+
+## SMTP 프로바이더 선택 가이드
+
+| 규모 | 추천 서비스 | 무료 한도 |
+|---|---|---|
+| 테스트 | Mailtrap | 무제한 (인터셉트) |
+| ~100명/일 | Gmail SMTP (FluentSMTP) | 500/일 |
+| ~500명/일 | SendGrid / Mailgun | 100/일 무료 |
+| 1,000명+ | AWS SES | $0.10/1,000건 |
+| 10,000명+ | AWS SES + 전용 IP | 요금제 |
+
+> AWS SES는 샌드박스 승인 1-2일 필요. 프로덕션 전환 미리 신청 필수.
