@@ -97,8 +97,13 @@ class EmailTemplateRenderer {
 
   <!-- 헤더 -->
   <tr>
-    <td style="background:#1a1a2e;padding:20px 32px">
-      <a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a>
+    <td style="background:#1a1a2e;padding:16px 32px;display:flex;justify-content:space-between;align-items:center">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td><a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a></td>
+          <td align="right"><a href="' . $postUrl . '" style="color:#a5b4fc;text-decoration:none;font-size:12px">웹에서 보기 →</a></td>
+        </tr>
+      </table>
     </td>
   </tr>
 
@@ -109,12 +114,6 @@ class EmailTemplateRenderer {
       <h1 style="margin:0 0 8px;font-size:26px;font-weight:700;color:#111827;line-height:1.3">' . $postTitle . '</h1>
       <p style="margin:0 0 24px;font-size:13px;color:#9ca3af">' . $postDate . '</p>
       <div style="font-size:16px;line-height:1.7;color:#374151">' . $content . '</div>
-
-      <div style="margin-top:28px">
-        <a href="' . $postUrl . '" style="display:inline-block;background:#1a1a2e;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">
-          웹에서 보기 →
-        </a>
-      </div>
 
       ' . $recentSection . '
     </td>
