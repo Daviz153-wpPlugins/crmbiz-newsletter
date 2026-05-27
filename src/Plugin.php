@@ -123,6 +123,15 @@ class Plugin {
     public function savePostMeta(int $postId): void {
         (new MetaBox($this->settings))->savePostMeta($postId);
 
+        // 리비전·자동저장·페이지 등 제외 — post 타입만 처리
+        if (wp_is_post_revision($postId)) {
+            return;
+        }
+        $post = get_post($postId);
+        if (!$post || $post->post_type !== 'post') {
+            return;
+        }
+
         // Gutenberg 경쟁 조건 보완:
         // REST API가 먼저 publish 상태로 바꾼 뒤 메타박스가 저장되므로,
         // save_post 시점에 "이미 발행된 포스트 + 뉴스레터 활성 + DB 레코드 없음" 이면 여기서 처리
@@ -266,8 +275,23 @@ class Plugin {
             wp_send_json_error(['message' => '레코드를 찾을 수 없습니다.']);
         }
 
-        $sender = new NewsletterSender($this->settings);
-        $sender->sendForPost((int) $record->post_id);
+        if (!FluentCRMBridge::isAvailable()) {
+            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
+        }
+
+        $postId = (int) $record->post_id;
+        $post   = get_post($postId);
+        if (!$post) {
+            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+        }
+
+        $tagIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
+        $listIds = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
+        if (empty($tagIds) && empty($listIds)) {
+            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
+        }
+
+        (new NewsletterSender($this->settings))->sendForPost($postId);
 
         wp_send_json_success(['message' => '재발송이 완료되었습니다.']);
     }
