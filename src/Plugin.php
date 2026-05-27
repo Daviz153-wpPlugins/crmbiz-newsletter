@@ -112,6 +112,38 @@ class Plugin {
 
     public function savePostMeta(int $postId): void {
         (new MetaBox($this->settings))->savePostMeta($postId);
+
+        // Gutenberg 경쟁 조건 보완:
+        // REST API가 먼저 publish 상태로 바꾼 뒤 메타박스가 저장되므로,
+        // save_post 시점에 "이미 발행된 포스트 + 뉴스레터 활성 + DB 레코드 없음" 이면 여기서 처리
+        if (get_post_status($postId) !== 'publish') {
+            return;
+        }
+        if (!get_post_meta($postId, '_crmbiz_nl_enabled', true)) {
+            return;
+        }
+        if ($this->newsletterRecordExists($postId)) {
+            return;
+        }
+
+        $sendMode = get_post_meta($postId, '_crmbiz_nl_send_mode', true) ?: 'immediate';
+        $sender   = new NewsletterSender($this->settings);
+
+        if ($sendMode === 'immediate') {
+            $sender->sendForPost($postId);
+        } elseif ($sendMode === 'manual') {
+            $sender->createDraftRecord($postId);
+        }
+    }
+
+    private function newsletterRecordExists(int $postId): bool {
+        global $wpdb;
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}crmbiz_newsletters WHERE post_id = %d LIMIT 1",
+                $postId
+            )
+        );
     }
 
     // -------------------------------------------------------------------------
