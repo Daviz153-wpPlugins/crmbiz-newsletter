@@ -31,7 +31,7 @@ class FluentCRMBridge {
         }
         try {
             return (int) FluentCrmApi('contacts')->getInstance()->count();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return 0;
         }
     }
@@ -41,12 +41,12 @@ class FluentCRMBridge {
             return [];
         }
         try {
-            $tags = FluentCrmApi('tags')->all()->get();
+            $tags = FluentCrmApi('tags')->get();
             return array_map(fn($t) => [
                 'id'    => (int) $t->id,
                 'label' => $t->title . ' (' . $t->countByStatus('subscribed') . '명)',
             ], $tags->toArray());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return [];
         }
     }
@@ -56,12 +56,12 @@ class FluentCRMBridge {
             return [];
         }
         try {
-            $lists = FluentCrmApi('lists')->all()->get();
+            $lists = FluentCrmApi('lists')->get();
             return array_map(fn($l) => [
                 'id'    => (int) $l->id,
                 'label' => $l->title . ' (' . $l->countByStatus('subscribed') . '명)',
             ], $lists->toArray());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return [];
         }
     }
@@ -72,7 +72,7 @@ class FluentCRMBridge {
         }
         try {
             return \FluentCrm\App\Services\Helper::getGlobalEmailSettings();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return [];
         }
     }
@@ -83,7 +83,7 @@ class FluentCRMBridge {
         }
         try {
             \FluentCrm\App\Services\Helper::debugLog($title, $description);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // FluentCRM 로그 불가 시 무시
         }
     }

@@ -137,7 +137,7 @@ class MetaBox {
                 </div>
 
                 <!-- HTML 미리보기 -->
-                <a href="<?php echo esc_url(add_query_arg(['crmbiz_nl_preview' => 1, 'post_id' => $post->ID, 'nonce' => wp_create_nonce('crmbiz_nl_preview_' . $post->ID)], admin_url('admin-ajax.php'))); ?>"
+                <a href="<?php echo esc_url(add_query_arg(['action' => 'crmbiz_nl_preview_email', 'post_id' => $post->ID, 'nonce' => wp_create_nonce('crmbiz_nl_preview_' . $post->ID)], admin_url('admin-ajax.php'))); ?>"
                    target="_blank"
                    style="display:inline-block;font-size:12px;color:#1a56db;text-decoration:none;border:1px solid #1a56db;border-radius:4px;padding:4px 10px">
                     HTML 미리보기 ↗

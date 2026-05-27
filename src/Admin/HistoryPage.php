@@ -61,9 +61,9 @@ class HistoryPage {
                         <td>
                             <!-- 미리보기 -->
                             <a href="<?php echo esc_url(add_query_arg([
-                                'crmbiz_nl_preview' => 1,
-                                'post_id'           => $row->post_id,
-                                'nonce'             => wp_create_nonce('crmbiz_nl_preview_' . $row->post_id),
+                                'action'  => 'crmbiz_nl_preview_email',
+                                'post_id' => $row->post_id,
+                                'nonce'   => wp_create_nonce('crmbiz_nl_preview_' . $row->post_id),
                             ], admin_url('admin-ajax.php'))); ?>"
                                target="_blank"
                                class="button button-small">미리보기</a>
