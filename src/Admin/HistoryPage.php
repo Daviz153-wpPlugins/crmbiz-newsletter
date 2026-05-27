@@ -77,6 +77,16 @@ class HistoryPage {
                                 발송
                             </button>
                             <?php endif; ?>
+
+                            <!-- 재발송 버튼 (sent/failed 상태) -->
+                            <?php if (in_array($row->status, ['sent', 'failed'], true)): ?>
+                            <button type="button"
+                                    class="button button-small crmbiz-resend"
+                                    data-id="<?php echo esc_attr($row->id); ?>"
+                                    style="margin-left:4px">
+                                재발송
+                            </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -90,6 +100,32 @@ class HistoryPage {
         (function($) {
             var ajaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
             var nonce   = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
+
+            $(document).on('click', '.crmbiz-resend', function() {
+                var $btn = $(this);
+                var id   = $btn.data('id');
+
+                if (!confirm('같은 수신자에게 다시 발송합니다. 계속하시겠습니까?')) return;
+
+                $btn.prop('disabled', true).text('발송 중...');
+
+                $.post(ajaxUrl, {
+                    action:        'crmbiz_nl_resend',
+                    nonce:         nonce,
+                    newsletter_id: id
+                }, function(res) {
+                    if (res.success) {
+                        alert(res.data.message || '재발송 완료');
+                        location.reload();
+                    } else {
+                        alert('오류: ' + (res.data && res.data.message ? res.data.message : '재발송 실패'));
+                        $btn.prop('disabled', false).text('재발송');
+                    }
+                }).fail(function() {
+                    alert('서버 오류가 발생했습니다.');
+                    $btn.prop('disabled', false).text('재발송');
+                });
+            });
 
             $(document).on('click', '.crmbiz-manual-send', function() {
                 var $btn = $(this);

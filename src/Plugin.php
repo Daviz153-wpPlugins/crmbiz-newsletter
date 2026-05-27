@@ -33,6 +33,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_test_email',       [$this, 'handleTestEmail']);
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$this, 'handleCountRecipients']);
         add_action('wp_ajax_crmbiz_nl_manual_send',      [$this, 'handleManualSend']);
+        add_action('wp_ajax_crmbiz_nl_resend',           [$this, 'handleResend']);
 
         // 미리보기는 admin-ajax.php GET 요청으로 처리
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$this, 'handlePreviewEmail']);
@@ -229,6 +230,37 @@ class Plugin {
         $result['success']
             ? wp_send_json_success($result)
             : wp_send_json_error($result);
+    }
+
+    public function handleResend(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        global $wpdb;
+        $record = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+                $newsletterId
+            )
+        );
+
+        if (!$record) {
+            wp_send_json_error(['message' => '레코드를 찾을 수 없습니다.']);
+        }
+
+        $sender = new NewsletterSender($this->settings);
+        $sender->sendForPost((int) $record->post_id);
+
+        wp_send_json_success(['message' => '재발송이 완료되었습니다.']);
     }
 
     public function handlePreviewEmail(): void {
