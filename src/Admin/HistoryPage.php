@@ -102,7 +102,7 @@ class HistoryPage {
                             </button>
                             <?php endif; ?>
 
-                            <!-- 발송 로그 -->
+                            <!-- 발송 로그 (AJAX 로드) -->
                             <button type="button"
                                     class="button button-small crmbiz-show-log"
                                     data-id="<?php echo esc_attr($row->id); ?>"
@@ -111,7 +111,6 @@ class HistoryPage {
                             </button>
                             <div id="crmbiz-log-<?php echo esc_attr($row->id); ?>"
                                  style="display:none;margin-top:8px;font-size:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;max-height:200px;overflow-y:auto">
-                                <?php echo $this->renderLog((int) $row->id); ?>
                             </div>
                         </td>
                     </tr>
@@ -127,11 +126,43 @@ class HistoryPage {
             var ajaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
             var nonce   = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
 
+            var logNonce = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_get_log')); ?>;
+
             $(document).on('click', '.crmbiz-show-log', function() {
-                var id  = $(this).data('id');
+                var $btn = $(this);
+                var id   = $btn.data('id');
                 var $log = $('#crmbiz-log-' + id);
-                $log.toggle();
-                $(this).text($log.is(':visible') ? '닫기' : '로그');
+
+                if ($log.is(':visible')) {
+                    $log.hide();
+                    $btn.text('로그');
+                    return;
+                }
+
+                // 이미 로드된 경우 그냥 표시
+                if ($log.data('loaded')) {
+                    $log.show();
+                    $btn.text('닫기');
+                    return;
+                }
+
+                $btn.prop('disabled', true).text('로딩...');
+                $.post(ajaxUrl, {
+                    action:        'crmbiz_nl_get_log',
+                    nonce:         logNonce,
+                    newsletter_id: id
+                }, function(res) {
+                    $btn.prop('disabled', false);
+                    if (res.success) {
+                        $log.html(res.data.html).data('loaded', true).show();
+                        $btn.text('닫기');
+                    } else {
+                        $log.html('<p style="margin:0;color:#842029">로그 로드 실패</p>').show();
+                        $btn.text('닫기');
+                    }
+                }).fail(function() {
+                    $btn.prop('disabled', false).text('로그');
+                });
             });
 
             $(document).on('click', '.crmbiz-resend', function() {
@@ -188,6 +219,10 @@ class HistoryPage {
         })(jQuery);
         </script>
         <?php
+    }
+
+    public function renderLogPublic(int $newsletterId): string {
+        return $this->renderLog($newsletterId);
     }
 
     private function renderLog(int $newsletterId): string {

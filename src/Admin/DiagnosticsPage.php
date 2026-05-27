@@ -201,6 +201,7 @@ class DiagnosticsPage {
         $badge = $ok
             ? '<span style="color:#0f5132;background:#d1e7dd;padding:2px 8px;border-radius:3px;font-size:12px">정상</span>'
             : '<span style="color:#842029;background:#f8d7da;padding:2px 8px;border-radius:3px;font-size:12px">확인 필요</span>';
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $badge는 내부 생성 HTML, 값은 esc_attr 처리됨
         printf(
             '<tr><td>%s</td><td>%s</td><td>%s</td></tr>',
             esc_html($label),

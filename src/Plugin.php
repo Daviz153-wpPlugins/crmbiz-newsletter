@@ -42,6 +42,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$this, 'handleCountRecipients']);
         add_action('wp_ajax_crmbiz_nl_manual_send',      [$this, 'handleManualSend']);
         add_action('wp_ajax_crmbiz_nl_resend',           [$this, 'handleResend']);
+        add_action('wp_ajax_crmbiz_nl_get_log',          [$this, 'handleGetLog']);
 
         // 미리보기는 admin-ajax.php GET 요청으로 처리
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$this, 'handlePreviewEmail']);
@@ -269,6 +270,22 @@ class Plugin {
         $sender->sendForPost((int) $record->post_id);
 
         wp_send_json_success(['message' => '재발송이 완료되었습니다.']);
+    }
+
+    public function handleGetLog(): void {
+        if (!check_ajax_referer('crmbiz_nl_get_log', 'nonce', false)) {
+            wp_send_json_error([], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error([]);
+        }
+
+        wp_send_json_success(['html' => (new Admin\HistoryPage())->renderLogPublic($newsletterId)]);
     }
 
     public function handlePreviewEmail(): void {

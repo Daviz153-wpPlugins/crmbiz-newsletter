@@ -24,7 +24,7 @@ class TrackingHandler {
         $email        = sanitize_email($_GET['e'] ?? '');
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
-        if ($newsletterId && $email && $this->verifyToken($newsletterId, $email, $token)) {
+        if ($newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token)) {
             $this->recordEvent($newsletterId, $email, 'open', null);
         }
 
@@ -43,16 +43,25 @@ class TrackingHandler {
         $token        = sanitize_text_field($_GET['t'] ?? '');
         $url          = $_GET['url'] ?? '';
 
-        if ($newsletterId && $email && $this->verifyToken($newsletterId, $email, $token) && $url) {
+        // 토큰 검증 성공 시에만 $url로 리디렉트 — 오픈 리디렉트 방지
+        if ($newsletterId && $email && $url && $this->verifyClickToken($newsletterId, $email, $url, $token)) {
             $this->recordEvent($newsletterId, $email, 'click', $url);
+            wp_redirect(esc_url_raw($url));
+        } else {
+            wp_redirect(home_url('/'));
         }
-
-        wp_redirect($url ? esc_url_raw($url) : home_url('/'));
         exit;
     }
 
-    private function verifyToken(int $newsletterId, string $email, string $token): bool {
-        $expected = hash_hmac('sha256', $newsletterId . '|' . $email, wp_salt('auth'));
+    // 오픈 토큰: newsletter_id + email 기반
+    private function verifyOpenToken(int $newsletterId, string $email, string $token): bool {
+        $expected = hash_hmac('sha256', "open:{$newsletterId}|{$email}", wp_salt('auth'));
+        return hash_equals($expected, $token);
+    }
+
+    // 클릭 토큰: newsletter_id + email + 목적지 URL 포함 — URL 변조 방지
+    private function verifyClickToken(int $newsletterId, string $email, string $url, string $token): bool {
+        $expected = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$url}", wp_salt('auth'));
         return hash_equals($expected, $token);
     }
 
@@ -86,25 +95,23 @@ class TrackingHandler {
         );
     }
 
-    public static function buildToken(int $newsletterId, string $email): string {
-        return hash_hmac('sha256', $newsletterId . '|' . $email, wp_salt('auth'));
-    }
-
     public static function buildPixelUrl(int $newsletterId, string $email): string {
+        $token = hash_hmac('sha256', "open:{$newsletterId}|{$email}", wp_salt('auth'));
         return add_query_arg([
             'crmbiz_nl_action' => 'open',
             'nl'               => $newsletterId,
             'e'                => $email,
-            't'                => self::buildToken($newsletterId, $email),
+            't'                => $token,
         ], home_url('/'));
     }
 
     public static function buildClickUrl(int $newsletterId, string $email, string $targetUrl): string {
+        $token = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$targetUrl}", wp_salt('auth'));
         return add_query_arg([
             'crmbiz_nl_action' => 'click',
             'nl'               => $newsletterId,
             'e'                => $email,
-            't'                => self::buildToken($newsletterId, $email),
+            't'                => $token,
             'url'              => $targetUrl,
         ], home_url('/'));
     }
