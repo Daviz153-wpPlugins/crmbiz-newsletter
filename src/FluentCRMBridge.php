@@ -94,13 +94,6 @@ class FluentCRMBridge {
     }
 
     public static function debugLog(string $title, string $description): void {
-        if (!self::isAvailable()) {
-            return;
-        }
-        try {
-            \FluentCrm\App\Services\Helper::debugLog($title, $description);
-        } catch (\Throwable $e) {
-            // FluentCRM 로그 불가 시 무시
-        }
+        error_log('[' . $title . '] ' . $description);
     }
 }
