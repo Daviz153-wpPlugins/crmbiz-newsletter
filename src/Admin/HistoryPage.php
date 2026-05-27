@@ -13,7 +13,9 @@ class HistoryPage {
         global $wpdb;
 
         $rows = $wpdb->get_results(
-            "SELECT n.*, p.post_title
+            "SELECT n.*, p.post_title,
+                (SELECT COUNT(DISTINCT email) FROM {$wpdb->prefix}crmbiz_nl_events WHERE newsletter_id = n.id AND type = 'open') AS open_count,
+                (SELECT COUNT(DISTINCT email) FROM {$wpdb->prefix}crmbiz_nl_events WHERE newsletter_id = n.id AND type = 'click') AS click_count
              FROM {$wpdb->prefix}crmbiz_newsletters n
              LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
              ORDER BY n.created_at DESC
@@ -35,9 +37,11 @@ class HistoryPage {
                         <th style="width:80px">수신자</th>
                         <th style="width:80px">성공</th>
                         <th style="width:80px">실패</th>
+                        <th style="width:70px">오픈</th>
+                        <th style="width:70px">클릭</th>
                         <th style="width:80px">발송 방식</th>
                         <th>발송 일시</th>
-                        <th style="width:160px">액션</th>
+                        <th style="width:200px">액션</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,6 +58,16 @@ class HistoryPage {
                         <td style="color:<?php echo (int) $row->fail_count > 0 ? '#842029' : '#666'; ?>">
                             <?php echo esc_html(number_format((int) $row->fail_count)); ?>
                         </td>
+                        <td style="color:#0f5132">
+                            <?php
+                            $opens   = (int) $row->open_count;
+                            $success = (int) $row->success_count;
+                            $rate    = $success > 0 ? round($opens / $success * 100) : 0;
+                            echo esc_html($opens);
+                            if ($success > 0) echo '<br><span style="font-size:11px;color:#888">' . esc_html($rate) . '%</span>';
+                            ?>
+                        </td>
+                        <td style="color:#1d4ed8"><?php echo esc_html((int) $row->click_count); ?></td>
                         <td><?php echo esc_html($this->sendModeLabel($row->send_mode)); ?></td>
                         <td style="font-size:12px;color:#555">
                             <?php echo esc_html($row->sent_at ?? $row->created_at); ?>
@@ -87,6 +101,18 @@ class HistoryPage {
                                 재발송
                             </button>
                             <?php endif; ?>
+
+                            <!-- 발송 로그 -->
+                            <button type="button"
+                                    class="button button-small crmbiz-show-log"
+                                    data-id="<?php echo esc_attr($row->id); ?>"
+                                    style="margin-left:4px">
+                                로그
+                            </button>
+                            <div id="crmbiz-log-<?php echo esc_attr($row->id); ?>"
+                                 style="display:none;margin-top:8px;font-size:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;max-height:200px;overflow-y:auto">
+                                <?php echo $this->renderLog((int) $row->id); ?>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -100,6 +126,13 @@ class HistoryPage {
         (function($) {
             var ajaxUrl = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
             var nonce   = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
+
+            $(document).on('click', '.crmbiz-show-log', function() {
+                var id  = $(this).data('id');
+                var $log = $('#crmbiz-log-' + id);
+                $log.toggle();
+                $(this).text($log.is(':visible') ? '닫기' : '로그');
+            });
 
             $(document).on('click', '.crmbiz-resend', function() {
                 var $btn = $(this);
@@ -155,6 +188,43 @@ class HistoryPage {
         })(jQuery);
         </script>
         <?php
+    }
+
+    private function renderLog(int $newsletterId): string {
+        global $wpdb;
+        $events = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT email, type, url, occurred_at
+                 FROM {$wpdb->prefix}crmbiz_nl_events
+                 WHERE newsletter_id = %d
+                 ORDER BY occurred_at ASC",
+                $newsletterId
+            )
+        );
+
+        if (empty($events)) {
+            return '<p style="margin:0;color:#888">이벤트 없음</p>';
+        }
+
+        $typeLabel = ['send' => '✉ 발송', 'fail' => '✗ 실패', 'open' => '👁 오픈', 'click' => '🔗 클릭'];
+        $typeColor = ['send' => '#374151', 'fail' => '#842029', 'open' => '#0f5132', 'click' => '#1d4ed8'];
+
+        $html = '<table style="width:100%;border-collapse:collapse">';
+        foreach ($events as $e) {
+            $label = $typeLabel[$e->type] ?? $e->type;
+            $color = $typeColor[$e->type] ?? '#374151';
+            $url   = $e->url ? ' — <a href="' . esc_url($e->url) . '" target="_blank" style="color:#6b7280">' . esc_html(substr($e->url, 0, 50)) . '…</a>' : '';
+            $html .= sprintf(
+                '<tr><td style="padding:2px 8px 2px 0;color:%s;white-space:nowrap">%s</td><td style="padding:2px 8px 2px 0;color:#374151">%s</td><td style="padding:2px 0;color:#9ca3af;font-size:11px">%s%s</td></tr>',
+                esc_attr($color),
+                esc_html($label),
+                esc_html($e->email),
+                esc_html($e->occurred_at),
+                $url
+            );
+        }
+        $html .= '</table>';
+        return $html;
     }
 
     private function statusBadge(string $status): string {

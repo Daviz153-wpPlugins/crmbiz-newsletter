@@ -11,7 +11,7 @@ class EmailTemplateRenderer {
         $this->settings = $settings;
     }
 
-    public function render(\WP_Post $post, $subscriber): string {
+    public function render(\WP_Post $post, $subscriber, int $newsletterId = 0): string {
         // 포스트 콘텐츠 — 블록/쇼트코드 처리
         $content = apply_filters('the_content', $post->post_content);
 
@@ -34,6 +34,11 @@ class EmailTemplateRenderer {
             'site_name'       => get_bloginfo('name'),
             'site_url'        => home_url('/'),
         ]);
+
+        // 트래킹 픽셀 + 링크 치환 (newsletterId가 있을 때만)
+        if ($newsletterId > 0) {
+            $html = $this->injectTracking($html, $newsletterId, $subscriber->email);
+        }
 
         // FluentCRM Helper 로 HTML 정리 — 실패하거나 미사용 시 원본 반환
         // wp_kses_post() 는 <html>/<body>/<table> 등 이메일 구조 태그를 제거하므로 사용 불가
@@ -135,6 +140,27 @@ class EmailTemplateRenderer {
 </table>
 </body>
 </html>';
+    }
+
+    private function injectTracking(string $html, int $newsletterId, string $email): string {
+        // 링크 치환 — unsubscribe·pixel 링크 제외
+        $html = preg_replace_callback(
+            '/href="(https?:\/\/[^"]+)"/i',
+            function ($matches) use ($newsletterId, $email) {
+                $url = $matches[1];
+                if (strpos($url, 'crmbiz_nl_action') !== false) {
+                    return $matches[0];
+                }
+                return 'href="' . esc_url(TrackingHandler::buildClickUrl($newsletterId, $email, $url)) . '"';
+            },
+            $html
+        );
+
+        // 오픈 추적 픽셀 삽입
+        $pixel = '<img src="' . esc_url(TrackingHandler::buildPixelUrl($newsletterId, $email)) . '" width="1" height="1" style="display:none" alt="">';
+        $html  = str_replace('</body>', $pixel . '</body>', $html);
+
+        return $html;
     }
 
     private function getFeaturedImageUrl(\WP_Post $post): string {

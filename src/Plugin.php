@@ -26,6 +26,14 @@ class Plugin {
         // 수신거부 처리 (프론트엔드 포함)
         (new UnsubscribeHandler())->init();
 
+        // 오픈·클릭 추적
+        (new TrackingHandler())->init();
+
+        // DB 버전 업그레이드 (신규 테이블 자동 생성)
+        if (Database::getVersion() !== Database::DB_VERSION) {
+            Database::install();
+        }
+
         // 포스트 발행 훅
         add_action('transition_post_status', [$this, 'onPostPublished'], 10, 3);
 

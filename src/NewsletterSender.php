@@ -50,7 +50,10 @@ class NewsletterSender {
                 continue;
             }
 
-            if ($this->dispatch($post, $subscriber)) {
+            $sent = $this->dispatch($post, $subscriber, $newsletterId);
+            TrackingHandler::recordSend($newsletterId, $subscriber->email, $sent);
+
+            if ($sent) {
                 $success++;
             } else {
                 $fail++;
@@ -112,7 +115,10 @@ class NewsletterSender {
             if (UnsubscribeHandler::isUnsubscribed($subscriber->email)) {
                 continue;
             }
-            if ($this->dispatch($post, $subscriber)) {
+            $sent = $this->dispatch($post, $subscriber, $newsletterId);
+            TrackingHandler::recordSend($newsletterId, $subscriber->email, $sent);
+
+            if ($sent) {
                 $success++;
             } else {
                 $fail++;
@@ -151,8 +157,8 @@ class NewsletterSender {
         }
     }
 
-    private function dispatch(\WP_Post $post, $subscriber): bool {
-        $html = $this->renderer->render($post, $subscriber);
+    private function dispatch(\WP_Post $post, $subscriber, int $newsletterId = 0): bool {
+        $html = $this->renderer->render($post, $subscriber, $newsletterId);
 
         if ($this->settings->isDryRun()) {
             FluentCRMBridge::debugLog(

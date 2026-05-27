@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.0.0';
+    const DB_VERSION = '1.1.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     public static function install(): void {
@@ -41,6 +41,19 @@ class Database {
   token_used VARCHAR(64) NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_email (email)
+) $charset;");
+
+        dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  newsletter_id BIGINT UNSIGNED NOT NULL,
+  email VARCHAR(191) NOT NULL,
+  type VARCHAR(10) NOT NULL,
+  url VARCHAR(2083) DEFAULT NULL,
+  occurred_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_newsletter (newsletter_id),
+  KEY idx_email (email),
+  KEY idx_type (type)
 ) $charset;");
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
