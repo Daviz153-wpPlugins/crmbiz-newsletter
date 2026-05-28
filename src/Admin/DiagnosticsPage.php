@@ -34,7 +34,11 @@ class DiagnosticsPage {
         $defaultEmail   = esc_attr(wp_get_current_user()->user_email ?? '');
         ?>
         <div class="wrap">
-            <h1>CRMBiz Newsletter — 진단</h1>
+            <h1>CRMBiz Newsletter — 진단
+                <span style="font-size:13px;font-weight:400;color:#6b7280;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:2px 8px;margin-left:8px;vertical-align:middle">
+                    v<?php echo esc_html(CRMBIZ_NL_VERSION); ?>
+                </span>
+            </h1>
 
             <?php if ($isDryRun): ?>
                 <div class="notice notice-warning">
@@ -54,6 +58,11 @@ class DiagnosticsPage {
                 </thead>
                 <tbody>
                     <?php
+                    $this->statusRow(
+                        '플러그인 버전',
+                        true,
+                        'v' . CRMBIZ_NL_VERSION . ' (DB v' . Database::getVersion() . ')'
+                    );
                     $this->statusRow(
                         'FluentCRM',
                         $fcAvailable,
