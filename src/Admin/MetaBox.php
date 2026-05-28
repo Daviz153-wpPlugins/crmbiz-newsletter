@@ -75,38 +75,37 @@ class MetaBox {
 
                 <?php if (!empty($tags)): ?>
                 <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:#555">수신 태그</label>
-                    <select name="crmbiz_nl_tag_ids[]"
-                            id="crmbiz_nl_tag_ids"
-                            multiple
-                            style="width:100%;min-height:80px;font-size:12px"
-                            class="crmbiz-recipient-select">
+                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">수신 태그</label>
+                    <div style="max-height:120px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:6px 8px;background:#fafafa">
                         <?php foreach ($tags as $tag): ?>
-                            <option value="<?php echo esc_attr($tag['id']); ?>"
-                                    <?php echo in_array((string) $tag['id'], array_map('strval', $tagIds), true) ? 'selected' : ''; ?>>
-                                <?php echo esc_html($tag['label']); ?>
-                            </option>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:pointer">
+                            <input type="checkbox"
+                                   name="crmbiz_nl_tag_ids[]"
+                                   value="<?php echo esc_attr($tag['id']); ?>"
+                                   class="crmbiz-recipient-check"
+                                   <?php checked(in_array((string) $tag['id'], array_map('strval', $tagIds), true)); ?>>
+                            <?php echo esc_html($tag['label']); ?>
+                        </label>
                         <?php endforeach; ?>
-                    </select>
-                    <p style="font-size:11px;color:#888;margin:2px 0 0">Ctrl+클릭으로 복수 선택</p>
+                    </div>
                 </div>
                 <?php endif; ?>
 
                 <?php if (!empty($lists)): ?>
                 <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:#555">수신 리스트</label>
-                    <select name="crmbiz_nl_list_ids[]"
-                            id="crmbiz_nl_list_ids"
-                            multiple
-                            style="width:100%;min-height:80px;font-size:12px"
-                            class="crmbiz-recipient-select">
+                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">수신 리스트</label>
+                    <div style="max-height:120px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:6px 8px;background:#fafafa">
                         <?php foreach ($lists as $list): ?>
-                            <option value="<?php echo esc_attr($list['id']); ?>"
-                                    <?php echo in_array((string) $list['id'], array_map('strval', $listIds), true) ? 'selected' : ''; ?>>
-                                <?php echo esc_html($list['label']); ?>
-                            </option>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:pointer">
+                            <input type="checkbox"
+                                   name="crmbiz_nl_list_ids[]"
+                                   value="<?php echo esc_attr($list['id']); ?>"
+                                   class="crmbiz-recipient-check"
+                                   <?php checked(in_array((string) $list['id'], array_map('strval', $listIds), true)); ?>>
+                            <?php echo esc_html($list['label']); ?>
+                        </label>
                         <?php endforeach; ?>
-                    </select>
+                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -175,10 +174,8 @@ class MetaBox {
 
             // 수신자 수 조회
             function countRecipients() {
-                var tagEl  = document.getElementById('crmbiz_nl_tag_ids');
-                var listEl = document.getElementById('crmbiz_nl_list_ids');
-                var tagIds  = tagEl  ? Array.from(tagEl.selectedOptions).map(function(o){ return o.value; })  : [];
-                var listIds = listEl ? Array.from(listEl.selectedOptions).map(function(o){ return o.value; }) : [];
+                var tagIds  = Array.from(document.querySelectorAll('[name="crmbiz_nl_tag_ids[]"]:checked')).map(function(o){ return o.value; });
+                var listIds = Array.from(document.querySelectorAll('[name="crmbiz_nl_list_ids[]"]:checked')).map(function(o){ return o.value; });
 
                 if (tagIds.length === 0 && listIds.length === 0) {
                     document.getElementById('crmbiz-recipient-count').style.display = 'none';
@@ -203,7 +200,7 @@ class MetaBox {
                     });
             }
 
-            document.querySelectorAll('.crmbiz-recipient-select').forEach(function(el) {
+            document.querySelectorAll('.crmbiz-recipient-check').forEach(function(el) {
                 el.addEventListener('change', function() {
                     clearTimeout(timer);
                     timer = setTimeout(countRecipients, 300);

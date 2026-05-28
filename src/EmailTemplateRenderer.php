@@ -94,19 +94,42 @@ class EmailTemplateRenderer {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>' . $postTitle . '</title>
+<style>
+  body { margin:0;padding:0;background:#f3f4f6; }
+  img  { max-width:100%;height:auto;display:block; }
+  .nl-outer  { padding:24px 12px !important; }
+  .nl-inner  { width:100% !important;max-width:600px !important; }
+  .nl-hd-td  { padding:14px 20px !important; }
+  .nl-body   { padding:24px 20px !important; }
+  .nl-foot   { padding:16px 20px !important; }
+  .nl-h1     { font-size:22px !important; }
+  /* 본문 이미지 반응형 */
+  .nl-body img, .nl-body table img { max-width:100% !important;height:auto !important; }
+  /* 본문 내 고정폭 테이블 제거 */
+  .nl-body table { max-width:100% !important; }
+  @media only screen and (max-width:620px) {
+    .nl-outer  { padding:0 !important; }
+    .nl-inner  { border-radius:0 !important; }
+    .nl-hd-td  { padding:12px 16px !important; }
+    .nl-body   { padding:20px 16px !important; }
+    .nl-foot   { padding:14px 16px !important; }
+    .nl-h1     { font-size:20px !important; }
+    .nl-web    { display:none !important; }
+  }
+</style>
 </head>
 <body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px">
+<table width="100%" cellpadding="0" cellspacing="0" class="nl-outer" style="background:#f3f4f6;padding:32px 16px">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden">
+<table cellpadding="0" cellspacing="0" class="nl-inner" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden">
 
   <!-- 헤더 -->
   <tr>
-    <td style="background:#1a1a2e;padding:16px 32px;display:flex;justify-content:space-between;align-items:center">
+    <td class="nl-hd-td" style="background:#1a1a2e;padding:16px 32px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td><a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a></td>
-          <td align="right"><a href="' . $postUrl . '" style="color:#a5b4fc;text-decoration:none;font-size:12px">웹에서 보기 →</a></td>
+          <td align="right" class="nl-web"><a href="' . $postUrl . '" style="color:#a5b4fc;text-decoration:none;font-size:12px">웹에서 보기 →</a></td>
         </tr>
       </table>
     </td>
@@ -114,9 +137,9 @@ class EmailTemplateRenderer {
 
   <!-- 본문 -->
   <tr>
-    <td style="padding:32px">
+    <td class="nl-body" style="padding:32px">
       ' . $featuredSection . '
-      <h1 style="margin:0 0 8px;font-size:26px;font-weight:700;color:#111827;line-height:1.3">' . $postTitle . '</h1>
+      <h1 class="nl-h1" style="margin:0 0 8px;font-size:26px;font-weight:700;color:#111827;line-height:1.3">' . $postTitle . '</h1>
       <p style="margin:0 0 24px;font-size:13px;color:#9ca3af">' . $postDate . '</p>
       <div style="font-size:16px;line-height:1.7;color:#374151">' . $content . '</div>
 
@@ -126,7 +149,7 @@ class EmailTemplateRenderer {
 
   <!-- 푸터 -->
   <tr>
-    <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb">
+    <td class="nl-foot" style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb">
       <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
         이 이메일은 <strong>' . $siteName . '</strong> 뉴스레터 구독자에게 발송됩니다.<br>
         더 이상 받지 않으시려면

@@ -10,6 +10,8 @@ defined('ABSPATH') || exit;
 
 class Plugin {
 
+    private const CRON_HOOK = 'crmbiz_nl_send_newsletter';
+
     private static ?self $instance = null;
     private Settings $settings;
 
@@ -23,32 +25,25 @@ class Plugin {
     }
 
     private function registerHooks(): void {
-        // 수신거부 처리 (프론트엔드 포함)
         (new UnsubscribeHandler())->init();
-
-        // 오픈·클릭 추적
         (new TrackingHandler())->init();
 
-        // DB 버전 업그레이드 (신규 테이블 자동 생성)
         if (Database::getVersion() !== Database::DB_VERSION) {
             Database::install();
         }
 
-        // 포스트 발행 훅
         add_action('transition_post_status', [$this, 'onPostPublished'], 10, 3);
+        add_action(self::CRON_HOOK,          [$this, 'handleCronSend']);
 
-        // AJAX
         add_action('wp_ajax_crmbiz_nl_test_email',       [$this, 'handleTestEmail']);
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$this, 'handleCountRecipients']);
         add_action('wp_ajax_crmbiz_nl_manual_send',      [$this, 'handleManualSend']);
         add_action('wp_ajax_crmbiz_nl_resend',           [$this, 'handleResend']);
         add_action('wp_ajax_crmbiz_nl_get_log',          [$this, 'handleGetLog']);
-
-        // 미리보기는 admin-ajax.php GET 요청으로 처리
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$this, 'handlePreviewEmail']);
 
         if (is_admin()) {
-            add_action('admin_menu',    [$this, 'registerAdminPages']);
+            add_action('admin_menu',     [$this, 'registerAdminPages']);
             add_action('add_meta_boxes', [$this, 'registerMetaBox']);
             add_action('save_post',      [$this, 'savePostMeta']);
         }
@@ -69,16 +64,7 @@ class Plugin {
             return;
         }
 
-        $sendMode = get_post_meta($post->ID, '_crmbiz_nl_send_mode', true) ?: 'immediate';
-        $sender   = new NewsletterSender($this->settings);
-
-        if ($sendMode === 'immediate') {
-            $sender->sendForPost($post->ID);
-        } elseif ($sendMode === 'manual') {
-            // draft 레코드만 생성 — HistoryPage에서 수동 발송
-            $sender->createDraftRecord($post->ID);
-        }
-        // scheduled: Phase 2에서 처리
+        $this->dispatchNewsletter($post->ID);
     }
 
     // -------------------------------------------------------------------------
@@ -123,7 +109,6 @@ class Plugin {
     public function savePostMeta(int $postId): void {
         (new MetaBox($this->settings))->savePostMeta($postId);
 
-        // 리비전·자동저장·페이지 등 제외 — post 타입만 처리
         if (wp_is_post_revision($postId)) {
             return;
         }
@@ -132,9 +117,8 @@ class Plugin {
             return;
         }
 
-        // Gutenberg 경쟁 조건 보완:
-        // REST API가 먼저 publish 상태로 바꾼 뒤 메타박스가 저장되므로,
-        // save_post 시점에 "이미 발행된 포스트 + 뉴스레터 활성 + DB 레코드 없음" 이면 여기서 처리
+        // Gutenberg 경쟁 조건 보완: REST API가 publish 전환 후 meta를 저장하므로
+        // save_post 시점에 "발행 + 활성 + 레코드 없음" 이면 여기서 처리
         if (get_post_status($postId) !== 'publish') {
             return;
         }
@@ -145,14 +129,7 @@ class Plugin {
             return;
         }
 
-        $sendMode = get_post_meta($postId, '_crmbiz_nl_send_mode', true) ?: 'immediate';
-        $sender   = new NewsletterSender($this->settings);
-
-        if ($sendMode === 'immediate') {
-            $sender->sendForPost($postId);
-        } elseif ($sendMode === 'manual') {
-            $sender->createDraftRecord($postId);
-        }
+        $this->dispatchNewsletter($postId);
     }
 
     private function newsletterRecordExists(int $postId): bool {
@@ -163,6 +140,60 @@ class Plugin {
                 $postId
             )
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // 발송 디스패치 (Cron 예약)
+    // -------------------------------------------------------------------------
+
+    private function dispatchNewsletter(int $postId): void {
+        $sendMode = get_post_meta($postId, '_crmbiz_nl_send_mode', true) ?: 'immediate';
+        $sender   = new NewsletterSender($this->settings);
+
+        if ($sendMode === 'immediate') {
+            $newsletterId = $sender->createQueuedRecord($postId);
+            if ($newsletterId > 0) {
+                wp_schedule_single_event(time(), self::CRON_HOOK, [$newsletterId]);
+            }
+        } elseif ($sendMode === 'manual') {
+            $sender->createDraftRecord($postId);
+        } elseif ($sendMode === 'scheduled') {
+            $schedAt   = (string) get_post_meta($postId, '_crmbiz_nl_scheduled_at', true);
+            $timestamp = $this->parseScheduledAt($schedAt);
+            if ($timestamp > 0) {
+                $newsletterId = $sender->createScheduledRecord($postId, $schedAt);
+                if ($newsletterId > 0) {
+                    wp_schedule_single_event($timestamp, self::CRON_HOOK, [$newsletterId]);
+                }
+            } else {
+                // 예약 시각 미설정 또는 과거 → 즉시 큐로 폴백
+                $newsletterId = $sender->createQueuedRecord($postId);
+                if ($newsletterId > 0) {
+                    wp_schedule_single_event(time(), self::CRON_HOOK, [$newsletterId]);
+                }
+            }
+        }
+    }
+
+    private function parseScheduledAt(string $schedAt): int {
+        if (!$schedAt) {
+            return 0;
+        }
+        try {
+            $dt = new \DateTime($schedAt, wp_timezone());
+            $ts = $dt->getTimestamp();
+            return $ts > time() ? $ts : 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // WP Cron 핸들러
+    // -------------------------------------------------------------------------
+
+    public function handleCronSend(int $newsletterId): void {
+        (new NewsletterSender($this->settings))->sendFromRecord($newsletterId);
     }
 
     // -------------------------------------------------------------------------
@@ -187,11 +218,13 @@ class Plugin {
             wp_send_json_success(['dry_run' => true, 'to' => $to]);
         }
 
+        $fromName  = str_replace(["\r", "\n"], '', $this->settings->getFromName());
+        $fromEmail = str_replace(["\r", "\n"], '', $this->settings->getFromEmail());
         $result = wp_mail(
             $to,
             '[테스트] CRMBiz Newsletter 발송 테스트',
             $this->buildTestEmailBody($to),
-            ['Content-Type: text/html; charset=UTF-8', 'From: ' . $this->settings->getFromName() . ' <' . $this->settings->getFromEmail() . '>']
+            ['Content-Type: text/html; charset=UTF-8', 'From: ' . $fromName . ' <' . $fromEmail . '>']
         );
 
         $result
@@ -243,11 +276,42 @@ class Plugin {
             wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
         }
 
-        $result = (new NewsletterSender($this->settings))->sendManual($newsletterId);
+        if (!FluentCRMBridge::isAvailable()) {
+            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
+        }
 
-        $result['success']
-            ? wp_send_json_success($result)
-            : wp_send_json_error($result);
+        global $wpdb;
+        $record = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d AND status = 'draft'",
+                $newsletterId
+            )
+        );
+
+        if (!$record) {
+            wp_send_json_error(['message' => '발송 가능한 레코드를 찾을 수 없습니다.']);
+        }
+
+        $tagIds  = array_filter(array_map('intval', json_decode($record->tag_ids,  true) ?? []));
+        $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
+
+        if (empty($tagIds) && empty($listIds)) {
+            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
+        }
+
+        if (!get_post((int) $record->post_id)) {
+            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+        }
+
+        $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            ['status' => 'queued'],
+            ['id' => $newsletterId],
+            ['%s'], ['%d']
+        );
+        wp_schedule_single_event(time(), self::CRON_HOOK, [$newsletterId]);
+
+        wp_send_json_success(['message' => '발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
     }
 
     public function handleResend(): void {
@@ -280,8 +344,7 @@ class Plugin {
         }
 
         $postId = (int) $record->post_id;
-        $post   = get_post($postId);
-        if (!$post) {
+        if (!get_post($postId)) {
             wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
         }
 
@@ -291,9 +354,13 @@ class Plugin {
             wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
         }
 
-        (new NewsletterSender($this->settings))->sendForPost($postId);
+        $newId = (new NewsletterSender($this->settings))->createQueuedRecord($postId);
+        if ($newId <= 0) {
+            wp_send_json_error(['message' => '레코드 생성에 실패했습니다.']);
+        }
+        wp_schedule_single_event(time(), self::CRON_HOOK, [$newId]);
 
-        wp_send_json_success(['message' => '재발송이 완료되었습니다.']);
+        wp_send_json_success(['message' => '재발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
     }
 
     public function handleGetLog(): void {
@@ -328,7 +395,6 @@ class Plugin {
             wp_die('포스트를 찾을 수 없습니다.');
         }
 
-        // 미리보기용 더미 구독자 객체
         $dummy = (object) [
             'email'      => wp_get_current_user()->user_email,
             'first_name' => wp_get_current_user()->display_name,
