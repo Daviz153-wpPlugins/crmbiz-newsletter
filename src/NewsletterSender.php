@@ -5,6 +5,8 @@ defined('ABSPATH') || exit;
 
 class NewsletterSender {
 
+    private const BATCH_SIZE = 50; // 1회 크론 실행당 최대 발송 수
+
     private Settings $settings;
     private EmailTemplateRenderer $renderer;
 
@@ -44,23 +46,23 @@ class NewsletterSender {
     }
 
     /**
-     * WP Cron에서 호출 — queued/scheduled 레코드를 실제 발송.
+     * WP Cron에서 호출 — 배치 단위로 발송 후 다음 배치 오프셋 반환 (0 = 완료).
      */
-    public function sendFromRecord(int $newsletterId): void {
+    public function sendFromRecord(int $newsletterId, int $offset = 0): int {
         if (!FluentCRMBridge::isAvailable()) {
-            return;
+            return 0;
         }
 
         global $wpdb;
         $record = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d AND status IN ('queued', 'scheduled')",
+                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
                 $newsletterId
             )
         );
 
-        if (!$record) {
-            return;
+        if (!$record || !in_array($record->status, ['queued', 'scheduled', 'sending'], true)) {
+            return 0;
         }
 
         $post    = get_post((int) $record->post_id);
@@ -68,37 +70,69 @@ class NewsletterSender {
         $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
 
         if (!$post || (empty($tagIds) && empty($listIds))) {
-            return;
+            return 0;
         }
 
-        $wpdb->update(
-            $wpdb->prefix . 'crmbiz_newsletters',
-            ['status' => 'sending'],
-            ['id' => $newsletterId],
-            ['%s'], ['%d']
-        );
-
         $subscribers = $this->getSubscribers($tagIds, $listIds);
+        $total       = $subscribers->count();
+
+        // 첫 배치: 상태를 sending으로 전환하고 총 수신자 수 기록
+        if ($offset === 0) {
+            $wpdb->update(
+                $wpdb->prefix . 'crmbiz_newsletters',
+                ['status' => 'sending', 'recipient_count' => $total],
+                ['id' => $newsletterId],
+                ['%s', '%d'], ['%d']
+            );
+        }
+
+        $batch   = $subscribers->slice($offset, self::BATCH_SIZE);
         $success = 0;
         $fail    = 0;
-        $errors  = [];
 
-        foreach ($subscribers as $subscriber) {
+        foreach ($batch as $subscriber) {
             if (UnsubscribeHandler::isUnsubscribed($subscriber->email)) {
                 continue;
             }
             $sent = $this->dispatch($post, $subscriber, $newsletterId);
             TrackingHandler::recordSend($newsletterId, $subscriber->email, $sent);
-
-            if ($sent) {
-                $success++;
-            } else {
-                $fail++;
-                $errors[] = $subscriber->email;
-            }
+            $sent ? $success++ : $fail++;
         }
 
-        $this->updateRecord($newsletterId, $success, $fail, $errors, $subscribers->count());
+        // 카운터 누적 업데이트
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$wpdb->prefix}crmbiz_newsletters
+             SET success_count = success_count + %d,
+                 fail_count    = fail_count    + %d,
+                 updated_at    = %s
+             WHERE id = %d",
+            $success, $fail, current_time('mysql'), $newsletterId
+        ));
+
+        $nextOffset = $offset + self::BATCH_SIZE;
+
+        if ($nextOffset < $total) {
+            return $nextOffset; // 다음 배치 오프셋 반환
+        }
+
+        // 마지막 배치 — 최종 상태 업데이트
+        $final = $wpdb->get_row($wpdb->prepare(
+            "SELECT success_count, fail_count FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            $newsletterId
+        ));
+
+        $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            [
+                'status'     => ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent',
+                'sent_at'    => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+            ],
+            ['id' => $newsletterId],
+            ['%s', '%s', '%s'], ['%d']
+        );
+
+        return 0;
     }
 
     /**
@@ -192,22 +226,4 @@ class NewsletterSender {
         return (int) $wpdb->insert_id;
     }
 
-    private function updateRecord(int $newsletterId, int $success, int $fail, array $errors, int $total = 0): void {
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->prefix . 'crmbiz_newsletters',
-            [
-                'status'          => ($success === 0 && $fail > 0) ? 'failed' : 'sent',
-                'recipient_count' => $total,
-                'success_count'   => $success,
-                'fail_count'      => $fail,
-                'sent_at'         => current_time('mysql'),
-                'updated_at'      => current_time('mysql'),
-                'error_log'       => !empty($errors) ? wp_json_encode($errors) : null,
-            ],
-            ['id' => $newsletterId],
-            ['%s', '%d', '%d', '%d', '%s', '%s', '%s'],
-            ['%d']
-        );
-    }
 }

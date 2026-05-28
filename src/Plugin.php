@@ -193,8 +193,11 @@ class Plugin {
     // WP Cron 핸들러
     // -------------------------------------------------------------------------
 
-    public function handleCronSend(int $newsletterId): void {
-        (new NewsletterSender($this->settings))->sendFromRecord($newsletterId);
+    public function handleCronSend(int $newsletterId, int $offset = 0): void {
+        $nextOffset = (new NewsletterSender($this->settings))->sendFromRecord($newsletterId, $offset);
+        if ($nextOffset > 0) {
+            wp_schedule_single_event(time() + 60, self::CRON_HOOK, [$newsletterId, $nextOffset]);
+        }
     }
 
     // -------------------------------------------------------------------------
