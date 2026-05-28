@@ -70,6 +70,12 @@ class EmailTemplateRenderer {
             ? '<img src="' . esc_url($featuredImg) . '" alt="" style="width:100%;max-width:600px;height:auto;display:block;margin:0 0 24px">'
             : '';
 
+        $logoId  = get_theme_mod('custom_logo');
+        $logoSrc = $logoId ? (wp_get_attachment_image_src($logoId, 'medium')[0] ?? '') : '';
+        $headerBrand = $logoSrc
+            ? '<a href="' . $siteUrl . '"><img src="' . esc_url($logoSrc) . '" alt="' . $siteName . '" style="max-height:40px;width:auto;display:block"></a>'
+            : '<a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a>';
+
         $recentSection = '';
         if (!empty($recentPosts)) {
             $items = '';
@@ -128,7 +134,7 @@ class EmailTemplateRenderer {
     <td class="nl-hd-td" style="background:#1a1a2e;padding:16px 32px">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td><a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a></td>
+          <td>' . $headerBrand . '</td>
           <td align="right" class="nl-web"><a href="' . $postUrl . '" style="color:#a5b4fc;text-decoration:none;font-size:12px">웹에서 보기 →</a></td>
         </tr>
       </table>
