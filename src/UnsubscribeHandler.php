@@ -19,9 +19,13 @@ class UnsubscribeHandler {
         $email        = sanitize_email($_GET['email'] ?? '');
         $token        = sanitize_text_field($_GET['token'] ?? '');
         $newsletterId = (int) ($_GET['nl'] ?? 0);
+        $exp          = (int) ($_GET['exp'] ?? 0);
 
-        if (!$email || !$this->verifyToken($email, $token)) {
-            wp_die('유효하지 않은 수신거부 링크입니다.', '수신거부 오류', ['response' => 403]);
+        if (!$email || !$this->verifyToken($email, $token, $exp)) {
+            $msg = ($exp > 0 && time() > $exp)
+                ? '수신거부 링크가 만료되었습니다. 최신 뉴스레터의 수신거부 링크를 사용해 주세요.'
+                : '유효하지 않은 수신거부 링크입니다.';
+            wp_die($msg, '수신거부 오류', ['response' => 403]);
         }
 
         $this->processUnsubscribe($email, $token);
@@ -85,8 +89,11 @@ class UnsubscribeHandler {
         return $masked . '@' . $domain;
     }
 
-    private function verifyToken(string $email, string $token): bool {
-        $expected = hash_hmac('sha256', $email, Database::getSecret());
+    private function verifyToken(string $email, string $token, int $exp): bool {
+        if ($exp === 0 || time() > $exp) {
+            return false;
+        }
+        $expected = hash_hmac('sha256', $email . '|' . $exp, Database::getSecret());
         return hash_equals($expected, $token);
     }
 
@@ -127,12 +134,14 @@ class UnsubscribeHandler {
     }
 
     public static function buildUnsubscribeUrl(string $email, int $newsletterId = 0): string {
-        $token = hash_hmac('sha256', $email, Database::getSecret());
+        $exp   = time() + (365 * DAY_IN_SECONDS); // 1년 유효
+        $token = hash_hmac('sha256', $email . '|' . $exp, Database::getSecret());
         return add_query_arg([
             'crmbiz_nl_action' => 'unsubscribe',
             'email'            => $email,
             'token'            => $token,
             'nl'               => $newsletterId,
+            'exp'              => $exp,
         ], home_url('/'));
     }
 }
