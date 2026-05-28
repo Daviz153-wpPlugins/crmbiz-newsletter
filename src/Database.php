@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.2.0';
+    const DB_VERSION = '1.3.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -44,7 +44,6 @@ class Database {
   fail_count INT UNSIGNED NOT NULL DEFAULT 0,
   tag_ids TEXT,
   list_ids TEXT,
-  error_log TEXT,
   subscriber_emails MEDIUMTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -74,6 +73,14 @@ class Database {
   KEY idx_email (email),
   KEY idx_type (type)
 ) $charset;");
+
+        // 1.3.0 마이그레이션: 미사용 error_log 컬럼 제거
+        if (version_compare(self::getVersion(), '1.3.0', '<')) {
+            $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
+            if (in_array('error_log', $cols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters DROP COLUMN error_log");
+            }
+        }
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

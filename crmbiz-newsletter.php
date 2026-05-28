@@ -19,6 +19,9 @@ define('CRMBIZ_NL_URL',     plugin_dir_url(__FILE__));
 require_once CRMBIZ_NL_DIR . 'autoload.php';
 
 register_activation_hook(__FILE__, ['CRMBizNewsletter\\Database', 'install']);
+register_deactivation_hook(__FILE__, function () {
+    wp_clear_scheduled_hook('crmbiz_nl_send_newsletter');
+});
 
 add_action('plugins_loaded', function () {
     CRMBizNewsletter\Plugin::getInstance();

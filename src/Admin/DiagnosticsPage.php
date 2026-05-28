@@ -15,10 +15,6 @@ class DiagnosticsPage {
         $this->settings = $settings;
     }
 
-    public function enqueueScripts(string $hookSuffix): void {
-        // 인라인 스크립트 사용 — 외부 파일 불필요
-    }
-
     public function render(): void {
         if (!current_user_can('manage_options')) {
             wp_die('권한이 없습니다.');
