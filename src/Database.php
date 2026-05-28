@@ -8,11 +8,29 @@ class Database {
     const DB_VERSION = '1.1.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
+    /**
+     * 플러그인 전용 HMAC 시크릿 — wp-config.php와 독립적으로 wp_options에 저장.
+     * 없으면 즉시 생성 후 저장.
+     */
+    public static function getSecret(): string {
+        $secret = (string) get_option('crmbiz_nl_secret', '');
+        if ($secret === '') {
+            $secret = bin2hex(random_bytes(32)); // 256-bit
+            update_option('crmbiz_nl_secret', $secret, false);
+        }
+        return $secret;
+    }
+
     public static function install(): void {
         global $wpdb;
 
         $charset = $wpdb->get_charset_collate();
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        // 시크릿 초기 생성
+        if (!get_option('crmbiz_nl_secret')) {
+            update_option('crmbiz_nl_secret', bin2hex(random_bytes(32)), false);
+        }
 
         dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_newsletters (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

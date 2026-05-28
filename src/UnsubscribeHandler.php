@@ -86,7 +86,7 @@ class UnsubscribeHandler {
     }
 
     private function verifyToken(string $email, string $token): bool {
-        $expected = hash_hmac('sha256', $email, wp_salt('auth'));
+        $expected = hash_hmac('sha256', $email, Database::getSecret());
         return hash_equals($expected, $token);
     }
 
@@ -127,7 +127,7 @@ class UnsubscribeHandler {
     }
 
     public static function buildUnsubscribeUrl(string $email, int $newsletterId = 0): string {
-        $token = hash_hmac('sha256', $email, wp_salt('auth'));
+        $token = hash_hmac('sha256', $email, Database::getSecret());
         return add_query_arg([
             'crmbiz_nl_action' => 'unsubscribe',
             'email'            => $email,

@@ -14,6 +14,7 @@ $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}crmbiz_newsletters");
 // 옵션 삭제
 delete_option('crmbiz_nl_settings');
 delete_option('crmbiz_nl_db_version');
+delete_option('crmbiz_nl_secret');
 
 // 예약된 WP Cron 이벤트 제거
 $timestamp = wp_next_scheduled('crmbiz_nl_send_newsletter');

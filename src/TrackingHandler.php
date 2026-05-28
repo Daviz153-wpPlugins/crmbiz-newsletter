@@ -55,13 +55,13 @@ class TrackingHandler {
 
     // 오픈 토큰: newsletter_id + email 기반
     private function verifyOpenToken(int $newsletterId, string $email, string $token): bool {
-        $expected = hash_hmac('sha256', "open:{$newsletterId}|{$email}", wp_salt('auth'));
+        $expected = hash_hmac('sha256', "open:{$newsletterId}|{$email}", Database::getSecret());
         return hash_equals($expected, $token);
     }
 
     // 클릭 토큰: newsletter_id + email + 목적지 URL 포함 — URL 변조 방지
     private function verifyClickToken(int $newsletterId, string $email, string $url, string $token): bool {
-        $expected = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$url}", wp_salt('auth'));
+        $expected = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$url}", Database::getSecret());
         return hash_equals($expected, $token);
     }
 
@@ -121,7 +121,7 @@ class TrackingHandler {
     }
 
     public static function buildPixelUrl(int $newsletterId, string $email): string {
-        $token = hash_hmac('sha256', "open:{$newsletterId}|{$email}", wp_salt('auth'));
+        $token = hash_hmac('sha256', "open:{$newsletterId}|{$email}", Database::getSecret());
         return add_query_arg([
             'crmbiz_nl_action' => 'open',
             'nl'               => $newsletterId,
@@ -131,7 +131,7 @@ class TrackingHandler {
     }
 
     public static function buildClickUrl(int $newsletterId, string $email, string $targetUrl): string {
-        $token = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$targetUrl}", wp_salt('auth'));
+        $token = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$targetUrl}", Database::getSecret());
         return add_query_arg([
             'crmbiz_nl_action' => 'click',
             'nl'               => $newsletterId,
