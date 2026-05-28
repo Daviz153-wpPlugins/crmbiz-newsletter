@@ -272,9 +272,10 @@ class HistoryPage {
                 $panel.find('.crmbiz-nl-recipient').each(function() {
                     var s   = $(this).data('status');
                     var vis = filter === 'all'
-                           || (filter === 'click'    && s === 'clicked')
-                           || (filter === 'open'     && (s === 'clicked' || s === 'opened'))
-                           || (filter === 'unopened' && s === 'unopened');
+                           || (filter === 'click'        && s === 'clicked')
+                           || (filter === 'open'         && (s === 'clicked' || s === 'opened'))
+                           || (filter === 'unopened'     && s === 'unopened')
+                           || (filter === 'unsubscribed' && s === 'unsubscribed');
                     $(this).data('fv', vis);
                 });
                 $panel.find('.crmbiz-nl-pager').data('pg', 1);
@@ -388,29 +389,34 @@ class HistoryPage {
         foreach ($events as $e) {
             if (!isset($contactMap[$e->email])) {
                 $contactMap[$e->email] = ['opened' => false, 'clicked' => false, 'failed' => false,
-                                          'sent_at' => '', 'open_at' => '', 'click_at' => ''];
+                                          'unsubscribed' => false, 'sent_at' => '', 'open_at' => '',
+                                          'click_at' => '', 'unsub_at' => ''];
             }
             switch ($e->type) {
-                case 'send':  $contactMap[$e->email]['sent_at']  = $e->occurred_at; break;
-                case 'open':  $contactMap[$e->email]['opened']   = true;
-                              $contactMap[$e->email]['open_at']  = $e->occurred_at; break;
-                case 'click': $contactMap[$e->email]['clicked']  = true;
-                              $contactMap[$e->email]['click_at'] = $e->occurred_at; break;
-                case 'fail':  $contactMap[$e->email]['failed']   = true; break;
+                case 'send':        $contactMap[$e->email]['sent_at']   = $e->occurred_at; break;
+                case 'open':        $contactMap[$e->email]['opened']    = true;
+                                    $contactMap[$e->email]['open_at']   = $e->occurred_at; break;
+                case 'click':       $contactMap[$e->email]['clicked']   = true;
+                                    $contactMap[$e->email]['click_at']  = $e->occurred_at; break;
+                case 'fail':        $contactMap[$e->email]['failed']    = true; break;
+                case 'unsubscribe': $contactMap[$e->email]['unsubscribed'] = true;
+                                    $contactMap[$e->email]['unsub_at']  = $e->occurred_at; break;
             }
         }
 
         /* 통계 */
-        $total     = (int) $nl->recipient_count;
-        $sent      = (int) $nl->success_count;
-        $fails     = (int) $nl->fail_count;
-        $opens     = count(array_filter($contactMap, fn($c) => $c['opened']));
-        $clicks    = count(array_filter($contactMap, fn($c) => $c['clicked']));
-        $unopened  = max(0, $sent - $opens);
-        $openRate  = $sent  > 0 ? round($opens  / $sent  * 100, 1) : 0;
-        $clickRate = $sent  > 0 ? round($clicks / $sent  * 100, 1) : 0;
-        $failRate  = $total > 0 ? round($fails  / $total * 100, 1) : 0;
-        $ctr       = $opens > 0 ? round($clicks / $opens * 100, 1) : 0;
+        $total      = (int) $nl->recipient_count;
+        $sent       = (int) $nl->success_count;
+        $fails      = (int) $nl->fail_count;
+        $opens      = count(array_filter($contactMap, fn($c) => $c['opened']));
+        $clicks     = count(array_filter($contactMap, fn($c) => $c['clicked']));
+        $unsubs     = count(array_filter($contactMap, fn($c) => $c['unsubscribed']));
+        $unopened   = max(0, $sent - $opens - $unsubs);
+        $openRate   = $sent  > 0 ? round($opens  / $sent  * 100, 1) : 0;
+        $clickRate  = $sent  > 0 ? round($clicks / $sent  * 100, 1) : 0;
+        $failRate   = $total > 0 ? round($fails  / $total * 100, 1) : 0;
+        $unsubRate  = $sent  > 0 ? round($unsubs / $sent  * 100, 1) : 0;
+        $ctr        = $opens > 0 ? round($clicks / $opens * 100, 1) : 0;
 
         /* 발송자 설정 */
         $settings  = (array) get_option('crmbiz_nl_settings', []);
@@ -439,6 +445,7 @@ class HistoryPage {
                             ['오픈률',       $opens  . ' (' . $openRate  . '%)',             '#0f5132'],
                             ['클릭률',       $clicks . ' (' . $clickRate . '%)',             '#1d4ed8'],
                             ['클릭/오픈률',  $ctr . '%',                                    '#7c3aed'],
+                            ['구독 취소',    $unsubs . ' (' . $unsubRate . '%)',             '#f97316'],
                         ] as [$lbl, $val, $clr]): ?>
                         <tr>
                             <td style="font-size:12px;color:#6b7280;padding:4px 0"><?php echo esc_html($lbl); ?></td>
@@ -452,10 +459,11 @@ class HistoryPage {
                 <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px">
                     <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">이메일 통계</div>
                     <?php foreach ([
-                        ['전송됨', $sent,   $total > 0 ? round($sent/$total*100,1) : 0, '#3b82f6'],
-                        ['열림',   $opens,  $openRate,  '#10b981'],
-                        ['클릭됨', $clicks, $clickRate, '#6366f1'],
-                        ['실패',   $fails,  $failRate,  '#ef4444'],
+                        ['전송됨',    $sent,   $total > 0 ? round($sent/$total*100,1) : 0, '#3b82f6'],
+                        ['열림',      $opens,  $openRate,   '#10b981'],
+                        ['클릭됨',    $clicks, $clickRate,  '#6366f1'],
+                        ['구독 취소', $unsubs, $unsubRate,  '#f97316'],
+                        ['실패',      $fails,  $failRate,   '#ef4444'],
                     ] as [$lbl, $cnt, $rt, $clr]): ?>
                     <div style="margin-bottom:9px">
                         <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
@@ -519,7 +527,8 @@ class HistoryPage {
                         <button class="crmbiz-nl-filter is-active" data-filter="all">모두 (<?php echo esc_html($sent); ?>)</button>
                         <button class="crmbiz-nl-filter" data-filter="click">클릭 (<?php echo esc_html($clicks); ?>)</button>
                         <button class="crmbiz-nl-filter" data-filter="open">보기 (<?php echo esc_html($opens); ?>)</button>
-                        <button class="crmbiz-nl-filter" data-filter="unopened">Unopened (<?php echo esc_html($unopened); ?>)</button>
+                        <button class="crmbiz-nl-filter" data-filter="unopened">미열람 (<?php echo esc_html($unopened); ?>)</button>
+                        <button class="crmbiz-nl-filter" data-filter="unsubscribed">구독 취소 (<?php echo esc_html($unsubs); ?>)</button>
                     </div>
 
                     <?php if (empty($contactMap)): ?>
@@ -538,11 +547,12 @@ class HistoryPage {
                         </thead>
                         <tbody>
                         <?php foreach ($contactMap as $email => $c):
-                            if ($c['clicked'])       { $status = 'clicked'; }
+                            if ($c['unsubscribed'])   { $status = 'unsubscribed'; }
+                            elseif ($c['clicked'])    { $status = 'clicked'; }
                             elseif ($c['opened'])     { $status = 'opened'; }
                             elseif ($c['failed'])     { $status = 'failed'; }
                             else                      { $status = 'unopened'; }
-                            $lastAt = $c['click_at'] ?: $c['open_at'] ?: $c['sent_at'];
+                            $lastAt  = $c['unsub_at'] ?: $c['click_at'] ?: $c['open_at'] ?: $c['sent_at'];
                             $initial = strtoupper(mb_substr($email, 0, 1));
                         ?>
                         <tr class="crmbiz-nl-recipient"
@@ -556,6 +566,9 @@ class HistoryPage {
                                     <span style="color:#374151"><?php echo esc_html($email); ?></span>
                                     <?php if ($c['failed']): ?>
                                     <span style="font-size:11px;color:#842029;background:#f8d7da;padding:1px 6px;border-radius:3px">실패</span>
+                                    <?php endif; ?>
+                                    <?php if ($c['unsubscribed']): ?>
+                                    <span style="font-size:11px;color:#c2410c;background:#fff7ed;padding:1px 6px;border-radius:3px;border:1px solid #fed7aa">구독 취소</span>
                                     <?php endif; ?>
                                 </div>
                             </td>

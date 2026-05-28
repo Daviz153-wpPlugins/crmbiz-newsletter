@@ -19,7 +19,7 @@ class EmailTemplateRenderer {
         // FluentCRM 없을 때는 필터 핸들러가 없어 원본 그대로 반환됨
         $content = apply_filters('fluent_crm/parse_campaign_email_text', $content, $subscriber);
 
-        $unsubscribeUrl = UnsubscribeHandler::buildUnsubscribeUrl($subscriber->email);
+        $unsubscribeUrl = UnsubscribeHandler::buildUnsubscribeUrl($subscriber->email, $newsletterId);
         $recentPosts    = $this->getRecentNewsletters(3, $post->ID);
         $featuredImg    = $this->getFeaturedImageUrl($post);
 

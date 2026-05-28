@@ -16,14 +16,20 @@ class UnsubscribeHandler {
             return;
         }
 
-        $email = sanitize_email($_GET['email'] ?? '');
-        $token = sanitize_text_field($_GET['token'] ?? '');
+        $email        = sanitize_email($_GET['email'] ?? '');
+        $token        = sanitize_text_field($_GET['token'] ?? '');
+        $newsletterId = (int) ($_GET['nl'] ?? 0);
 
         if (!$email || !$this->verifyToken($email, $token)) {
             wp_die('유효하지 않은 수신거부 링크입니다.', '수신거부 오류', ['response' => 403]);
         }
 
         $this->processUnsubscribe($email, $token);
+
+        // 이벤트 테이블에 수신거부 기록 (newsletter_id가 있는 경우만)
+        if ($newsletterId > 0) {
+            TrackingHandler::recordUnsubscribe($newsletterId, $email);
+        }
 
         // FluentCRM 연락처 상태도 unsubscribed로 동기화
         $api = FluentCRMBridge::getContactsApi();
@@ -120,12 +126,13 @@ class UnsubscribeHandler {
         );
     }
 
-    public static function buildUnsubscribeUrl(string $email): string {
+    public static function buildUnsubscribeUrl(string $email, int $newsletterId = 0): string {
         $token = hash_hmac('sha256', $email, wp_salt('auth'));
         return add_query_arg([
             'crmbiz_nl_action' => 'unsubscribe',
             'email'            => $email,
             'token'            => $token,
+            'nl'               => $newsletterId,
         ], home_url('/'));
     }
 }

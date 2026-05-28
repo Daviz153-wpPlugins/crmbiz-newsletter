@@ -95,6 +95,31 @@ class TrackingHandler {
         );
     }
 
+    public static function recordUnsubscribe(int $newsletterId, string $email): void {
+        global $wpdb;
+        // 같은 뉴스레터에 이미 수신거부 이벤트가 있으면 중복 기록 방지
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}crmbiz_nl_events
+             WHERE newsletter_id = %d AND email = %s AND type = 'unsubscribe' LIMIT 1",
+            $newsletterId,
+            $email
+        ));
+        if ($exists) {
+            return;
+        }
+        $wpdb->insert(
+            $wpdb->prefix . 'crmbiz_nl_events',
+            [
+                'newsletter_id' => $newsletterId,
+                'email'         => $email,
+                'type'          => 'unsubscribe',
+                'url'           => null,
+                'occurred_at'   => current_time('mysql'),
+            ],
+            ['%d', '%s', '%s', '%s', '%s']
+        );
+    }
+
     public static function buildPixelUrl(int $newsletterId, string $email): string {
         $token = hash_hmac('sha256', "open:{$newsletterId}|{$email}", wp_salt('auth'));
         return add_query_arg([
