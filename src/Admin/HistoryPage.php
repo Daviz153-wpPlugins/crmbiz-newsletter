@@ -14,10 +14,18 @@ class HistoryPage {
 
         $rows = $wpdb->get_results(
             "SELECT n.*, p.post_title,
-                (SELECT COUNT(DISTINCT email) FROM {$wpdb->prefix}crmbiz_nl_events WHERE newsletter_id = n.id AND type = 'open') AS open_count,
-                (SELECT COUNT(DISTINCT email) FROM {$wpdb->prefix}crmbiz_nl_events WHERE newsletter_id = n.id AND type = 'click') AS click_count
+                COALESCE(ec.open_count, 0)  AS open_count,
+                COALESCE(ec.click_count, 0) AS click_count
              FROM {$wpdb->prefix}crmbiz_newsletters n
              LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
+             LEFT JOIN (
+                 SELECT newsletter_id,
+                     COUNT(DISTINCT CASE WHEN type = 'open'  THEN email END) AS open_count,
+                     COUNT(DISTINCT CASE WHEN type = 'click' THEN email END) AS click_count
+                 FROM {$wpdb->prefix}crmbiz_nl_events
+                 WHERE type IN ('open','click')
+                 GROUP BY newsletter_id
+             ) ec ON ec.newsletter_id = n.id
              ORDER BY n.created_at DESC
              LIMIT 100"
         );
@@ -403,32 +411,36 @@ class HistoryPage {
             return '<p style="margin:12px 16px;font-size:12px;color:#888">뉴스레터를 찾을 수 없습니다.</p>';
         }
 
-        $events = $wpdb->get_results($wpdb->prepare(
-            "SELECT email, type, url, occurred_at
+        /* 수신자별 상태 집계 — DB에서 직접 GROUP BY (이벤트 전체 로드 제거) */
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT
+                email,
+                MAX(CASE WHEN type = 'open'        THEN 1 ELSE 0 END) AS opened,
+                MAX(CASE WHEN type = 'click'       THEN 1 ELSE 0 END) AS clicked,
+                MAX(CASE WHEN type = 'fail'        THEN 1 ELSE 0 END) AS failed,
+                MAX(CASE WHEN type = 'unsubscribe' THEN 1 ELSE 0 END) AS unsubscribed,
+                MAX(CASE WHEN type = 'send'        THEN occurred_at END) AS sent_at,
+                MAX(CASE WHEN type = 'open'        THEN occurred_at END) AS open_at,
+                MAX(CASE WHEN type = 'click'       THEN occurred_at END) AS click_at,
+                MAX(CASE WHEN type = 'unsubscribe' THEN occurred_at END) AS unsub_at
              FROM {$wpdb->prefix}crmbiz_nl_events
              WHERE newsletter_id = %d
-             ORDER BY occurred_at ASC",
+             GROUP BY email",
             $newsletterId
         ));
 
-        /* 수신자별 상태 집계 */
         $contactMap = [];
-        foreach ($events as $e) {
-            if (!isset($contactMap[$e->email])) {
-                $contactMap[$e->email] = ['opened' => false, 'clicked' => false, 'failed' => false,
-                                          'unsubscribed' => false, 'sent_at' => '', 'open_at' => '',
-                                          'click_at' => '', 'unsub_at' => ''];
-            }
-            switch ($e->type) {
-                case 'send':        $contactMap[$e->email]['sent_at']   = $e->occurred_at; break;
-                case 'open':        $contactMap[$e->email]['opened']    = true;
-                                    $contactMap[$e->email]['open_at']   = $e->occurred_at; break;
-                case 'click':       $contactMap[$e->email]['clicked']   = true;
-                                    $contactMap[$e->email]['click_at']  = $e->occurred_at; break;
-                case 'fail':        $contactMap[$e->email]['failed']    = true; break;
-                case 'unsubscribe': $contactMap[$e->email]['unsubscribed'] = true;
-                                    $contactMap[$e->email]['unsub_at']  = $e->occurred_at; break;
-            }
+        foreach ($rows as $r) {
+            $contactMap[$r->email] = [
+                'opened'       => (bool) $r->opened,
+                'clicked'      => (bool) $r->clicked,
+                'failed'       => (bool) $r->failed,
+                'unsubscribed' => (bool) $r->unsubscribed,
+                'sent_at'      => $r->sent_at  ?? '',
+                'open_at'      => $r->open_at  ?? '',
+                'click_at'     => $r->click_at ?? '',
+                'unsub_at'     => $r->unsub_at ?? '',
+            ];
         }
 
         /* 통계 */
