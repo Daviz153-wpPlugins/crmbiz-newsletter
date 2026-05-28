@@ -34,8 +34,49 @@ class UnsubscribeHandler {
             }
         }
 
-        wp_redirect(add_query_arg('crmbiz_nl_unsub', '1', home_url('/')));
-        exit;
+        $siteName = esc_html(get_bloginfo('name'));
+        $homeUrl  = esc_url(home_url('/'));
+        $maskedEmail = $this->maskEmail($email);
+
+        wp_die(
+            '<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>수신거부 완료 — ' . $siteName . '</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:#fff;border-radius:12px;padding:48px 40px;max-width:440px;width:100%;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .icon{font-size:48px;margin-bottom:20px}
+  h1{font-size:20px;font-weight:700;color:#111827;margin-bottom:10px}
+  p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:8px}
+  .email{font-size:13px;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 14px;display:inline-block;margin:12px 0 24px}
+  a{display:inline-block;padding:10px 24px;background:#1a1a2e;color:#fff;border-radius:6px;font-size:14px;text-decoration:none;font-weight:500}
+  a:hover{opacity:.9}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✅</div>
+    <h1>수신거부가 완료되었습니다</h1>
+    <p>아래 이메일 주소로 더 이상<br>뉴스레터가 발송되지 않습니다.</p>
+    <div class="email">' . esc_html($maskedEmail) . '</div>
+    <p style="margin-bottom:24px">다시 구독을 원하시면<br>' . $siteName . '에서 신청하세요.</p>
+    <a href="' . $homeUrl . '">홈으로 돌아가기</a>
+  </div>
+</body>
+</html>',
+            '',
+            ['response' => 200]
+        );
+    }
+
+    private function maskEmail(string $email): string {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        $masked = mb_substr($local, 0, 2) . str_repeat('*', max(1, mb_strlen($local) - 2));
+        return $masked . '@' . $domain;
     }
 
     private function verifyToken(string $email, string $token): bool {
