@@ -217,7 +217,7 @@ class EmailTemplateRenderer {
         $posts = [];
         foreach ($ids as $id) {
             $p = get_post((int) $id);
-            if ($p) {
+            if ($p && $p->post_status === 'publish') {
                 $posts[] = $p;
             }
         }
