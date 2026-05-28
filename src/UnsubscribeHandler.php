@@ -21,6 +21,11 @@ class UnsubscribeHandler {
         $newsletterId = (int) ($_GET['nl'] ?? 0);
         $exp          = (int) ($_GET['exp'] ?? 0);
 
+        // 레이트 리밋: IP당 10분 10회
+        if (!Database::checkRateLimit('unsub', 10, 600)) {
+            wp_die('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', '요청 제한', ['response' => 429]);
+        }
+
         if (!$email || !$this->verifyToken($email, $token, $exp)) {
             $msg = ($exp > 0 && time() > $exp)
                 ? '수신거부 링크가 만료되었습니다. 최신 뉴스레터의 수신거부 링크를 사용해 주세요.'

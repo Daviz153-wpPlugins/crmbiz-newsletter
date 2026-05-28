@@ -24,7 +24,9 @@ class TrackingHandler {
         $email        = sanitize_email(self::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
-        if ($newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token)) {
+        // 레이트 리밋: IP당 1시간 30회 — 초과 시 이벤트 기록 생략, 픽셀은 항상 반환
+        if ($newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token)
+            && Database::checkRateLimit('open', 30, 3600)) {
             $this->recordEvent($newsletterId, $email, 'open', null);
         }
 
@@ -45,7 +47,10 @@ class TrackingHandler {
 
         // 토큰 검증 성공 시에만 $url로 리디렉트 — 오픈 리디렉트 방지
         if ($newsletterId && $email && $url && $this->verifyClickToken($newsletterId, $email, $url, $token)) {
-            $this->recordEvent($newsletterId, $email, 'click', $url);
+            // 레이트 리밋: IP당 1시간 30회 — 초과 시 이벤트 기록 생략, 리디렉트는 항상 수행
+            if (Database::checkRateLimit('click', 30, 3600)) {
+                $this->recordEvent($newsletterId, $email, 'click', $url);
+            }
             wp_redirect(esc_url_raw($url));
         } else {
             wp_redirect(home_url('/'));

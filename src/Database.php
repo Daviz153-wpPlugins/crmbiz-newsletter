@@ -77,6 +77,23 @@ class Database {
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }
 
+    /**
+     * 고정 윈도우 레이트 리밋.
+     * $window 초 안에 같은 IP + action이 $limit 회를 초과하면 false 반환.
+     */
+    public static function checkRateLimit(string $action, int $limit, int $window): bool {
+        $ip  = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        $win = (int) floor(time() / $window);
+        $key = 'crmbiz_rl_' . substr(md5($action . $ip . $win), 0, 20);
+
+        $count = (int) get_transient($key);
+        if ($count >= $limit) {
+            return false;
+        }
+        set_transient($key, $count + 1, $window + 60);
+        return true;
+    }
+
     public static function getVersion(): string {
         return get_option(self::DB_VERSION_OPTION, '');
     }
