@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.1.0';
+    const DB_VERSION = '1.2.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -45,6 +45,7 @@ class Database {
   tag_ids TEXT,
   list_ids TEXT,
   error_log TEXT,
+  subscriber_emails MEDIUMTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

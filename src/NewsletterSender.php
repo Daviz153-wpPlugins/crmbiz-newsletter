@@ -73,24 +73,35 @@ class NewsletterSender {
             return 0;
         }
 
-        $subscribers = $this->getSubscribers($tagIds, $listIds);
-        $total       = $subscribers->count();
-
-        // 첫 배치: 상태를 sending으로 전환하고 총 수신자 수 기록
+        // 첫 배치: 구독자 이메일 목록을 DB에 저장 — 이후 배치는 재조회 없이 사용
         if ($offset === 0) {
+            $allEmails = $this->getSubscriberEmails($tagIds, $listIds);
+            $total     = count($allEmails);
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'sending', 'recipient_count' => $total],
+                [
+                    'status'            => 'sending',
+                    'recipient_count'   => $total,
+                    'subscriber_emails' => wp_json_encode($allEmails),
+                ],
                 ['id' => $newsletterId],
-                ['%s', '%d'], ['%d']
+                ['%s', '%d', '%s'], ['%d']
             );
+        } else {
+            $allEmails = json_decode((string) $wpdb->get_var($wpdb->prepare(
+                "SELECT subscriber_emails FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+                $newsletterId
+            )), true) ?? [];
+            $total = count($allEmails);
         }
 
-        $batch   = $subscribers->slice($offset, self::BATCH_SIZE);
-        $success = 0;
-        $fail    = 0;
+        // 이번 배치 이메일로 구독자 객체만 조회 (batch_size건만 DB 조회)
+        $batchEmails = array_slice($allEmails, $offset, self::BATCH_SIZE);
+        $subscribers = $this->getSubscribersByEmails($batchEmails);
+        $success     = 0;
+        $fail        = 0;
 
-        foreach ($batch as $subscriber) {
+        foreach ($subscribers as $subscriber) {
             if (UnsubscribeHandler::isUnsubscribed($subscriber->email)) {
                 continue;
             }
@@ -124,12 +135,13 @@ class NewsletterSender {
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
             [
-                'status'     => ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent',
-                'sent_at'    => current_time('mysql'),
-                'updated_at' => current_time('mysql'),
+                'status'            => ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent',
+                'sent_at'           => current_time('mysql'),
+                'updated_at'        => current_time('mysql'),
+                'subscriber_emails' => null, // 발송 완료 후 임시 목록 삭제
             ],
             ['id' => $newsletterId],
-            ['%s', '%s', '%s'], ['%d']
+            ['%s', '%s', '%s', '%s'], ['%d']
         );
 
         return 0;
@@ -171,14 +183,27 @@ class NewsletterSender {
         return $sent;
     }
 
-    private function getSubscribers(array $tagIds, array $listIds) {
+    // 전체 구독자 이메일 주소만 조회 — 발송 시작 시 1회만 호출
+    private function getSubscriberEmails(array $tagIds, array $listIds): array {
         try {
             $query = new \FluentCrm\App\Services\ContactsQuery([
                 'tags'     => $tagIds,
                 'lists'    => $listIds,
                 'statuses' => ['subscribed'],
             ]);
-            return $query->get();
+            return $query->get()->pluck('email')->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    // 배치 이메일 목록으로 구독자 객체 조회 — 배치당 1회, batch_size건만 조회
+    private function getSubscribersByEmails(array $emails) {
+        if (empty($emails)) {
+            return new \Illuminate\Support\Collection();
+        }
+        try {
+            return \FluentCrm\App\Models\Subscriber::whereIn('email', $emails)->get();
         } catch (\Throwable $e) {
             return new \Illuminate\Support\Collection();
         }
