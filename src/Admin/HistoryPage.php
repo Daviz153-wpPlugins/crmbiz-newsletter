@@ -202,9 +202,10 @@ class HistoryPage {
 
         <script>
         (function($) {
-            var ajaxUrl  = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
-            var nonce    = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
-            var logNonce = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_get_log')); ?>;
+            var ajaxUrl          = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+            var nonce            = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
+            var logNonce         = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_get_log')); ?>;
+            var singleResendNonce = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_resend_single')); ?>;
 
             /* ── 검색 ── */
             $('#crmbiz-search').on('input', function() {
@@ -339,6 +340,32 @@ class HistoryPage {
                     if (res.success) { alert(res.data.message || '재발송 완료'); location.reload(); }
                     else { alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패')); $btn.prop('disabled', false).text('↺'); }
                 }).fail(function() { alert('서버 오류'); $btn.prop('disabled', false).text('↺'); });
+            });
+
+            /* ── 개별 수신자 재발송 ── */
+            $(document).on('click', '.crmbiz-resend-single', function() {
+                var $btn  = $(this);
+                var nlId  = $btn.data('nl-id');
+                var email = $btn.data('email');
+                if (!confirm(email + ' 에게 재발송합니다. 계속하시겠습니까?')) return;
+                $btn.prop('disabled', true).text('…');
+                $.post(ajaxUrl, {
+                    action:        'crmbiz_nl_resend_single',
+                    nonce:         singleResendNonce,
+                    newsletter_id: nlId,
+                    email:         email
+                }, function(res) {
+                    if (res.success) {
+                        $btn.text('✓').css('color', '#0f5132');
+                        setTimeout(function() { $btn.prop('disabled', false).text('↺').css('color', '#6b7280'); }, 2000);
+                    } else {
+                        alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패'));
+                        $btn.prop('disabled', false).text('↺');
+                    }
+                }).fail(function() {
+                    alert('서버 오류');
+                    $btn.prop('disabled', false).text('↺');
+                });
             });
 
             /* ── 수동 발송 ── */
@@ -543,6 +570,7 @@ class HistoryPage {
                                 <th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:600;color:#9ca3af;width:70px">열람</th>
                                 <th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:600;color:#9ca3af;width:70px">클릭</th>
                                 <th style="padding:6px 10px;text-align:right;font-size:11px;font-weight:600;color:#9ca3af;width:150px">마지막 활동</th>
+                                <th style="padding:6px 10px;text-align:right;font-size:11px;font-weight:600;color:#9ca3af;width:50px">액션</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -588,6 +616,14 @@ class HistoryPage {
                             </td>
                             <td style="padding:8px 10px;text-align:right;font-size:11px;color:#9ca3af;white-space:nowrap">
                                 <?php echo esc_html($lastAt ?: '—'); ?>
+                            </td>
+                            <td style="padding:8px 10px;text-align:right">
+                                <button type="button"
+                                        class="crmbiz-resend-single"
+                                        data-nl-id="<?php echo esc_attr($newsletterId); ?>"
+                                        data-email="<?php echo esc_attr($email); ?>"
+                                        title="재발송"
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff;padding:0">↺</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>

@@ -101,6 +101,42 @@ class NewsletterSender {
         $this->updateRecord($newsletterId, $success, $fail, $errors, $subscribers->count());
     }
 
+    /**
+     * 특정 수신자 한 명에게만 재발송.
+     */
+    public function sendToEmail(int $newsletterId, string $email): bool {
+        global $wpdb;
+        $record = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            $newsletterId
+        ));
+        if (!$record) {
+            return false;
+        }
+        $post = get_post((int) $record->post_id);
+        if (!$post) {
+            return false;
+        }
+        if (UnsubscribeHandler::isUnsubscribed($email)) {
+            return false;
+        }
+
+        $subscriber = null;
+        if (FluentCRMBridge::isAvailable()) {
+            $api = FluentCRMBridge::getContactsApi();
+            if ($api) {
+                $subscriber = $api->getContact($email);
+            }
+        }
+        if (!$subscriber) {
+            $subscriber = (object) ['email' => $email, 'first_name' => '', 'last_name' => '', 'full_name' => ''];
+        }
+
+        $sent = $this->dispatch($post, $subscriber, $newsletterId);
+        TrackingHandler::recordSend($newsletterId, $email, $sent);
+        return $sent;
+    }
+
     private function getSubscribers(array $tagIds, array $listIds) {
         try {
             $query = new \FluentCrm\App\Services\ContactsQuery([

@@ -39,6 +39,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$this, 'handleCountRecipients']);
         add_action('wp_ajax_crmbiz_nl_manual_send',      [$this, 'handleManualSend']);
         add_action('wp_ajax_crmbiz_nl_resend',           [$this, 'handleResend']);
+        add_action('wp_ajax_crmbiz_nl_resend_single',    [$this, 'handleResendSingle']);
         add_action('wp_ajax_crmbiz_nl_get_log',          [$this, 'handleGetLog']);
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$this, 'handlePreviewEmail']);
 
@@ -361,6 +362,30 @@ class Plugin {
         wp_schedule_single_event(time(), self::CRON_HOOK, [$newId]);
 
         wp_send_json_success(['message' => '재발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
+    }
+
+    public function handleResendSingle(): void {
+        if (!check_ajax_referer('crmbiz_nl_resend_single', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        $email        = sanitize_email($_POST['email'] ?? '');
+
+        if ($newsletterId <= 0 || !is_email($email)) {
+            wp_send_json_error(['message' => '유효하지 않은 입력입니다.']);
+        }
+
+        $sent = (new NewsletterSender($this->settings))->sendToEmail($newsletterId, $email);
+
+        if ($sent) {
+            wp_send_json_success(['message' => $email . ' 재발송 완료']);
+        } else {
+            wp_send_json_error(['message' => $email . ' 발송 실패 (수신거부 또는 오류)']);
+        }
     }
 
     public function handleGetLog(): void {
