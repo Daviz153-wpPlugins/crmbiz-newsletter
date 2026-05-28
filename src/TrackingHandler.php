@@ -21,7 +21,7 @@ class TrackingHandler {
 
     private function handleOpen(): void {
         $newsletterId = (int) ($_GET['nl'] ?? 0);
-        $email        = sanitize_email(self::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
+        $email        = sanitize_email(Database::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
         // 레이트 리밋: IP당 1시간 30회 — 초과 시 이벤트 기록 생략, 픽셀은 항상 반환
@@ -41,7 +41,7 @@ class TrackingHandler {
 
     private function handleClick(): void {
         $newsletterId = (int) ($_GET['nl'] ?? 0);
-        $email        = sanitize_email(self::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
+        $email        = sanitize_email(Database::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
         $token        = sanitize_text_field($_GET['t'] ?? '');
         $url          = $_GET['url'] ?? '';
 
@@ -130,7 +130,7 @@ class TrackingHandler {
         return add_query_arg([
             'crmbiz_nl_action' => 'open',
             'nl'               => $newsletterId,
-            'e'                => self::encryptEmail($email),
+            'e'                => Database::encryptEmail($email),
             't'                => $token,
         ], home_url('/'));
     }
@@ -140,35 +140,10 @@ class TrackingHandler {
         return add_query_arg([
             'crmbiz_nl_action' => 'click',
             'nl'               => $newsletterId,
-            'e'                => self::encryptEmail($email),
+            'e'                => Database::encryptEmail($email),
             't'                => $token,
             'url'              => $targetUrl,
         ], home_url('/'));
     }
 
-    // AES-256-CBC로 이메일 암호화 — 트래킹 URL에서 평문 이메일 노출 방지
-    private static function encryptEmail(string $email): string {
-        $key = hex2bin(Database::getSecret());
-        $iv  = random_bytes(16);
-        $ct  = openssl_encrypt($email, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
-        return rtrim(strtr(base64_encode($iv . $ct), '+/', '-_'), '=');
-    }
-
-    private static function decryptEmail(string $encoded): string {
-        if ($encoded === '') {
-            return '';
-        }
-        $b64 = strtr($encoded, '-_', '+/');
-        $pad = strlen($b64) % 4;
-        if ($pad) {
-            $b64 .= str_repeat('=', 4 - $pad);
-        }
-        $raw = base64_decode($b64, true);
-        if ($raw === false || strlen($raw) < 17) {
-            return '';
-        }
-        $key    = hex2bin(Database::getSecret());
-        $result = openssl_decrypt(substr($raw, 16), 'AES-256-CBC', $key, OPENSSL_RAW_DATA, substr($raw, 0, 16));
-        return $result !== false ? $result : '';
-    }
 }

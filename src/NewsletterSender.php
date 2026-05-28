@@ -215,7 +215,7 @@ class NewsletterSender {
         if ($this->settings->isDryRun()) {
             FluentCRMBridge::debugLog(
                 'CRMBiz Newsletter',
-                'DRY-RUN To=' . $subscriber->email . ' Post=' . $post->ID
+                'DRY-RUN To=[redacted] Post=' . $post->ID
             );
             return true;
         }

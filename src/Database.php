@@ -79,6 +79,37 @@ class Database {
     }
 
     /**
+     * 이메일 주소를 AES-256-CBC로 암호화 — URL 파라미터용 URL-safe Base64 반환.
+     */
+    public static function encryptEmail(string $email): string {
+        $key = hex2bin(self::getSecret());
+        $iv  = random_bytes(16);
+        $ct  = openssl_encrypt($email, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        return rtrim(strtr(base64_encode($iv . $ct), '+/', '-_'), '=');
+    }
+
+    /**
+     * encryptEmail() 역연산 — 복호화 실패 시 빈 문자열 반환.
+     */
+    public static function decryptEmail(string $encoded): string {
+        if ($encoded === '') {
+            return '';
+        }
+        $b64 = strtr($encoded, '-_', '+/');
+        $pad = strlen($b64) % 4;
+        if ($pad) {
+            $b64 .= str_repeat('=', 4 - $pad);
+        }
+        $raw = base64_decode($b64, true);
+        if ($raw === false || strlen($raw) < 17) {
+            return '';
+        }
+        $key    = hex2bin(self::getSecret());
+        $result = openssl_decrypt(substr($raw, 16), 'AES-256-CBC', $key, OPENSSL_RAW_DATA, substr($raw, 0, 16));
+        return $result !== false ? $result : '';
+    }
+
+    /**
      * 고정 윈도우 레이트 리밋.
      * $window 초 안에 같은 IP + action이 $limit 회를 초과하면 false 반환.
      */

@@ -414,7 +414,7 @@ class Plugin {
         if (!wp_verify_nonce($nonce, 'crmbiz_nl_preview_' . $postId)) {
             wp_die('보안 검증 실패.', '오류', ['response' => 403]);
         }
-        if (!current_user_can('edit_post', $postId)) {
+        if (!current_user_can('manage_options')) {
             wp_die('권한이 없습니다.', '오류', ['response' => 403]);
         }
 

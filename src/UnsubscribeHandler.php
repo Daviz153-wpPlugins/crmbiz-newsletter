@@ -16,7 +16,8 @@ class UnsubscribeHandler {
             return;
         }
 
-        $email        = sanitize_email($_GET['email'] ?? '');
+        $enc          = sanitize_text_field($_GET['enc'] ?? '');
+        $email        = sanitize_email(Database::decryptEmail($enc));
         $token        = sanitize_text_field($_GET['token'] ?? '');
         $newsletterId = (int) ($_GET['nl'] ?? 0);
         $exp          = (int) ($_GET['exp'] ?? 0);
@@ -143,7 +144,7 @@ class UnsubscribeHandler {
         $token = hash_hmac('sha256', $email . '|' . $exp, Database::getSecret());
         return add_query_arg([
             'crmbiz_nl_action' => 'unsubscribe',
-            'email'            => $email,
+            'enc'              => Database::encryptEmail($email), // 평문 이메일 대신 암호화값
             'token'            => $token,
             'nl'               => $newsletterId,
             'exp'              => $exp,
