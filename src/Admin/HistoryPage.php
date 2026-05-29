@@ -169,6 +169,15 @@ class HistoryPage {
                                 </button>
                                 <?php endif; ?>
 
+                                <?php if (in_array($row->status, ['queued', 'sending'], true)): ?>
+                                <button type="button"
+                                        class="crmbiz-force-send"
+                                        data-id="<?php echo esc_attr($row->id); ?>"
+                                        title="지금 즉시 발송"
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #16a34a;border-radius:6px;cursor:pointer;font-size:13px;color:#16a34a;background:#f0fdf4;margin-right:2px">
+                                    ⚡
+                                </button>
+                                <?php endif; ?>
                                 <?php if (in_array($row->status, ['queued', 'sending', 'scheduled'], true)): ?>
                                 <button type="button"
                                         class="crmbiz-cancel-send"
