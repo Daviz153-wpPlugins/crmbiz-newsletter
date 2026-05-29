@@ -340,6 +340,27 @@ class AjaxHandlers {
         wp_send_json_success($data);
     }
 
+    public function handleForceSend(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        $hasMore = (new \CRMBizNewsletter\NewsletterSender($this->settings))->sendFromRecord($newsletterId);
+        if ($hasMore) {
+            wp_schedule_single_event(time(), $this->cronHook, [$newsletterId]);
+        }
+
+        wp_send_json_success(['message' => '발송 실행됨', 'has_more' => $hasMore]);
+    }
+
     public function handleTestNewsletter(): void {
         if (!check_ajax_referer('crmbiz_nl_metabox', 'nonce', false)) {
             wp_send_json_error(['message' => '보안 검증 실패.'], 403);
