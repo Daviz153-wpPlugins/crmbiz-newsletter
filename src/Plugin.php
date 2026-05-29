@@ -56,6 +56,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_progress',         [$ajax, 'handleProgress']);
         add_action('wp_ajax_crmbiz_nl_test_newsletter',   [$ajax, 'handleTestNewsletter']);
         add_action('wp_ajax_crmbiz_nl_force_send',         [$ajax, 'handleForceSend']);
+        add_action('wp_ajax_crmbiz_nl_delete_newsletter',   [$ajax, 'handleDeleteNewsletter']);
 
         if (is_admin()) {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);
