@@ -408,6 +408,33 @@ class AjaxHandlers {
             : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
     }
 
+
+    public function handleDeleteNewsletter(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        global $wpdb;
+
+        wp_clear_scheduled_hook($this->cronHook, [$newsletterId]);
+        $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue',  ['newsletter_id' => $newsletterId], ['%d']);
+        $wpdb->delete($wpdb->prefix . 'crmbiz_nl_events', ['newsletter_id' => $newsletterId], ['%d']);
+
+        $deleted = (bool) $wpdb->delete($wpdb->prefix . 'crmbiz_newsletters', ['id' => $newsletterId], ['%d']);
+
+        $deleted
+            ? wp_send_json_success(['message' => '삭제되었습니다.'])
+            : wp_send_json_error(['message' => '삭제 실패 또는 이미 삭제된 항목입니다.']);
+    }
+
     private function buildTestEmailBody(string $to): string {
         return sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
