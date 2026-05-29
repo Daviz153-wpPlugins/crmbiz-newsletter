@@ -143,6 +143,7 @@ class Plugin {
             return;
         }
         if ($this->newsletterRecordExists($postId)) {
+            $this->syncDraftRecord($postId);
             return;
         }
 
@@ -156,6 +157,25 @@ class Plugin {
                 "SELECT id FROM {$wpdb->prefix}crmbiz_newsletters WHERE post_id = %d LIMIT 1",
                 $postId
             )
+        );
+    }
+
+
+    private function syncDraftRecord(int $postId): void {
+        global $wpdb;
+        $tagIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
+        $listIds = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
+
+        $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            [
+                'tag_ids'    => wp_json_encode(array_values($tagIds)),
+                'list_ids'   => wp_json_encode(array_values($listIds)),
+                'updated_at' => current_time('mysql'),
+            ],
+            ['post_id' => $postId, 'status' => 'draft'],
+            ['%s', '%s', '%s'],
+            ['%d', '%s']
         );
     }
 
