@@ -6,6 +6,7 @@ use CRMBizNewsletter\Admin\DashboardPage;
 use CRMBizNewsletter\Admin\HistoryPage;
 use CRMBizNewsletter\Admin\MetaBox;
 use CRMBizNewsletter\Admin\SettingsPage;
+use CRMBizNewsletter\Admin\PostListColumn;
 
 defined('ABSPATH') || exit;
 
@@ -58,6 +59,7 @@ class Plugin {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);
             add_action('add_meta_boxes',              [$this, 'registerMetaBox']);
             add_action('save_post',                   [$this, 'savePostMeta']);
+            (new PostListColumn())->init();
             add_action('admin_enqueue_scripts',       [$this, 'enqueueAdminAssets']);
             add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']);
         }
