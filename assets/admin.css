@@ -297,6 +297,63 @@
   background: #fff; padding: 0;
 }
 
+/* ---- Toast notifications ---- */
+#crmbiz-toast-container {
+  position: fixed;
+  top: 32px;
+  right: 20px;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.crmbiz-toast {
+  padding: 12px 18px;
+  border-radius: var(--cn-radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity .3s, transform .3s;
+  pointer-events: auto;
+  max-width: 320px;
+}
+.crmbiz-toast--success { background: var(--cn-green); }
+.crmbiz-toast--error   { background: var(--cn-red); }
+.crmbiz-toast--info    { background: var(--cn-blue-dark); }
+.crmbiz-toast--out     { opacity: 0; transform: translateX(20px); }
+
+/* ---- Confirm modal ---- */
+.crmbiz-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crmbiz-modal {
+  background: #fff;
+  border-radius: var(--cn-radius-lg);
+  padding: 24px;
+  max-width: 400px;
+  width: calc(100% - 40px);
+  box-shadow: 0 20px 40px rgba(0,0,0,.2);
+}
+.crmbiz-modal-message {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--cn-text);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.crmbiz-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.crmbiz-btn--danger   { background: var(--cn-red); color: #fff; border: none; }
+
 /* ---- Existing classes (unchanged) ---- */
 #crmbiz-history-table tbody tr.crmbiz-row { cursor: pointer; }
 #crmbiz-history-table tbody tr.crmbiz-row:hover { background: var(--cn-bg-subtle); }
