@@ -169,7 +169,7 @@ class HistoryPage {
                                 </button>
                                 <?php endif; ?>
 
-                                <?php if (in_array($row->status, ['queued', 'sending'], true)): ?>
+                                <?php if (in_array($row->status, ['queued', 'sending', 'scheduled'], true)): ?>
                                 <button type="button"
                                         class="crmbiz-cancel-send"
                                         data-id="<?php echo esc_attr($row->id); ?>"
