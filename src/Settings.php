@@ -27,6 +27,7 @@ class Settings {
         $this->data['from_email']  = sanitize_email($post['from_email']       ?? '');
         $this->data['dry_run']     = isset($post['dry_run'])    ? 1 : 0;
         $this->data['debug_mode']  = isset($post['debug_mode']) ? 1 : 0;
+        $this->data['notify_email'] = sanitize_email($post['notify_email'] ?? '');
         update_option(self::OPTION_KEY, $this->data);
     }
 
@@ -46,6 +47,15 @@ class Settings {
         }
         $fcSettings = FluentCRMBridge::getGlobalEmailSettings();
         return $fcSettings['from_email'] ?? (string) get_option('admin_email');
+    }
+
+
+    public function getNotifyEmail(): string {
+        $custom = $this->get('notify_email');
+        if ($custom && is_email($custom)) {
+            return $custom;
+        }
+        return (string) get_option('admin_email');
     }
 
     public function isDryRun(): bool {
