@@ -54,6 +54,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_cancel_send',      [$ajax, 'handleCancelSend']);
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$ajax, 'handlePreviewEmail']);
         add_action('wp_ajax_crmbiz_nl_progress',         [$ajax, 'handleProgress']);
+        add_action('wp_ajax_crmbiz_nl_test_newsletter',   [$ajax, 'handleTestNewsletter']);
 
         if (is_admin()) {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);
