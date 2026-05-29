@@ -20,66 +20,64 @@ class HistoryPage {
         $total_pages = max(1, (int) ceil($total / $per_page));
         $paged       = min($paged, $total_pages);
         ?>
-        <div class="wrap" style="max-width:1200px">
+        <div class="wrap crmbiz-wrap">
 
             <!-- 헤더 -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 20px">
-                <h1 style="margin:0;font-size:20px;font-weight:700;color:#111827">
+            <div class="crmbiz-page-header">
+                <h1 class="crmbiz-page-title">
                     뉴스레터 이력
                     <?php if ($total > 0): ?>
-                    <span style="font-size:14px;font-weight:400;color:#9ca3af;margin-left:6px">(총 <?php echo esc_html(number_format($total)); ?>개)</span>
+                    <span class="crmbiz-page-title-count">(총 <?php echo esc_html(number_format($total)); ?>개)</span>
                     <?php endif; ?>
                 </h1>
             </div>
 
             <!-- 검색 -->
-            <form method="get" action="" style="margin-bottom:16px">
+            <form method="get" action="">
                 <input type="hidden" name="page" value="crmbiz-nl-history">
-                <div style="display:flex;align-items:center;gap:8px;max-width:480px">
-                    <div style="position:relative;flex:1">
-                        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none">🔍</span>
+                <div class="crmbiz-search-wrap">
+                    <div class="crmbiz-search-inner">
+                        <span class="crmbiz-search-icon dashicons dashicons-search"></span>
                         <input type="text"
                                name="s"
+                               id="crmbiz-search"
                                value="<?php echo esc_attr($search); ?>"
                                placeholder="제목으로 검색..."
-                               style="width:100%;box-sizing:border-box;padding:8px 12px 8px 32px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;color:#374151;outline:none;background:#fff"
+                               class="crmbiz-search-input"
                                autocomplete="off">
                     </div>
-                    <button type="submit"
-                            style="padding:8px 14px;background:#111827;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">
-                        검색
-                    </button>
+                    <button type="submit" class="crmbiz-btn crmbiz-btn--primary">검색</button>
                     <?php if ($search !== ''): ?>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>"
-                       style="font-size:12px;color:#6b7280;text-decoration:none;white-space:nowrap">초기화 ✕</a>
+                       class="crmbiz-search-clear">초기화 ✕</a>
                     <?php endif; ?>
                 </div>
             </form>
 
             <?php if (empty($rows)): ?>
-                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:48px;text-align:center;color:#9ca3af">
+                <div class="crmbiz-empty">
                     <?php if ($search !== ''): ?>
-                        <div style="font-size:36px;margin-bottom:12px">🔍</div>
-                        <p style="margin:0;font-size:14px">"<?php echo esc_html($search); ?>"에 해당하는 이력이 없습니다.</p>
+                        <div class="crmbiz-empty-icon dashicons dashicons-search"></div>
+                        <p>"<?php echo esc_html($search); ?>"에 해당하는 이력이 없습니다.</p>
                     <?php else: ?>
-                        <div style="font-size:36px;margin-bottom:12px">📭</div>
-                        <p style="margin:0;font-size:14px">발송 이력이 없습니다. 포스트를 발행하면 여기에 기록됩니다.</p>
+                        <div class="crmbiz-empty-icon dashicons dashicons-email-alt"></div>
+                        <p>발송 이력이 없습니다. 포스트를 발행하면 여기에 기록됩니다.</p>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
 
             <!-- 테이블 -->
-            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-                <table style="width:100%;border-collapse:collapse" id="crmbiz-history-table">
+            <div class="crmbiz-card">
+                <table class="crmbiz-table" id="crmbiz-history-table">
                     <thead>
-                        <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb">
-                            <th style="padding:10px 16px;text-align:left;font-size:12px;font-weight:600;color:#6b7280">제목</th>
-                            <th style="padding:10px 12px;text-align:center;font-size:12px;font-weight:600;color:#6b7280;width:80px">상태</th>
-                            <th style="padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:#6b7280;width:155px">발송 일시</th>
-                            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:#6b7280;width:60px">수신자</th>
-                            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:#6b7280;width:75px">오픈률</th>
-                            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:#6b7280;width:75px">클릭률</th>
-                            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:600;color:#6b7280;width:96px"></th>
+                        <tr>
+                            <th>제목</th>
+                            <th class="cn-center" style="width:80px">상태</th>
+                            <th style="width:155px">발송 일시</th>
+                            <th class="cn-right" style="width:60px">수신자</th>
+                            <th class="cn-right" style="width:75px">오픈률</th>
+                            <th class="cn-right" style="width:75px">클릭률</th>
+                            <th class="cn-right" style="width:96px"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -92,62 +90,56 @@ class HistoryPage {
                         <tr class="crmbiz-row"
                             data-title="<?php echo esc_attr(mb_strtolower($title)); ?>"
                             data-status="<?php echo esc_attr($row->status); ?>"
-                            data-nl-id="<?php echo esc_attr($row->id); ?>"
-                            style="border-bottom:1px solid #f3f4f6;transition:background .12s">
+                            data-nl-id="<?php echo esc_attr($row->id); ?>">
 
                             <!-- 제목 -->
-                            <td style="padding:14px 16px">
+                            <td>
                                 <div style="display:flex;align-items:center;gap:8px">
                                     <button type="button"
                                             class="crmbiz-toggle-row"
                                             data-id="<?php echo esc_attr($row->id); ?>"
-                                            title="상세 보기"
-                                            style="background:none;border:none;padding:2px;cursor:pointer;color:#9ca3af;font-size:11px;line-height:1;flex-shrink:0;transition:transform .15s">▶</button>
-                                    <div>
-                                        <a href="<?php echo esc_url(get_permalink((int)$row->post_id)); ?>"
-                                           target="_blank"
-                                           style="font-size:13px;font-weight:500;color:#111827;text-decoration:none;line-height:1.4">
-                                            <?php echo esc_html($title); ?>
-                                        </a>
-                                    </div>
+                                            title="상세 보기">▶</button>
+                                    <a href="<?php echo esc_url(get_permalink((int)$row->post_id)); ?>"
+                                       target="_blank"
+                                       style="font-size:13px;font-weight:500;color:var(--cn-primary);text-decoration:none;line-height:1.4">
+                                        <?php echo esc_html($title); ?>
+                                    </a>
                                 </div>
                             </td>
 
                             <!-- 상태 -->
-                            <td style="padding:14px 12px;text-align:center">
-                                <?php echo $this->statusBadge($row); ?>
-                            </td>
+                            <td style="text-align:center"><?php echo $this->statusBadge($row); ?></td>
 
                             <!-- 발송 일시 -->
-                            <td style="padding:14px 12px;font-size:12px;color:#6b7280;white-space:nowrap">
+                            <td style="font-size:12px;color:var(--cn-muted);white-space:nowrap">
                                 <?php echo esc_html($this->formatDate($row)); ?>
                             </td>
 
                             <!-- 수신자 -->
-                            <td style="padding:14px 12px;text-align:right;font-size:13px;color:#374151;font-weight:500">
+                            <td style="text-align:right;font-size:13px;color:var(--cn-text);font-weight:500">
                                 <?php echo esc_html(number_format((int)$row->recipient_count)); ?>
                             </td>
 
                             <!-- 오픈률 -->
-                            <td style="padding:14px 12px;text-align:right">
+                            <td style="text-align:right">
                                 <?php if ($sent > 0): ?>
-                                <span style="font-size:13px;font-weight:600;color:#0f5132"><?php echo esc_html($openRate); ?>%</span>
+                                <span class="cn-metric-green"><?php echo esc_html($openRate); ?>%</span>
                                 <?php else: ?>
-                                <span style="color:#d1d5db;font-size:12px">—</span>
+                                <span class="cn-metric-dash">—</span>
                                 <?php endif; ?>
                             </td>
 
                             <!-- 클릭률 -->
-                            <td style="padding:14px 12px;text-align:right">
+                            <td style="text-align:right">
                                 <?php if ($sent > 0): ?>
-                                <span style="font-size:13px;font-weight:600;color:#1d4ed8"><?php echo esc_html($clickRate); ?>%</span>
+                                <span class="cn-metric-blue"><?php echo esc_html($clickRate); ?>%</span>
                                 <?php else: ?>
-                                <span style="color:#d1d5db;font-size:12px">—</span>
+                                <span class="cn-metric-dash">—</span>
                                 <?php endif; ?>
                             </td>
 
                             <!-- 액션 -->
-                            <td style="padding:14px 12px;text-align:right;white-space:nowrap">
+                            <td style="text-align:right;white-space:nowrap">
                                 <a href="<?php echo esc_url(add_query_arg([
                                     'action'  => 'crmbiz_nl_preview_email',
                                     'post_id' => $row->post_id,
@@ -155,61 +147,46 @@ class HistoryPage {
                                 ], admin_url('admin-ajax.php'))); ?>"
                                    target="_blank"
                                    title="미리보기"
-                                   style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;color:#6b7280;background:#fff;text-decoration:none;margin-right:2px">
-                                    👁
+                                   class="crmbiz-icon-btn crmbiz-icon-btn--gray">
+                                    <span class="dashicons dashicons-visibility"></span>
                                 </a>
 
                                 <?php if ($row->status === 'draft'): ?>
-                                <button type="button"
-                                        class="crmbiz-manual-send"
-                                        data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #2563eb;border-radius:6px;cursor:pointer;font-size:13px;color:#2563eb;background:#eff6ff;margin-right:2px">
-                                    ▶
-                                </button>
+                                <button type="button" class="crmbiz-icon-btn crmbiz-icon-btn--blue crmbiz-manual-send"
+                                        data-id="<?php echo esc_attr($row->id); ?>" title="발송">▶</button>
                                 <?php endif; ?>
 
                                 <?php if (in_array($row->status, ['queued', 'sending'], true)): ?>
-                                <button type="button"
-                                        class="crmbiz-force-send"
-                                        data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="지금 즉시 발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #16a34a;border-radius:6px;cursor:pointer;font-size:13px;color:#16a34a;background:#f0fdf4;margin-right:2px">
-                                    ⚡
-                                </button>
-                                <?php endif; ?>
-                                <?php if (in_array($row->status, ['queued', 'sending', 'scheduled'], true)): ?>
-                                <button type="button"
-                                        class="crmbiz-cancel-send"
-                                        data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="발송 취소"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #dc2626;border-radius:6px;cursor:pointer;font-size:13px;color:#dc2626;background:#fef2f2;margin-right:2px">
-                                    ✕
+                                <button type="button" class="crmbiz-icon-btn crmbiz-icon-btn--green crmbiz-force-send"
+                                        data-id="<?php echo esc_attr($row->id); ?>" title="지금 즉시 발송">
+                                    <span class="dashicons dashicons-controls-play"></span>
                                 </button>
                                 <?php endif; ?>
 
-                                <?php if (in_array($row->status, ['sent', 'failed'], true)): ?>
-                                <button type="button"
-                                        class="crmbiz-resend"
-                                        data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="재발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff;margin-right:2px">
-                                    ↺
-                                </button>
+                                <?php if (in_array($row->status, ['queued', 'sending', 'scheduled'], true)): ?>
+                                <button type="button" class="crmbiz-icon-btn crmbiz-icon-btn--red crmbiz-cancel-send"
+                                        data-id="<?php echo esc_attr($row->id); ?>" title="발송 취소">✕</button>
                                 <?php endif; ?>
+
+                                <?php if (in_array($row->status, ['sent', 'failed'], true)): ?>
+                                <button type="button" class="crmbiz-icon-btn crmbiz-icon-btn--gray crmbiz-resend"
+                                        data-id="<?php echo esc_attr($row->id); ?>" title="재발송">↺</button>
+                                <?php endif; ?>
+
+                                <?php $deletable = $row->status !== 'sending'; ?>
                                 <button type="button"
-                                        class="crmbiz-delete-newsletter"
+                                        class="crmbiz-icon-btn crmbiz-icon-btn--red crmbiz-delete-newsletter"
                                         data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="삭제"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #dc2626;border-radius:6px;cursor:pointer;font-size:13px;color:#dc2626;background:#fef2f2">
-                                    🗑
+                                        title="<?php echo $deletable ? '삭제' : '발송 중 — 취소 후 삭제 가능'; ?>"
+                                        <?php echo $deletable ? '' : 'disabled'; ?>>
+                                    <span class="dashicons dashicons-trash"></span>
                                 </button>
                             </td>
                         </tr>
 
                         <!-- 상세 확장 행 -->
                         <tr id="crmbiz-detail-row-<?php echo esc_attr($row->id); ?>" style="display:none">
-                            <td colspan="7" style="padding:0;border-bottom:2px solid #e5e7eb">
+                            <td colspan="7" style="padding:0;border-bottom:2px solid var(--cn-border)">
                                 <div id="crmbiz-detail-<?php echo esc_attr($row->id); ?>"></div>
                             </td>
                         </tr>
@@ -550,14 +527,14 @@ class HistoryPage {
                     <?php else: ?>
 
                     <!-- 수신자 테이블 -->
-                    <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <table class="crmbiz-sub-table">
                         <thead>
-                            <tr style="border-bottom:1px solid #e5e7eb">
-                                <th style="padding:6px 10px;text-align:left;font-size:11px;font-weight:600;color:#9ca3af">이메일</th>
-                                <th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:600;color:#9ca3af;width:70px">열람</th>
-                                <th style="padding:6px 10px;text-align:center;font-size:11px;font-weight:600;color:#9ca3af;width:70px">클릭</th>
-                                <th style="padding:6px 10px;text-align:right;font-size:11px;font-weight:600;color:#9ca3af;width:150px">마지막 활동</th>
-                                <th style="padding:6px 10px;text-align:right;font-size:11px;font-weight:600;color:#9ca3af;width:50px">액션</th>
+                            <tr>
+                                <th>이메일</th>
+                                <th class="cn-center" style="width:70px">열람</th>
+                                <th class="cn-center" style="width:70px">클릭</th>
+                                <th class="cn-right" style="width:150px">마지막 활동</th>
+                                <th class="cn-right" style="width:50px">액션</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -571,52 +548,49 @@ class HistoryPage {
                             $name    = $nameMap[$email] ?? '';
                             $initial = $name ? strtoupper(mb_substr($name, 0, 1)) : strtoupper(mb_substr($email, 0, 1));
                         ?>
-                        <tr class="crmbiz-nl-recipient"
-                            data-status="<?php echo esc_attr($status); ?>"
-                            style="border-bottom:1px solid #f3f4f6">
-                            <td style="padding:8px 10px">
-                                <div style="display:flex;align-items:center;gap:8px">
-                                    <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6b7280;flex-shrink:0">
-                                        <?php echo esc_html($initial); ?>
-                                    </div>
+                        <tr class="crmbiz-nl-recipient" data-status="<?php echo esc_attr($status); ?>">
+                            <td>
+                                <div class="crmbiz-recipient-row">
+                                    <div class="crmbiz-avatar"><?php echo esc_html($initial); ?></div>
                                     <div>
                                         <?php if ($name): ?>
-                                        <div style="font-size:13px;font-weight:500;color:#111827;line-height:1.3"><?php echo esc_html($name); ?></div>
+                                        <div class="crmbiz-recipient-name"><?php echo esc_html($name); ?></div>
+                                        <div class="crmbiz-recipient-email"><?php echo esc_html($email); ?></div>
+                                        <?php else: ?>
+                                        <div class="crmbiz-recipient-email--only"><?php echo esc_html($email); ?></div>
                                         <?php endif; ?>
-                                        <div style="font-size:<?php echo $name ? '11px' : '13px'; ?>;color:<?php echo $name ? '#9ca3af' : '#374151'; ?>"><?php echo esc_html($email); ?></div>
                                     </div>
                                     <?php if ($c['failed']): ?>
-                                    <span style="font-size:11px;color:#842029;background:#f8d7da;padding:1px 6px;border-radius:3px">실패</span>
+                                    <span class="crmbiz-tag-fail">실패</span>
                                     <?php endif; ?>
                                     <?php if ($c['unsubscribed']): ?>
-                                    <span style="font-size:11px;color:#c2410c;background:#fff7ed;padding:1px 6px;border-radius:3px;border:1px solid #fed7aa">구독 취소</span>
+                                    <span class="crmbiz-tag-unsub">구독 취소</span>
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td style="padding:8px 10px;text-align:center">
+                            <td style="text-align:center">
                                 <?php if ($c['opened'] || $c['clicked']): ?>
-                                <span style="color:#0f5132;font-size:16px" title="열람함">✓</span>
+                                <span class="cn-metric-green" style="font-size:16px" title="열람함">✓</span>
                                 <?php else: ?>
-                                <span style="color:#d1d5db;font-size:13px">—</span>
+                                <span class="cn-metric-dash">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="padding:8px 10px;text-align:center">
+                            <td style="text-align:center">
                                 <?php if ($c['clicked']): ?>
-                                <span style="color:#1d4ed8;font-size:16px" title="클릭함">✓</span>
+                                <span class="cn-metric-blue" style="font-size:16px" title="클릭함">✓</span>
                                 <?php else: ?>
-                                <span style="color:#d1d5db;font-size:13px">—</span>
+                                <span class="cn-metric-dash">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="padding:8px 10px;text-align:right;font-size:11px;color:#9ca3af;white-space:nowrap">
+                            <td style="text-align:right;font-size:11px;color:var(--cn-light);white-space:nowrap">
                                 <?php echo esc_html($lastAt ?: '—'); ?>
                             </td>
-                            <td style="padding:8px 10px;text-align:right">
+                            <td style="text-align:right">
                                 <button type="button"
-                                        class="crmbiz-resend-single"
+                                        class="crmbiz-resend-btn crmbiz-resend-single"
                                         data-nl-id="<?php echo esc_attr($newsletterId); ?>"
                                         data-email="<?php echo esc_attr($email); ?>"
-                                        title="재발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff;padding:0">↺</button>
+                                        title="재발송">↺</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -624,23 +598,17 @@ class HistoryPage {
                     </table>
 
                     <!-- 페이지네이션 -->
-                    <div class="crmbiz-nl-pager"
-                         style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6;font-size:12px;color:#6b7280;flex-wrap:wrap">
+                    <div class="crmbiz-nl-pager" style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--cn-bg-muted);font-size:12px;color:var(--cn-muted);flex-wrap:wrap">
                         <span>페이지 <strong class="cp-cur">1</strong> of <strong class="cp-tot">1</strong></span>
-                        <select class="cp-per"
-                                style="border:1px solid #e5e7eb;border-radius:6px;padding:4px 8px;font-size:12px;color:#374151;background:#fff;cursor:pointer">
+                        <select class="cp-per" style="border:1px solid var(--cn-border);border-radius:var(--cn-radius);padding:4px 8px;font-size:12px;color:var(--cn-text);background:#fff;cursor:pointer">
                             <option value="20">20 / page</option>
                             <option value="50">50 / page</option>
                             <option value="100">100 / page</option>
                         </select>
                         <span>총계 <strong class="cp-cnt"><?php echo esc_html($sent); ?></strong></span>
                         <div style="margin-left:auto;display:flex;gap:4px">
-                            <button class="cp-prev"
-                                    style="padding:4px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151"
-                                    disabled>◀</button>
-                            <button class="cp-next"
-                                    style="padding:4px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#374151"
-                                    disabled>▶</button>
+                            <button class="cp-prev crmbiz-btn crmbiz-btn--secondary" style="padding:4px 10px;font-size:12px" disabled>◀</button>
+                            <button class="cp-next crmbiz-btn crmbiz-btn--secondary" style="padding:4px 10px;font-size:12px" disabled>▶</button>
                         </div>
                     </div>
 
@@ -676,20 +644,20 @@ class HistoryPage {
 
     private function statusBadge(object $row): string {
         $status = $row->status;
-        $map = [
-            'draft'     => ['#6b7280', '#f3f4f6', '대기'],
-            'queued'    => ['#d97706', '#fef3c7', '발송 예약'],
-            'sending'   => ['#1d4ed8', '#dbeafe', '발송 중'],
-            'sent'      => ['#0f5132', '#d1e7dd', '완료'],
-            'failed'    => ['#842029', '#f8d7da', '실패'],
-            'scheduled' => ['#7c3aed', '#ede9fe', '예약'],
-            'cancelled' => ['#6b7280', '#f3f4f6', '취소됨'],
+        $labels = [
+            'draft'     => '대기',
+            'queued'    => '발송 예약',
+            'sending'   => '발송 중',
+            'sent'      => '완료',
+            'failed'    => '실패',
+            'scheduled' => '예약',
+            'cancelled' => '취소됨',
         ];
-        [$color, $bg, $label] = $map[$status] ?? ['#6b7280', '#f3f4f6', $status];
-
+        $label = $labels[$status] ?? $status;
         $badge = sprintf(
-            '<span style="color:%s;background:%s;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap">%s</span>',
-            esc_attr($color), esc_attr($bg), esc_html($label)
+            '<span class="crmbiz-badge crmbiz-badge--%s">%s</span>',
+            esc_attr($status),
+            esc_html($label)
         );
 
         if ($status === 'sending') {
@@ -697,13 +665,11 @@ class HistoryPage {
             $total = (int) $row->recipient_count;
             $pct   = $total > 0 ? min(100, round($done / $total * 100)) : 0;
             $badge .= sprintf(
-                '<div class="crmbiz-progress-text" style="margin-top:4px;font-size:10px;color:%s;white-space:nowrap">%s / %s</div>' .
-                '<div style="background:#e5e7eb;border-radius:2px;height:3px;margin-top:2px;overflow:hidden">' .
-                '<div class="crmbiz-progress-fill" style="background:%s;height:100%%;width:%s%%"></div></div>',
-                esc_attr($color),
+                '<div class="crmbiz-progress-text" style="color:var(--cn-blue-dark)">%s / %s</div>' .
+                '<div class="crmbiz-progress-bar">' .
+                '<div class="crmbiz-progress-fill" style="background:var(--cn-blue-dark);width:%s%%"></div></div>',
                 number_format($done),
                 number_format($total),
-                esc_attr($color),
                 esc_attr((string) $pct)
             );
         }
