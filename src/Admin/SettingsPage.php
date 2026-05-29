@@ -99,6 +99,20 @@ class SettingsPage {
                             </fieldset>
                         </td>
                     </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="notify_email">알림 이메일</label>
+                        </th>
+                        <td>
+                            <input type="email"
+                                   id="notify_email"
+                                   name="notify_email"
+                                   value="<?php echo esc_attr($this->settings->get('notify_email', '')); ?>"
+                                   class="regular-text"
+                                   placeholder="<?php echo esc_attr((string) get_option('admin_email')); ?>">
+                            <p class="description">뉴스레터 발송 완료/실패 시 결과를 받을 이메일. 비워두면 WordPress 관리자 이메일로 발송됩니다.</p>
+                        </td>
+                    </tr>
                 </table>
 
                 <?php submit_button('설정 저장'); ?>
