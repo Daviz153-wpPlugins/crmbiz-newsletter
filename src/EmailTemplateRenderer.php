@@ -61,7 +61,7 @@ class EmailTemplateRenderer {
         $siteName       = esc_html($d['site_name']);
         $siteUrl        = esc_url($d['site_url']);
         $postTitle      = esc_html(get_the_title($post));
-        $postUrl        = esc_url(get_permalink($post));
+        $postUrl        = esc_url(get_permalink($post) . '#crmbiz-web');
         $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
 
         $featuredSection = $d['featured_img']
@@ -103,7 +103,7 @@ class EmailTemplateRenderer {
             function ($matches) use ($newsletterId, $email) {
                 // HTML 엔티티 디코딩 (esc_url()이 & → &amp; 변환한 것을 복원)
                 $url = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
-                if (strpos($url, 'crmbiz_nl_action') !== false) {
+                if (strpos($url, 'crmbiz_nl_action') !== false || strpos($url, '#crmbiz-web') !== false) {
                     return $matches[0];
                 }
                 return 'href="' . esc_url(TrackingHandler::buildClickUrl($newsletterId, $email, $url)) . '"';
