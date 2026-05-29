@@ -16,6 +16,8 @@ class TrackingHandler {
             $this->handleOpen();
         } elseif ($action === 'click') {
             $this->handleClick();
+        } elseif ($action === 'web_view') {
+            $this->handleWebView();
         }
     }
 
@@ -24,7 +26,6 @@ class TrackingHandler {
         $email        = sanitize_email(Database::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
-        // 레이트 리밋: IP당 1시간 30회 — 초과 시 이벤트 기록 생략, 픽셀은 항상 반환
         if ($newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token)
             && Database::checkRateLimit('open', 30, 3600)) {
             $this->recordEvent($newsletterId, $email, 'open', null);
@@ -45,9 +46,7 @@ class TrackingHandler {
         $token        = sanitize_text_field($_GET['t'] ?? '');
         $url          = $_GET['url'] ?? '';
 
-        // 토큰 검증 성공 시에만 $url로 리디렉트 — 오픈 리디렉트 방지
         if ($newsletterId && $email && $url && $this->verifyClickToken($newsletterId, $email, $url, $token)) {
-            // 레이트 리밋: IP당 1시간 30회 — 초과 시 이벤트 기록 생략, 리디렉트는 항상 수행
             if (Database::checkRateLimit('click', 30, 3600)) {
                 $this->recordEvent($newsletterId, $email, 'click', $url);
             }
@@ -58,13 +57,38 @@ class TrackingHandler {
         exit;
     }
 
-    // 오픈 토큰: newsletter_id + email 기반
+    private function handleWebView(): void {
+        global $wpdb;
+        $newsletterId = (int) ($_GET['nl'] ?? 0);
+        $email        = sanitize_email(Database::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
+        $token        = sanitize_text_field($_GET['t'] ?? '');
+
+        $expected = hash_hmac('sha256', "web_view:{$newsletterId}|{$email}", Database::getSecret());
+        if ($newsletterId && $email && hash_equals($expected, $token)) {
+            if (Database::checkRateLimit('click', 30, 3600)) {
+                $this->recordEvent($newsletterId, $email, 'click', null);
+            }
+            $postId = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT post_id FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+                $newsletterId
+            ));
+            if ($postId) {
+                $permalink = get_permalink($postId);
+                if ($permalink) {
+                    wp_redirect(esc_url_raw($permalink));
+                    exit;
+                }
+            }
+        }
+        wp_redirect(home_url('/'));
+        exit;
+    }
+
     private function verifyOpenToken(int $newsletterId, string $email, string $token): bool {
         $expected = hash_hmac('sha256', "open:{$newsletterId}|{$email}", Database::getSecret());
         return hash_equals($expected, $token);
     }
 
-    // 클릭 토큰: newsletter_id + email + 목적지 URL 포함 — URL 변조 방지
     private function verifyClickToken(int $newsletterId, string $email, string $url, string $token): bool {
         $expected = hash_hmac('sha256', "click:{$newsletterId}|{$email}|{$url}", Database::getSecret());
         return hash_equals($expected, $token);
@@ -102,7 +126,6 @@ class TrackingHandler {
 
     public static function recordUnsubscribe(int $newsletterId, string $email): void {
         global $wpdb;
-        // 같은 뉴스레터에 이미 수신거부 이벤트가 있으면 중복 기록 방지
         $exists = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$wpdb->prefix}crmbiz_nl_events
              WHERE newsletter_id = %d AND email = %s AND type = 'unsubscribe' LIMIT 1",
@@ -143,6 +166,16 @@ class TrackingHandler {
             'e'                => Database::encryptEmail($email),
             't'                => $token,
             'url'              => $targetUrl,
+        ], home_url('/'));
+    }
+
+    public static function buildWebViewUrl(int $newsletterId, string $email): string {
+        $token = hash_hmac('sha256', "web_view:{$newsletterId}|{$email}", Database::getSecret());
+        return add_query_arg([
+            'crmbiz_nl_action' => 'web_view',
+            'nl'               => $newsletterId,
+            'e'                => Database::encryptEmail($email),
+            't'                => $token,
         ], home_url('/'));
     }
 
