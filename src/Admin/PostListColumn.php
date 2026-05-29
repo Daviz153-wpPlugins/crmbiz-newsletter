@@ -108,7 +108,7 @@ class PostListColumn {
         if ($row->status === 'sent' && $row->sent_at) {
             printf(
                 '<span style="display:block;margin-top:3px;font-size:11px;color:#9ca3af">%s &middot; %d명</span>',
-                esc_html(wp_date('m/d', strtotime($row->sent_at))),
+                esc_html(wp_date('m/d', (new \DateTime($row->sent_at, wp_timezone()))->getTimestamp())),
                 (int) $row->success_count
             );
         }
