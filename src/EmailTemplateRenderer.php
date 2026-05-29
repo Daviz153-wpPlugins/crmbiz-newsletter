@@ -65,7 +65,7 @@ class EmailTemplateRenderer {
         $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
 
         $featuredSection = $d['featured_img']
-            ? '<img src="' . esc_url($d['featured_img']) . '" alt="" style="width:100%;max-width:600px;height:auto;display:block;margin:0 0 24px">'
+            ? '<img src="' . esc_url($d['featured_img']) . '" alt="" style="width:100%;height:auto;display:block">'
             : '';
 
         $logoId      = get_theme_mod('custom_logo');
