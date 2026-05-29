@@ -11,7 +11,9 @@ defined('ABSPATH') || exit;
 
 class Plugin {
 
-    private const CRON_HOOK = 'crmbiz_nl_send_newsletter';
+    private const CRON_HOOK    = 'crmbiz_nl_send_newsletter';
+    private const CLEANUP_HOOK = 'crmbiz_nl_cleanup';
+    private const RETAIN_DAYS  = 90;
 
     private static ?self $instance = null;
     private Settings $settings;
@@ -35,6 +37,11 @@ class Plugin {
 
         add_action('transition_post_status', [$this, 'onPostPublished'], 10, 3);
         add_action(self::CRON_HOOK,          [$this, 'handleCronSend']);
+        add_action(self::CLEANUP_HOOK,       [$this, 'handleCleanup']);
+
+        if (!wp_next_scheduled(self::CLEANUP_HOOK)) {
+            wp_schedule_event(time(), 'daily', self::CLEANUP_HOOK);
+        }
 
         $ajax = new AjaxHandlers($this->settings, self::CRON_HOOK);
         add_action('wp_ajax_crmbiz_nl_test_email',       [$ajax, 'handleTestEmail']);
@@ -204,6 +211,14 @@ class Plugin {
         if ($hasMore) {
             wp_schedule_single_event(time() + 60, self::CRON_HOOK, [$newsletterId]);
         }
+    }
+
+    public function handleCleanup(): void {
+        global $wpdb;
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->prefix}crmbiz_nl_events WHERE occurred_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+            self::RETAIN_DAYS
+        ));
     }
 
     // -------------------------------------------------------------------------

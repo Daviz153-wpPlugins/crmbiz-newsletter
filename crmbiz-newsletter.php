@@ -23,6 +23,7 @@ require_once CRMBIZ_NL_DIR . 'autoload.php';
 register_activation_hook(__FILE__, ['CRMBizNewsletter\\Database', 'install']);
 register_deactivation_hook(__FILE__, function () {
     wp_clear_scheduled_hook('crmbiz_nl_send_newsletter');
+    wp_clear_scheduled_hook('crmbiz_nl_cleanup');
 });
 
 add_action('plugins_loaded', function () {
