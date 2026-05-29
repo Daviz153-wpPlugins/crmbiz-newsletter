@@ -47,7 +47,6 @@ class PostListColumn {
             )
         );
 
-        self::$cache = [];
         foreach ($rows as $row) {
             // post_id당 가장 최신 레코드(ORDER BY id DESC의 첫 번째)만 보존
             if (!isset(self::$cache[(int) $row->post_id])) {
