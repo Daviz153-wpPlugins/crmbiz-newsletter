@@ -386,7 +386,7 @@ class HistoryPage {
         $total      = (int) $nl->recipient_count;
         $sent       = (int) $nl->success_count;
         $fails      = (int) $nl->fail_count;
-        $opens      = count(array_filter($contactMap, fn($c) => $c['opened']));
+        $opens      = count(array_filter($contactMap, fn($c) => $c['opened'] || $c['clicked']));
         $clicks     = count(array_filter($contactMap, fn($c) => $c['clicked']));
         $unsubs     = count(array_filter($contactMap, fn($c) => $c['unsubscribed']));
         $unopened   = max(0, $sent - $opens - $unsubs);
