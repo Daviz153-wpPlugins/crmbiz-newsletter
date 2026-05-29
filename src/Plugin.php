@@ -170,6 +170,9 @@ class Plugin {
             $newsletterId = $sender->createQueuedRecord($postId);
             if ($newsletterId > 0) {
                 wp_schedule_single_event(time(), self::CRON_HOOK, [$newsletterId]);
+                Logger::info('즉시 발송 예약', ['post_id' => $postId, 'nl_id' => $newsletterId]);
+            } else {
+                Logger::error('즉시 발송 레코드 생성 실패', ['post_id' => $postId]);
             }
         } elseif ($sendMode === 'manual') {
             $sender->createDraftRecord($postId);
@@ -200,6 +203,7 @@ class Plugin {
             $ts = $dt->getTimestamp();
             return $ts > time() ? $ts : 0;
         } catch (\Exception $e) {
+            Logger::error('예약 시각 파싱 실패', ['scheduled_at' => $schedAt, 'error' => $e->getMessage()]);
             return 0;
         }
     }
@@ -209,9 +213,13 @@ class Plugin {
     // -------------------------------------------------------------------------
 
     public function handleCronSend(int $newsletterId): void {
+        Logger::info('Cron 발송 시작', ['nl_id' => $newsletterId]);
         $hasMore = (new NewsletterSender($this->settings))->sendFromRecord($newsletterId);
         if ($hasMore) {
             wp_schedule_single_event(time() + 60, self::CRON_HOOK, [$newsletterId]);
+            Logger::info('다음 배치 예약', ['nl_id' => $newsletterId]);
+        } else {
+            Logger::info('발송 완료', ['nl_id' => $newsletterId]);
         }
     }
 
