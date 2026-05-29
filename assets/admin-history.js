@@ -231,6 +231,18 @@
         });
     });
 
+    /* ── 강제 즉시 발송 ── */
+    $(document).on('click', '.crmbiz-force-send', function(e) {
+        e.stopPropagation();
+        var $btn = $(this), id = $btn.data('id');
+        if (!confirm('WP Cron을 기다리지 않고 지금 즉시 발송합니다. 계속하시겠습니까?')) return;
+        $btn.prop('disabled', true).text('…');
+        $.post(ajaxUrl, { action: 'crmbiz_nl_force_send', nonce: nonce, newsletter_id: id }, function(res) {
+            if (res.success) { location.reload(); }
+            else { alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패')); $btn.prop('disabled', false).text('⚡'); }
+        }).fail(function() { alert('서버 오류'); $btn.prop('disabled', false).text('⚡'); });
+    });
+
     /* ── 발송 취소 ── */
     $(document).on('click', '.crmbiz-cancel-send', function(e) {
         e.stopPropagation();
