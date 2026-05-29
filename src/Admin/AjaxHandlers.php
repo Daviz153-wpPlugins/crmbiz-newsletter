@@ -4,6 +4,7 @@ namespace CRMBizNewsletter\Admin;
 use CRMBizNewsletter\EmailTemplateRenderer;
 use CRMBizNewsletter\FluentCRMBridge;
 use CRMBizNewsletter\NewsletterSender;
+use CRMBizNewsletter\Logger;
 use CRMBizNewsletter\Settings;
 
 defined('ABSPATH') || exit;
@@ -77,6 +78,7 @@ class AjaxHandlers {
             ]);
             wp_send_json_success(['count' => $query->getModel()->count()]);
         } catch (\Throwable $e) {
+            Logger::error('수신자 수 조회 실패', ['error' => $e->getMessage()]);
             wp_send_json_success(['count' => 0]);
         }
     }
