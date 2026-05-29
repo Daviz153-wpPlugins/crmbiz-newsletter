@@ -146,7 +146,7 @@ class Database {
      * $window 초 안에 같은 IP + action이 $limit 회를 초과하면 false 반환.
      */
     public static function checkRateLimit(string $action, int $limit, int $window): bool {
-        $ip  = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        $ip  = self::getClientIp();
         $win = (int) floor(time() / $window);
         $key = 'crmbiz_rl_' . substr(md5($action . $ip . $win), 0, 20);
 
@@ -156,6 +156,41 @@ class Database {
         }
         set_transient($key, $count + 1, $window + 60);
         return true;
+    }
+
+    /**
+     * 클라이언트 실제 IP 주소 반환.
+     * 우선순위: CF-Connecting-IP → X-Forwarded-For(프록시 뒤일 때만) → REMOTE_ADDR
+     */
+    private static function getClientIp(): string {
+        // 1. Cloudflare — Cloudflare 인프라가 주입하므로 클라이언트 위조 불가
+        if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            $ip = trim((string) $_SERVER['HTTP_CF_CONNECTING_IP']);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return (string) apply_filters('crmbiz_nl_client_ip', $ip);
+            }
+        }
+
+        $remoteAddr  = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $behindProxy = !filter_var(
+            $remoteAddr, FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+
+        // 2. X-Forwarded-For — REMOTE_ADDR가 사설 IP(프록시 뒤)일 때만 신뢰
+        //    직접 접속이면 클라이언트가 헤더를 위조할 수 있으므로 무시
+        if ($behindProxy && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            foreach (array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])) as $ip) {
+                if (filter_var($ip, FILTER_VALIDATE_IP,
+                               FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return (string) apply_filters('crmbiz_nl_client_ip', $ip);
+                }
+            }
+        }
+
+        // 3. REMOTE_ADDR 폴백
+        $ip = filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : 'unknown';
+        return (string) apply_filters('crmbiz_nl_client_ip', $ip);
     }
 
     public static function getVersion(): string {
