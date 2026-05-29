@@ -51,6 +51,7 @@ class NewsletterSender {
      */
     public function sendFromRecord(int $newsletterId): bool {
         if (!FluentCRMBridge::isAvailable()) {
+            Logger::error('FluentCRM 비활성화, 발송 중단', ['nl_id' => $newsletterId]);
             return false;
         }
 
@@ -63,6 +64,7 @@ class NewsletterSender {
         );
 
         if (!$record || !in_array($record->status, ['queued', 'scheduled', 'sending'], true)) {
+            Logger::warning('발송 레코드 없음 또는 잘못된 상태', ['nl_id' => $newsletterId, 'status' => $record ? $record->status : 'null']);
             return false;
         }
 
@@ -71,6 +73,7 @@ class NewsletterSender {
         $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
 
         if (!$post || (empty($tagIds) && empty($listIds))) {
+            Logger::error('포스트 없음 또는 수신자 미설정', ['nl_id' => $newsletterId, 'post_id' => (int) $record->post_id]);
             return false;
         }
 
@@ -136,8 +139,9 @@ class NewsletterSender {
                 $success++;
                 $toDelete[] = (int) $row['id'];
             } elseif ((int) $row['retry_count'] + 1 >= self::MAX_RETRIES) {
-                $fail++;   // MAX_RETRIES 도달 → 영구 실패
+                $fail++;
                 $toDelete[] = (int) $row['id'];
+                Logger::error('이메일 영구 실패 (재시도 초과)', ['email' => $email, 'nl_id' => $newsletterId, 'retries' => self::MAX_RETRIES]);
             } else {
                 $toRetry[] = (int) $row['id']; // 다음 배치에서 재시도
             }
@@ -197,6 +201,7 @@ class NewsletterSender {
 
         $allEmails = $this->getSubscriberEmails($tagIds, $listIds);
         if (empty($allEmails)) {
+            Logger::warning('수신자 없음 — 큐 채우기 중단', ['nl_id' => $newsletterId]);
             return;
         }
 
@@ -347,6 +352,7 @@ class NewsletterSender {
             ]);
             return $query->get()->pluck('email')->toArray();
         } catch (\Throwable $e) {
+            Logger::error('FluentCRM 구독자 조회 실패', ['error' => $e->getMessage()]);
             return [];
         }
     }
@@ -361,6 +367,7 @@ class NewsletterSender {
             ->where('status', 'subscribed')
             ->get();
         } catch (\Throwable $e) {
+            Logger::error('FluentCRM 배치 구독자 조회 실패', ['error' => $e->getMessage()]);
             return new \Illuminate\Support\Collection();
         }
     }
@@ -383,7 +390,11 @@ class NewsletterSender {
             'From: ' . $fromName . ' <' . $fromEmail . '>',
         ];
 
-        return (bool) wp_mail($subscriber->email, get_the_title($post), $html, $headers);
+        $result = (bool) wp_mail($subscriber->email, get_the_title($post), $html, $headers);
+        if (!$result) {
+            Logger::error('wp_mail 발송 실패', ['email' => $subscriber->email, 'nl_id' => $newsletterId]);
+        }
+        return $result;
     }
 
     private function createRecord(int $postId, array $tagIds, array $listIds, int $recipientCount, string $status, string $scheduledAt = ''): int {
