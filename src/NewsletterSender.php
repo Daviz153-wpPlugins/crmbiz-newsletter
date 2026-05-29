@@ -232,6 +232,10 @@ class NewsletterSender {
             $newsletterId
         ));
 
+        if (!$final) {
+            return;
+        }
+
         $status = ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent';
 
         $wpdb->update(
