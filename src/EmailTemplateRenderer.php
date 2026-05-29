@@ -103,8 +103,11 @@ class EmailTemplateRenderer {
             function ($matches) use ($newsletterId, $email) {
                 // HTML 엔티티 디코딩 (esc_url()이 & → &amp; 변환한 것을 복원)
                 $url = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
-                if (strpos($url, 'crmbiz_nl_action') !== false || strpos($url, '#crmbiz-web') !== false) {
+                if (strpos($url, 'crmbiz_nl_action') !== false) {
                     return $matches[0];
+                }
+                if (strpos($url, '#crmbiz-web') !== false) {
+                    return 'href="' . esc_url(TrackingHandler::buildWebViewUrl($newsletterId, $email)) . '"';
                 }
                 return 'href="' . esc_url(TrackingHandler::buildClickUrl($newsletterId, $email, $url)) . '"';
             },
