@@ -175,7 +175,9 @@ class MetaBox {
         </div>
 
         <script>
-        (function() {
+        (function init() {
+            var el = document.getElementById('crmbiz_nl_enabled');
+            if (!el) { setTimeout(init, 50); return; }
             var ajaxUrl  = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
             var nonce    = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_metabox')); ?>;
             var timer    = null;
