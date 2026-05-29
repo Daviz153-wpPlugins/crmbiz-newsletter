@@ -193,10 +193,17 @@ class HistoryPage {
                                         class="crmbiz-resend"
                                         data-id="<?php echo esc_attr($row->id); ?>"
                                         title="재발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff">
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff;margin-right:2px">
                                     ↺
                                 </button>
                                 <?php endif; ?>
+                                <button type="button"
+                                        class="crmbiz-delete-newsletter"
+                                        data-id="<?php echo esc_attr($row->id); ?>"
+                                        title="삭제"
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #dc2626;border-radius:6px;cursor:pointer;font-size:13px;color:#dc2626;background:#fef2f2">
+                                    🗑
+                                </button>
                             </td>
                         </tr>
 
