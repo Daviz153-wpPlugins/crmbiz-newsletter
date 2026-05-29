@@ -26,8 +26,11 @@ class TrackingHandler {
         $email        = sanitize_email(Database::decryptEmail(sanitize_text_field($_GET['e'] ?? '')));
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
-        if ($newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token)
-            && Database::checkRateLimit('open', 30, 3600)) {
+        $tokenOk = $newsletterId && $email && $this->verifyOpenToken($newsletterId, $email, $token);
+        if (!$tokenOk && $newsletterId) {
+            Logger::warning('오픈 트래킹 HMAC 실패', ['nl_id' => $newsletterId]);
+        }
+        if ($tokenOk && Database::checkRateLimit('open', 30, 3600)) {
             $this->recordEvent($newsletterId, $email, 'open', null);
         }
 
@@ -52,6 +55,9 @@ class TrackingHandler {
             }
             wp_redirect(esc_url_raw($url));
         } else {
+            if ($newsletterId) {
+                Logger::warning('클릭 트래킹 HMAC 실패', ['nl_id' => $newsletterId, 'has_url' => !empty($url)]);
+            }
             wp_redirect(home_url('/'));
         }
         exit;
@@ -64,7 +70,11 @@ class TrackingHandler {
         $token        = sanitize_text_field($_GET['t'] ?? '');
 
         $expected = hash_hmac('sha256', "web_view:{$newsletterId}|{$email}", Database::getSecret());
-        if ($newsletterId && $email && hash_equals($expected, $token)) {
+        $tokenOk  = $newsletterId && $email && hash_equals($expected, $token);
+        if (!$tokenOk && $newsletterId) {
+            Logger::warning('웹뷰 트래킹 HMAC 실패', ['nl_id' => $newsletterId]);
+        }
+        if ($tokenOk) {
             if (Database::checkRateLimit('click', 30, 3600)) {
                 $this->recordEvent($newsletterId, $email, 'click', null);
             }
