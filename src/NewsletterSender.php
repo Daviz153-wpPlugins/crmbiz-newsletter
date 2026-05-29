@@ -77,6 +77,16 @@ class NewsletterSender {
             return false;
         }
 
+        // 동시 실행 방지 — GET_LOCK(timeout=0): 이미 다른 프로세스가 실행 중이면 즉시 포기
+        $lockName = $wpdb->prefix . 'crmbiz_nl_send_' . $newsletterId;
+        $got = (int) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lockName));
+        if ($got !== 1) {
+            Logger::info('발송 스킵: 다른 프로세스가 이미 처리 중', ['nl_id' => $newsletterId]);
+            return false;
+        }
+
+        try {
+
         // 큐가 비어있으면 구독자 목록으로 채움 (INSERT IGNORE — 재시작 시 중복 방지)
         $queued = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_queue WHERE newsletter_id = %d",
@@ -194,6 +204,10 @@ class NewsletterSender {
 
         $this->finalizeSend($newsletterId);
         return false;
+
+        } finally {
+            $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lockName));
+        }
     }
 
     private function populateQueue(int $newsletterId, array $tagIds, array $listIds): void {

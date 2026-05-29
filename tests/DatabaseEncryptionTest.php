@@ -61,7 +61,7 @@ class DatabaseEncryptionTest extends TestCase {
 
     public function test_rate_limit_allows_within_limit(): void {
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-        $GLOBALS['_wp_transients'] = [];
+        $GLOBALS['_wpdb_ratelimit'] = [];
 
         $this->assertTrue(Database::checkRateLimit('test_action', 3, 60));
         $this->assertTrue(Database::checkRateLimit('test_action', 3, 60));
@@ -70,7 +70,7 @@ class DatabaseEncryptionTest extends TestCase {
 
     public function test_rate_limit_blocks_after_limit_exceeded(): void {
         $_SERVER['REMOTE_ADDR'] = '127.0.0.2';
-        $GLOBALS['_wp_transients'] = [];
+        $GLOBALS['_wpdb_ratelimit'] = [];
 
         Database::checkRateLimit('block_action', 2, 60);
         Database::checkRateLimit('block_action', 2, 60);
@@ -79,7 +79,7 @@ class DatabaseEncryptionTest extends TestCase {
     }
 
     public function test_rate_limit_different_ips_are_independent(): void {
-        $GLOBALS['_wp_transients'] = [];
+        $GLOBALS['_wpdb_ratelimit'] = [];
 
         $_SERVER['REMOTE_ADDR'] = '10.0.0.1';
         Database::checkRateLimit('ip_action', 1, 60);

@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.5.0';
+    const DB_VERSION = '1.6.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -83,6 +83,14 @@ class Database {
   KEY idx_type (type)
 ) $charset;");
 
+        dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_ratelimit (
+  rl_key VARCHAR(40) NOT NULL,
+  count INT UNSIGNED NOT NULL DEFAULT 1,
+  expires_at DATETIME NOT NULL,
+  PRIMARY KEY (rl_key),
+  KEY idx_expires (expires_at)
+) $charset;");
+
         // 1.3.0 마이그레이션: 미사용 error_log 컬럼 제거
         if (version_compare(self::getVersion(), '1.3.0', '<')) {
             $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
@@ -142,20 +150,34 @@ class Database {
     }
 
     /**
-     * 고정 윈도우 레이트 리밋.
-     * $window 초 안에 같은 IP + action이 $limit 회를 초과하면 false 반환.
+     * 원자적 고정 윈도우 레이트 리밋.
+     * MySQL INSERT ... ON DUPLICATE KEY UPDATE + LAST_INSERT_ID() 패턴으로
+     * get→compare→set 경쟁 조건 없이 단일 쿼리에서 카운터 증가.
      */
     public static function checkRateLimit(string $action, int $limit, int $window): bool {
+        global $wpdb;
         $ip  = self::getClientIp();
         $win = (int) floor(time() / $window);
-        $key = 'crmbiz_rl_' . substr(md5($action . $ip . $win), 0, 20);
+        $key = substr(md5($action . $ip . $win), 0, 40);
+        $table = $wpdb->prefix . 'crmbiz_nl_ratelimit';
 
-        $count = (int) get_transient($key);
-        if ($count >= $limit) {
-            return false;
-        }
-        set_transient($key, $count + 1, $window + 60);
-        return true;
+        // 단일 원자적 쿼리:
+        // - 키가 없으면 count=1 삽입
+        // - 키가 있고 만료됐으면 count=1 리셋
+        // - 키가 있고 유효하면 count+1 증가
+        // LAST_INSERT_ID(expr)로 실제 적용된 count 값을 반환
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$table} (rl_key, count, expires_at)
+             VALUES (%s, LAST_INSERT_ID(1), DATE_ADD(NOW(), INTERVAL %d SECOND))
+             ON DUPLICATE KEY UPDATE
+                 count      = IF(expires_at < NOW(), LAST_INSERT_ID(1),      LAST_INSERT_ID(count + 1)),
+                 expires_at = IF(expires_at < NOW(), DATE_ADD(NOW(), INTERVAL %d SECOND), expires_at)",
+            $key, $window + 60, $window + 60
+        ));
+
+        $count = (int) $wpdb->get_var('SELECT LAST_INSERT_ID()');
+
+        return $count <= $limit;
     }
 
     /**

@@ -69,6 +69,20 @@ function home_url(string $path = ''): string {
     return 'https://example.com' . $path;
 }
 
+function apply_filters(string $hook, $value, ...$args) {
+    return $value;
+}
+
+function do_action(string $hook, ...$args): void {}
+
+function esc_url_raw(string $url): string {
+    return $url;
+}
+
+function wp_parse_url(string $url, int $component = -1) {
+    return parse_url($url, $component);
+}
+
 function add_query_arg($args, string $url = ''): string {
     if (is_string($args)) {
         return $url;
@@ -79,6 +93,53 @@ function add_query_arg($args, string $url = ''): string {
 function current_time(string $type, bool $gmt = false): string {
     return date('Y-m-d H:i:s');
 }
+
+// -----------------------------------------------------------------------
+// $wpdb 인메모리 스텁 (rate limit 등 DB 직접 접근용)
+// -----------------------------------------------------------------------
+$GLOBALS['_wpdb_ratelimit'] = []; // rl_key => ['count'=>int, 'expires_at'=>int]
+
+class WpdbStub {
+    public string $prefix = 'wp_';
+    public string $options = 'wp_options';
+    public int $rows_affected = 0;
+    private int $last_insert_id = 0;
+
+    public function prepare(string $sql, ...$args): string {
+        $i = 0;
+        return preg_replace_callback('/%([sd])/', function($m) use (&$i, $args) {
+            $val = (string) ($args[$i++] ?? '');
+            // %s → 'value' (문자열), %d → 숫자 (따옴표 없음)
+            return $m[1] === 's' ? "'" . addslashes($val) . "'" : (int) $val;
+        }, $sql);
+    }
+
+    public function query(string $sql): void {
+        // INSERT ... ON DUPLICATE KEY UPDATE 패턴 파싱 (rate limit용)
+        if (preg_match('/INSERT INTO \S+crmbiz_nl_ratelimit.*VALUES \(\'([^\']+)\'/s', $sql, $m)) {
+            $key = $m[1];
+            $store = &$GLOBALS['_wpdb_ratelimit'];
+            $now   = time();
+            if (!isset($store[$key]) || $store[$key]['expires_at'] < $now) {
+                $store[$key] = ['count' => 1, 'expires_at' => $now + 3660];
+                $this->last_insert_id = 1;
+            } else {
+                $store[$key]['count']++;
+                $this->last_insert_id = $store[$key]['count'];
+            }
+            $this->rows_affected = 1;
+        }
+    }
+
+    public function get_var(string $sql): ?string {
+        if (strpos($sql, 'LAST_INSERT_ID()') !== false) {
+            return (string) $this->last_insert_id;
+        }
+        return null;
+    }
+}
+
+$GLOBALS['wpdb'] = new WpdbStub();
 
 // -----------------------------------------------------------------------
 // Composer 자동로더 (src/ 네임스페이스)

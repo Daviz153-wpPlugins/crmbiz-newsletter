@@ -19,13 +19,17 @@ class AjaxHandlers {
         $this->cronHook = $cronHook;
     }
 
-    public function handleTestEmail(): void {
-        if (!check_ajax_referer('crmbiz_nl_diagnostics', 'nonce', false)) {
+    private function requireAuth(string $nonce, string $cap = 'manage_options'): void {
+        if (!check_ajax_referer($nonce, 'nonce', false)) {
             wp_send_json_error(['message' => '보안 검증 실패.'], 403);
         }
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can($cap)) {
             wp_send_json_error(['message' => '권한이 없습니다.'], 403);
         }
+    }
+
+    public function handleTestEmail(): void {
+        $this->requireAuth('crmbiz_nl_diagnostics');
 
         $to = sanitize_email($_POST['test_email'] ?? '');
         if (!is_email($to)) {
@@ -52,12 +56,7 @@ class AjaxHandlers {
     }
 
     public function handleCountRecipients(): void {
-        if (!check_ajax_referer('crmbiz_nl_metabox', 'nonce', false)) {
-            wp_send_json_error([], 403);
-        }
-        if (!current_user_can('edit_posts')) {
-            wp_send_json_error([], 403);
-        }
+        $this->requireAuth('crmbiz_nl_metabox', 'edit_posts');
 
         if (!FluentCRMBridge::isAvailable()) {
             wp_send_json_success(['count' => 0]);
@@ -84,12 +83,7 @@ class AjaxHandlers {
     }
 
     public function handleManualSend(): void {
-        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_manual_send');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
@@ -135,12 +129,7 @@ class AjaxHandlers {
     }
 
     public function handleResend(): void {
-        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_manual_send');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
@@ -184,12 +173,7 @@ class AjaxHandlers {
     }
 
     public function handleResendSingle(): void {
-        if (!check_ajax_referer('crmbiz_nl_resend_single', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_resend_single');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         $email        = sanitize_email($_POST['email'] ?? '');
@@ -206,12 +190,7 @@ class AjaxHandlers {
     }
 
     public function handleCancelSend(): void {
-        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_manual_send');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
@@ -219,30 +198,12 @@ class AjaxHandlers {
         }
 
         global $wpdb;
-        $updated = $wpdb->update(
-            $wpdb->prefix . 'crmbiz_newsletters',
-            ['status' => 'cancelled'],
-            ['id' => $newsletterId, 'status' => 'queued'],
-            ['%s'], ['%d', '%s']
-        );
-
-        if (!$updated) {
-            $updated = $wpdb->update(
-                $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'cancelled'],
-                ['id' => $newsletterId, 'status' => 'sending'],
-                ['%s'], ['%d', '%s']
-            );
-        }
-
-        if (!$updated) {
-            $updated = $wpdb->update(
-                $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'cancelled'],
-                ['id' => $newsletterId, 'status' => 'scheduled'],
-                ['%s'], ['%d', '%s']
-            );
-        }
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$wpdb->prefix}crmbiz_newsletters
+             SET status = 'cancelled'
+             WHERE id = %d AND status IN ('queued', 'sending', 'scheduled')",
+            $newsletterId
+        ));
 
         if ($updated) {
             $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
@@ -254,12 +215,7 @@ class AjaxHandlers {
     }
 
     public function handleGetLog(): void {
-        if (!check_ajax_referer('crmbiz_nl_get_log', 'nonce', false)) {
-            wp_send_json_error([], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error([], 403);
-        }
+        $this->requireAuth('crmbiz_nl_get_log');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
@@ -301,12 +257,7 @@ class AjaxHandlers {
     }
 
     public function handleProgress(): void {
-        if (!check_ajax_referer('crmbiz_nl_progress', 'nonce', false)) {
-            wp_send_json_error([], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error([], 403);
-        }
+        $this->requireAuth('crmbiz_nl_progress');
 
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if (empty($ids)) {
@@ -341,33 +292,33 @@ class AjaxHandlers {
     }
 
     public function handleForceSend(): void {
-        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_manual_send');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
             wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
         }
 
+        // 발송 가능한 상태인지 확인 (이미 완료된 뉴스레터 반복 발송 방지)
+        global $wpdb;
+        $status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            $newsletterId
+        ));
+        if (!in_array($status, ['queued', 'sending'], true)) {
+            wp_send_json_error(['message' => '이미 발송 완료되었거나 발송 불가 상태입니다.']);
+        }
+
         $hasMore = (new \CRMBizNewsletter\NewsletterSender($this->settings))->sendFromRecord($newsletterId);
-        if ($hasMore) {
-            wp_schedule_single_event(time(), $this->cronHook, [$newsletterId]);
+        if ($hasMore && !wp_next_scheduled($this->cronHook, [$newsletterId])) {
+            wp_schedule_single_event(time() + 60, $this->cronHook, [$newsletterId]);
         }
 
         wp_send_json_success(['message' => '발송 실행됨', 'has_more' => $hasMore]);
     }
 
     public function handleTestNewsletter(): void {
-        if (!check_ajax_referer('crmbiz_nl_metabox', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('edit_posts')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_metabox', 'edit_posts');
 
         $postId = (int) ($_POST['post_id'] ?? 0);
         $to     = sanitize_email($_POST['test_email'] ?? '');
@@ -410,12 +361,7 @@ class AjaxHandlers {
 
 
     public function handleDeleteNewsletter(): void {
-        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
-        }
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->requireAuth('crmbiz_nl_manual_send');
 
         $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
         if ($newsletterId <= 0) {
@@ -423,6 +369,14 @@ class AjaxHandlers {
         }
 
         global $wpdb;
+
+        $status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            $newsletterId
+        ));
+        if ($status === 'sending') {
+            wp_send_json_error(['message' => '현재 발송 중입니다. 먼저 발송을 취소한 후 삭제하세요.']);
+        }
 
         wp_clear_scheduled_hook($this->cronHook, [$newsletterId]);
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue',  ['newsletter_id' => $newsletterId], ['%d']);

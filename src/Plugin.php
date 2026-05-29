@@ -252,6 +252,8 @@ class Plugin {
             "DELETE FROM {$wpdb->prefix}crmbiz_nl_events WHERE occurred_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             self::RETAIN_DAYS
         ));
+        // 만료된 rate limit 행 정리
+        $wpdb->query("DELETE FROM {$wpdb->prefix}crmbiz_nl_ratelimit WHERE expires_at < NOW()");
     }
 
     // -------------------------------------------------------------------------
@@ -288,6 +290,7 @@ class Plugin {
         }
 
         if ($page === 'crmbiz-nl-settings') {
+            wp_enqueue_media();
             wp_enqueue_script('crmbiz-nl-diagnostics', CRMBIZ_NL_URL . 'assets/admin-diagnostics.js', ['jquery'], CRMBIZ_NL_VERSION, true);
             wp_localize_script('crmbiz-nl-diagnostics', 'crmbizNLDiag', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),

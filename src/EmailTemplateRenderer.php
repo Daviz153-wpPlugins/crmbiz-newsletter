@@ -19,6 +19,17 @@ class EmailTemplateRenderer {
         // FluentCRM 없을 때는 필터 핸들러가 없어 원본 그대로 반환됨
         $content = apply_filters('fluent_crm/parse_campaign_email_text', $content, $subscriber);
 
+        // h2 앞에 구분선 삽입
+        $hr      = '<hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 0">';
+        $content = preg_replace('/<h2(\s)/i', $hr . '<h2$1', $content);
+
+        $content = $this->inlineStylesForEmail($content);
+
+        // h2 / h3 / p 인라인 폰트 강제 (Gmail 모바일 CSS 무시 대응)
+        $content = preg_replace('/<h2(\s)/i', '<h2 style="font-size:22px;font-weight:700;color:#111827;line-height:1.4;margin:32px 0 12px"$1', $content);
+        $content = preg_replace('/<h3(\s)/i', '<h3 style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;margin:24px 0 10px"$1', $content);
+        $content = preg_replace('/<p(\s)/i',  '<p style="font-size:18px;line-height:1.85;margin:0 0 20px;color:#374151"$1', $content);
+
         $unsubscribeUrl = UnsubscribeHandler::buildUnsubscribeUrl($subscriber->email, $newsletterId);
         $recentPosts    = $this->getRecentNewsletters(3, $post->ID);
         $featuredImg    = $this->getFeaturedImageUrl($post);
@@ -33,6 +44,7 @@ class EmailTemplateRenderer {
             'from_name'       => $this->settings->getFromName(),
             'site_name'       => get_bloginfo('name'),
             'site_url'        => home_url('/'),
+            'sig'             => $this->settings->getSignature(),
         ]);
 
         // 트래킹 픽셀 + 링크 치환 (newsletterId가 있을 때만)
@@ -53,6 +65,52 @@ class EmailTemplateRenderer {
         return $html;
     }
 
+    private function inlineStylesForEmail(string $content): string {
+        // figure: 고정 width 제거 (WordPress 블록 이미지)
+        $content = preg_replace_callback('/<figure([^>]*)>/i', function ($m) {
+            $attrs = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $m[1]);
+            return '<figure' . $attrs . ' style="margin:0 0 16px;padding:0">';
+        }, $content);
+
+        // img: 반응형 강제 + 고정 width/height 제거
+        $content = preg_replace_callback('/<img([^>]*?)>/i', function ($m) {
+            $attrs = $m[1];
+            $attrs = preg_replace('/\s*(width|height)\s*=\s*["\']?\d+["\']?/i', '', $attrs);
+            $attrs = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $attrs);
+            return '<img' . $attrs . ' style="max-width:100%;width:100%;height:auto;display:block">';
+        }, $content);
+
+        // table: 인라인 스타일 강제
+        $content = preg_replace_callback('/<table([^>]*)>/i', function ($m) {
+            $attrs = $m[1];
+            if (strpos($attrs, 'nl-sig') !== false) return $m[0];
+            $attrs = preg_replace('/\s*style\s*=\s*["\'][^"\']*["\']/i', '', $attrs);
+            return '<table' . $attrs . ' style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:14px">';
+        }, $content);
+
+        // td / th: 인라인 스타일 강제
+        $content = preg_replace_callback('/<(td|th)([^>]*)>/i', function ($m) {
+            $tag   = $m[1];
+            $attrs = $m[2];
+            if (strpos($attrs, 'nl-sig') !== false) return $m[0];
+            // 기존 style 추출 후 병합
+            $existing = '';
+            if (preg_match('/style\s*=\s*"([^"]*)"/i', $attrs, $sm)) {
+                $existing = rtrim($sm[1], ';') . ';';
+                $attrs    = str_replace($sm[0], '', $attrs);
+            }
+            $base = 'border:1px solid #d1d5db;padding:8px 10px;vertical-align:top;line-height:1.6;word-break:break-word;overflow-wrap:break-word;';
+            if ($tag === 'th') {
+                $base .= 'background:#f3f4f6;font-weight:600;color:#111827;text-align:left;';
+            } else {
+                $base .= 'color:#374151;';
+            }
+            return '<' . $tag . $attrs . ' style="' . $base . $existing . '">';
+        }, $content);
+
+        return $content;
+    }
+
     private function buildHtml(array $d): string {
         $post           = $d['post'];
         $content        = $d['content'];
@@ -63,6 +121,8 @@ class EmailTemplateRenderer {
         $postTitle      = esc_html(get_the_title($post));
         $postUrl        = esc_url(get_permalink($post) . '#crmbiz-web');
         $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
+
+        $sig            = $d['sig'];
 
         $featuredSection = $d['featured_img']
             ? '<img src="' . esc_url($d['featured_img']) . '" alt="" style="width:100%;height:auto;display:block">'
@@ -148,13 +208,17 @@ class EmailTemplateRenderer {
             return [];
         }
 
-        $posts = [];
-        foreach ($ids as $id) {
-            $p = get_post((int) $id);
-            if ($p && $p->post_status === 'publish') {
-                $posts[] = $p;
-            }
-        }
+        $posts = get_posts([
+            'post__in'            => array_map('intval', $ids),
+            'posts_per_page'      => count($ids),
+            'post_status'         => 'publish',
+            'orderby'             => 'post__in',
+            'ignore_sticky_posts' => true,
+        ]);
+
+        // sent_at DESC 순서 복원 (post__in 정렬 기준)
+        $order = array_flip(array_map('intval', $ids));
+        usort($posts, fn($a, $b) => ($order[$a->ID] ?? 0) <=> ($order[$b->ID] ?? 0));
 
         return $posts;
     }

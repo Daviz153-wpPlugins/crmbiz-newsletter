@@ -49,6 +49,15 @@ class TrackingHandler {
         $token        = sanitize_text_field($_GET['t'] ?? '');
         $url          = $_GET['url'] ?? '';
 
+        // 1. URL 스킴 검증 — http/https 외 차단 (javascript:, data: 등 방어)
+        $scheme = strtolower((string) wp_parse_url($url, PHP_URL_SCHEME));
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            Logger::warning('클릭 트래킹 비정상 스킴 차단', ['scheme' => $scheme, 'nl_id' => $newsletterId]);
+            wp_redirect(home_url('/'));
+            exit;
+        }
+
+        // 2. HMAC 검증
         if ($newsletterId && $email && $url && $this->verifyClickToken($newsletterId, $email, $url, $token)) {
             if (Database::checkRateLimit('click', 30, 3600)) {
                 $this->recordEvent($newsletterId, $email, 'click', $url);
@@ -56,7 +65,11 @@ class TrackingHandler {
             wp_redirect(esc_url_raw($url));
         } else {
             if ($newsletterId) {
-                Logger::warning('클릭 트래킹 HMAC 실패', ['nl_id' => $newsletterId, 'has_url' => !empty($url)]);
+                Logger::warning('클릭 트래킹 HMAC 실패', [
+                    'nl_id'   => $newsletterId,
+                    'has_url' => !empty($url),
+                    'domain'  => wp_parse_url($url, PHP_URL_HOST) ?: 'unknown',
+                ]);
             }
             wp_redirect(home_url('/'));
         }
