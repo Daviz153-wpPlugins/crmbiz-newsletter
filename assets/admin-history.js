@@ -266,4 +266,26 @@
         }).fail(function() { alert('서버 오류'); $btn.prop('disabled', false).text('▶'); });
     });
 
+
+    /* ── 발송 이력 삭제 ── */
+    $(document).on('click', '.crmbiz-delete-newsletter', function(e) {
+        e.stopPropagation();
+        var $btn = $(this), id = $btn.data('id');
+        if (!confirm('이 발송 이력을 삭제하시겠습니까?\n(관련 이벤트 데이터도 함께 삭제됩니다)')) return;
+        $btn.prop('disabled', true).text('…');
+        $.post(ajaxUrl, { action: 'crmbiz_nl_delete_newsletter', nonce: nonce, newsletter_id: id }, function(res) {
+            if (res.success) {
+                var $row = $('.crmbiz-row[data-nl-id="' + id + '"]');
+                $('#crmbiz-detail-row-' + id).remove();
+                $row.remove();
+            } else {
+                alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패'));
+                $btn.prop('disabled', false).text('🗑');
+            }
+        }).fail(function() {
+            alert('서버 오류');
+            $btn.prop('disabled', false).text('🗑');
+        });
+    });
+
 })(jQuery);
