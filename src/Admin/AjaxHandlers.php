@@ -330,6 +330,53 @@ class AjaxHandlers {
         wp_send_json_success($data);
     }
 
+    public function handleTestNewsletter(): void {
+        if (!check_ajax_referer('crmbiz_nl_metabox', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $postId = (int) ($_POST['post_id'] ?? 0);
+        $to     = sanitize_email($_POST['test_email'] ?? '');
+
+        if ($postId <= 0 || !is_email($to)) {
+            wp_send_json_error(['message' => '유효하지 않은 입력입니다.']);
+        }
+
+        $post = get_post($postId);
+        if (!$post) {
+            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+        }
+
+        $currentUser = wp_get_current_user();
+        $dummy = (object) [
+            'email'      => $to,
+            'first_name' => $currentUser->display_name,
+            'last_name'  => '',
+            'full_name'  => $currentUser->display_name,
+        ];
+
+        $html = (new EmailTemplateRenderer($this->settings))->render($post, $dummy);
+
+        $fromName  = str_replace(["\r", "\n"], '', $this->settings->getFromName());
+        $fromEmail = str_replace(["\r", "\n"], '', $this->settings->getFromEmail());
+        $result    = wp_mail(
+            $to,
+            '[테스트] ' . get_the_title($post),
+            $html,
+            [
+                'Content-Type: text/html; charset=UTF-8',
+                'From: ' . $fromName . ' <' . $fromEmail . '>',
+            ]
+        );
+
+        $result
+            ? wp_send_json_success(['message' => esc_html($to) . '로 테스트 발송 완료'])
+            : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
+    }
+
     private function buildTestEmailBody(string $to): string {
         return sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
