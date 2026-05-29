@@ -45,6 +45,7 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_get_log',          [$ajax, 'handleGetLog']);
         add_action('wp_ajax_crmbiz_nl_cancel_send',      [$ajax, 'handleCancelSend']);
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$ajax, 'handlePreviewEmail']);
+        add_action('wp_ajax_crmbiz_nl_progress',         [$ajax, 'handleProgress']);
 
         if (is_admin()) {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);
@@ -234,6 +235,7 @@ class Plugin {
                 'nonce'             => wp_create_nonce('crmbiz_nl_manual_send'),
                 'logNonce'          => wp_create_nonce('crmbiz_nl_get_log'),
                 'singleResendNonce' => wp_create_nonce('crmbiz_nl_resend_single'),
+                'progressNonce'     => wp_create_nonce('crmbiz_nl_progress'),
             ]);
         }
 

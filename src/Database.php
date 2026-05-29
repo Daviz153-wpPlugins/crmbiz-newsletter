@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.4.0';
+    const DB_VERSION = '1.5.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -44,7 +44,6 @@ class Database {
   fail_count INT UNSIGNED NOT NULL DEFAULT 0,
   tag_ids TEXT,
   list_ids TEXT,
-  subscriber_emails MEDIUMTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -65,6 +64,7 @@ class Database {
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   newsletter_id BIGINT UNSIGNED NOT NULL,
   email VARCHAR(191) NOT NULL,
+  retry_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   UNIQUE KEY uq_nl_email (newsletter_id, email),
   KEY idx_newsletter_id (newsletter_id)
@@ -92,6 +92,20 @@ class Database {
         }
 
         // 1.4.0: crmbiz_nl_queue 테이블 추가 (dbDelta가 이미 처리), subscriber_emails 컬럼 잔존 (하위호환)
+
+        // 1.5.0 마이그레이션
+        if (version_compare(self::getVersion(), '1.5.0', '<')) {
+            // crmbiz_nl_queue 에 retry_count 컬럼 추가
+            $qCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_nl_queue");
+            if (is_array($qCols) && !in_array('retry_count', $qCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_queue ADD COLUMN retry_count TINYINT UNSIGNED NOT NULL DEFAULT 0");
+            }
+            // crmbiz_newsletters 에서 미사용 subscriber_emails 컬럼 제거
+            $nCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
+            if (is_array($nCols) && in_array('subscriber_emails', $nCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters DROP COLUMN subscriber_emails");
+            }
+        }
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

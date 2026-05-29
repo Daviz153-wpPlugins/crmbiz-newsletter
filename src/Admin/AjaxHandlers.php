@@ -288,6 +288,46 @@ class AjaxHandlers {
         exit;
     }
 
+    public function handleProgress(): void {
+        if (!check_ajax_referer('crmbiz_nl_progress', 'nonce', false)) {
+            wp_send_json_error([], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([], 403);
+        }
+
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        if (empty($ids)) {
+            wp_send_json_error([]);
+        }
+
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, status, success_count, fail_count, recipient_count
+                 FROM {$wpdb->prefix}crmbiz_newsletters
+                 WHERE id IN ($placeholders)",
+                ...$ids
+            )
+        );
+
+        $data = [];
+        foreach ($rows as $row) {
+            $done  = (int) $row->success_count + (int) $row->fail_count;
+            $total = (int) $row->recipient_count;
+            $data[] = [
+                'id'              => (int) $row->id,
+                'status'          => $row->status,
+                'done'            => $done,
+                'recipient_count' => $total,
+                'percent'         => $total > 0 ? min(100, (int) round($done / $total * 100)) : 0,
+            ];
+        }
+
+        wp_send_json_success($data);
+    }
+
     private function buildTestEmailBody(string $to): string {
         return sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .

@@ -4,37 +4,76 @@
     var logNonce          = crmbizNL.logNonce;
     var singleResendNonce = crmbizNL.singleResendNonce;
 
-    /* ── 발송 중 자동 새로고침 ── */
-    if ($('.crmbiz-row[data-status="sending"], .crmbiz-row[data-status="queued"]').length) {
-        var REFRESH_SEC = 30;
-        var remaining   = REFRESH_SEC;
-        var cancelled   = false;
+    /* ── 발송 중 진행률 폴링 ── */
+    (function() {
+        var pollingRows = {};
+        $('.crmbiz-row').each(function() {
+            var status = $(this).data('status');
+            if (status === 'sending' || status === 'queued') {
+                var id = $(this).data('nlId');
+                if (id) pollingRows[id] = status;
+            }
+        });
 
-        var $bar = $('<div id="crmbiz-refresh-bar" style="' +
+        if (!Object.keys(pollingRows).length) return;
+
+        $('<style>@keyframes crmbiz-pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>').appendTo('head');
+        var $indicator = $('<div style="' +
             'position:fixed;bottom:20px;right:20px;z-index:9999;' +
             'background:#1d4ed8;color:#fff;font-size:12px;padding:10px 16px;' +
             'border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);' +
-            'display:flex;align-items:center;gap:12px">' +
-            '<span class="crmbiz-refresh-msg">발송 중 · <strong class="crmbiz-countdown">' + remaining + '</strong>초 후 새로고침</span>' +
-            '<button type="button" style="background:rgba(255,255,255,.2);border:none;color:#fff;' +
-            'border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px">취소</button>' +
+            'display:flex;align-items:center;gap:8px">' +
+            '<span style="display:inline-block;width:8px;height:8px;background:#93c5fd;' +
+            'border-radius:50%;animation:crmbiz-pulse 1.2s infinite"></span>' +
+            '<span>발송 중 — 자동 업데이트 중</span>' +
             '</div>').appendTo('body');
 
-        $bar.find('button').on('click', function() {
-            cancelled = true;
-            $bar.remove();
-        });
+        function fmtNum(n) {
+            return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
 
-        var tick = setInterval(function() {
-            if (cancelled) { clearInterval(tick); return; }
-            remaining--;
-            $bar.find('.crmbiz-countdown').text(remaining);
-            if (remaining <= 0) {
-                clearInterval(tick);
-                location.reload();
-            }
-        }, 1000);
-    }
+        function poll() {
+            var ids = Object.keys(pollingRows);
+            if (!ids.length) { $indicator.remove(); return; }
+
+            $.post(ajaxUrl, {
+                action: 'crmbiz_nl_progress',
+                nonce:  crmbizNL.progressNonce,
+                ids:    ids
+            }, function(res) {
+                if (!res.success) return;
+
+                var needsReload = false;
+                $.each(res.data, function(_, item) {
+                    var prev = pollingRows[item.id];
+                    if (!prev) return;
+
+                    if (prev !== item.status) {
+                        needsReload = true;
+                        return false;
+                    }
+
+                    if (item.status === 'sending') {
+                        var $row = $('.crmbiz-row[data-nl-id="' + item.id + '"]');
+                        $row.find('.crmbiz-progress-text').text(fmtNum(item.done) + ' / ' + fmtNum(item.recipient_count));
+                        $row.find('.crmbiz-progress-fill').css('width', item.percent + '%');
+                    }
+
+                    if (item.status !== 'sending' && item.status !== 'queued') {
+                        needsReload = true;
+                        return false;
+                    }
+                });
+
+                if (needsReload) {
+                    clearInterval(pollTimer);
+                    location.reload();
+                }
+            });
+        }
+
+        var pollTimer = setInterval(poll, 5000);
+    })();
 
     /* ── 행 클릭으로 상세 토글 (버튼·링크 클릭 제외) ── */
     $(document).on('click', '#crmbiz-history-table tbody .crmbiz-row td', function(e) {

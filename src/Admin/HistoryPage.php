@@ -92,6 +92,7 @@ class HistoryPage {
                         <tr class="crmbiz-row"
                             data-title="<?php echo esc_attr(mb_strtolower($title)); ?>"
                             data-status="<?php echo esc_attr($row->status); ?>"
+                            data-nl-id="<?php echo esc_attr($row->id); ?>"
                             style="border-bottom:1px solid #f3f4f6;transition:background .12s">
 
                             <!-- 제목 -->
@@ -654,9 +655,9 @@ class HistoryPage {
             $total = (int) $row->recipient_count;
             $pct   = $total > 0 ? min(100, round($done / $total * 100)) : 0;
             $badge .= sprintf(
-                '<div style="margin-top:4px;font-size:10px;color:%s;white-space:nowrap">%s / %s</div>' .
+                '<div class="crmbiz-progress-text" style="margin-top:4px;font-size:10px;color:%s;white-space:nowrap">%s / %s</div>' .
                 '<div style="background:#e5e7eb;border-radius:2px;height:3px;margin-top:2px;overflow:hidden">' .
-                '<div style="background:%s;height:100%%;width:%s%%"></div></div>',
+                '<div class="crmbiz-progress-fill" style="background:%s;height:100%%;width:%s%%"></div></div>',
                 esc_attr($color),
                 number_format($done),
                 number_format($total),

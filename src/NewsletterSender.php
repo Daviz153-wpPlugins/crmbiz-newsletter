@@ -5,7 +5,8 @@ defined('ABSPATH') || exit;
 
 class NewsletterSender {
 
-    private const BATCH_SIZE = 50; // 1회 크론 실행당 최대 발송 수
+    private const BATCH_SIZE  = 50; // 1회 크론 실행당 최대 발송 수
+    private const MAX_RETRIES = 3;  // 영구 실패 처리 전 최대 시도 횟수
 
     private Settings $settings;
     private EmailTemplateRenderer $renderer;
@@ -91,7 +92,7 @@ class NewsletterSender {
 
         // 이번 배치 큐에서 꺼내기
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, email FROM {$wpdb->prefix}crmbiz_nl_queue
+            "SELECT id, email, retry_count FROM {$wpdb->prefix}crmbiz_nl_queue
              WHERE newsletter_id = %d
              ORDER BY id ASC
              LIMIT %d",
@@ -103,29 +104,69 @@ class NewsletterSender {
             return false;
         }
 
-        $batchEmails = array_column($rows, 'email');
-        $batchIds    = array_column($rows, 'id');
-        $subscribers = $this->getSubscribersByEmails($batchEmails);
-        $success     = 0;
-        $fail        = 0;
-
-        foreach ($subscribers as $subscriber) {
-            if (UnsubscribeHandler::isUnsubscribed($subscriber->email)) {
-                continue;
-            }
-            $sent = $this->dispatch($post, $subscriber, $newsletterId);
-            TrackingHandler::recordSend($newsletterId, $subscriber->email, $sent);
-            $sent ? $success++ : $fail++;
+        // 이메일 → 큐 행 맵 (O(1) 조회용)
+        $emailToRow = [];
+        foreach ($rows as $row) {
+            $emailToRow[$row['email']] = $row;
         }
 
-        // 처리된 큐 행 삭제
-        $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$wpdb->prefix}crmbiz_nl_queue WHERE id IN ("
-                . implode(',', array_fill(0, count($batchIds), '%d')) . ")",
-                ...$batchIds
-            )
-        );
+        $subscribers = $this->getSubscribersByEmails(array_keys($emailToRow));
+        $success     = 0;
+        $fail        = 0;
+        $toDelete    = []; // 즉시 삭제할 큐 ID (성공·영구실패·수신거부)
+        $toRetry     = []; // retry_count만 증가시킬 큐 ID (재시도 대상)
+
+        foreach ($subscribers as $subscriber) {
+            $email = $subscriber->email;
+            if (!isset($emailToRow[$email])) {
+                continue;
+            }
+            $row = $emailToRow[$email];
+            unset($emailToRow[$email]); // 처리됨 표시
+
+            if (UnsubscribeHandler::isUnsubscribed($email)) {
+                $toDelete[] = (int) $row['id']; // 수신거부 → 삭제, fail 카운트 없음
+                continue;
+            }
+
+            $sent = $this->dispatch($post, $subscriber, $newsletterId);
+            TrackingHandler::recordSend($newsletterId, $email, $sent);
+
+            if ($sent) {
+                $success++;
+                $toDelete[] = (int) $row['id'];
+            } elseif ((int) $row['retry_count'] + 1 >= self::MAX_RETRIES) {
+                $fail++;   // MAX_RETRIES 도달 → 영구 실패
+                $toDelete[] = (int) $row['id'];
+            } else {
+                $toRetry[] = (int) $row['id']; // 다음 배치에서 재시도
+            }
+        }
+
+        // FluentCRM에서 찾지 못한 이메일 → 구독자 삭제됨, 조용히 건너뜀
+        foreach ($emailToRow as $row) {
+            $toDelete[] = (int) $row['id'];
+        }
+
+        if (!empty($toDelete)) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$wpdb->prefix}crmbiz_nl_queue WHERE id IN ("
+                    . implode(',', array_fill(0, count($toDelete), '%d')) . ")",
+                    ...$toDelete
+                )
+            );
+        }
+
+        if (!empty($toRetry)) {
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$wpdb->prefix}crmbiz_nl_queue SET retry_count = retry_count + 1 WHERE id IN ("
+                    . implode(',', array_fill(0, count($toRetry), '%d')) . ")",
+                    ...$toRetry
+                )
+            );
+        }
 
         // 카운터 누적 업데이트
         $wpdb->query($wpdb->prepare(
@@ -187,7 +228,7 @@ class NewsletterSender {
         global $wpdb;
 
         $final = $wpdb->get_row($wpdb->prepare(
-            "SELECT success_count, fail_count FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            "SELECT post_id, success_count, fail_count FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
             $newsletterId
         ));
 
@@ -201,6 +242,59 @@ class NewsletterSender {
         );
 
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
+
+        $this->notifyAdmin($newsletterId, (int) $final->post_id, (int) $final->success_count, (int) $final->fail_count, $status);
+    }
+
+    private function notifyAdmin(int $newsletterId, int $postId, int $success, int $fail, string $status): void {
+        if ($this->settings->isDryRun()) {
+            return;
+        }
+
+        $adminEmail = (string) get_option('admin_email');
+        if (!is_email($adminEmail)) {
+            return;
+        }
+
+        $title   = get_the_title($postId) ?: "Newsletter #{$newsletterId}";
+        $label   = $status === 'sent' ? '발송 완료' : '발송 실패';
+        $histUrl = admin_url('admin.php?page=crmbiz-nl-history');
+        $total   = $success + $fail;
+        $rate    = $total > 0 ? round($success / $total * 100) : 0;
+
+        $body = sprintf(
+            '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
+            '<div style="max-width:540px;margin:0 auto;background:#fff;padding:32px;border-radius:8px">' .
+            '<h2 style="color:#1a1a2e;margin:0 0 16px">뉴스레터 %s</h2>' .
+            '<p style="color:#555;margin:0 0 20px">아래 뉴스레터 발송이 완료되었습니다.</p>' .
+            '<table style="font-size:14px;color:#374151;border-collapse:collapse;width:100%%">' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">제목</td><td>%s</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">성공</td><td style="color:#0f5132">%s 건</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">실패</td><td style="color:%s">%s 건</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">성공률</td><td>%s%%</td></tr>' .
+            '</table>' .
+            '<p style="margin:24px 0 0"><a href="%s" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">발송 이력 보기</a></p>' .
+            '</div></body></html>',
+            esc_html($label),
+            esc_html($title),
+            number_format($success),
+            $fail > 0 ? '#842029' : '#6b7280',
+            number_format($fail),
+            $rate,
+            esc_url($histUrl)
+        );
+
+        $fromName  = str_replace(["\r", "\n"], '', $this->settings->getFromName());
+        $fromEmail = str_replace(["\r", "\n"], '', $this->settings->getFromEmail());
+        wp_mail(
+            $adminEmail,
+            '[CRMBiz Newsletter] ' . $label . ': ' . $title,
+            $body,
+            [
+                'Content-Type: text/html; charset=UTF-8',
+                'From: ' . $fromName . ' <' . $fromEmail . '>',
+            ]
+        );
     }
 
     /**
