@@ -398,6 +398,26 @@ class HistoryPage {
             ];
         }
 
+        /* FluentCRM에서 수신자 이름 일괄 조회 */
+        $nameMap = [];
+        if (!empty($contactMap) && \CRMBizNewsletter\FluentCRMBridge::isAvailable()) {
+            $emails       = array_keys($contactMap);
+            $placeholders = implode(',', array_fill(0, count($emails), '%s'));
+            $fcRows       = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT email, first_name, last_name FROM {$wpdb->prefix}fc_subscribers
+                     WHERE email IN ($placeholders)",
+                    ...$emails
+                )
+            );
+            foreach ($fcRows as $fr) {
+                $name = trim($fr->first_name . ' ' . $fr->last_name);
+                if ($name !== '') {
+                    $nameMap[$fr->email] = $name;
+                }
+            }
+        }
+
         /* 통계 */
         $total      = (int) $nl->recipient_count;
         $sent       = (int) $nl->success_count;
@@ -548,7 +568,8 @@ class HistoryPage {
                             elseif ($c['failed'])     { $status = 'failed'; }
                             else                      { $status = 'unopened'; }
                             $lastAt  = $c['unsub_at'] ?: $c['click_at'] ?: $c['open_at'] ?: $c['sent_at'];
-                            $initial = strtoupper(mb_substr($email, 0, 1));
+                            $name    = $nameMap[$email] ?? '';
+                            $initial = $name ? strtoupper(mb_substr($name, 0, 1)) : strtoupper(mb_substr($email, 0, 1));
                         ?>
                         <tr class="crmbiz-nl-recipient"
                             data-status="<?php echo esc_attr($status); ?>"
@@ -558,7 +579,12 @@ class HistoryPage {
                                     <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6b7280;flex-shrink:0">
                                         <?php echo esc_html($initial); ?>
                                     </div>
-                                    <span style="color:#374151"><?php echo esc_html($email); ?></span>
+                                    <div>
+                                        <?php if ($name): ?>
+                                        <div style="font-size:13px;font-weight:500;color:#111827;line-height:1.3"><?php echo esc_html($name); ?></div>
+                                        <?php endif; ?>
+                                        <div style="font-size:<?php echo $name ? '11px' : '13px'; ?>;color:<?php echo $name ? '#9ca3af' : '#374151'; ?>"><?php echo esc_html($email); ?></div>
+                                    </div>
                                     <?php if ($c['failed']): ?>
                                     <span style="font-size:11px;color:#842029;background:#f8d7da;padding:1px 6px;border-radius:3px">실패</span>
                                     <?php endif; ?>
