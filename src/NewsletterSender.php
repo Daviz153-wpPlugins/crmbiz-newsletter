@@ -357,7 +357,9 @@ class NewsletterSender {
             return new \Illuminate\Support\Collection();
         }
         try {
-            return \FluentCrm\App\Models\Subscriber::whereIn('email', $emails)->get();
+            return \FluentCrm\App\Models\Subscriber::whereIn('email', $emails)
+            ->where('status', 'subscribed')
+            ->get();
         } catch (\Throwable $e) {
             return new \Illuminate\Support\Collection();
         }
