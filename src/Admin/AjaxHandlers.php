@@ -235,8 +235,18 @@ class AjaxHandlers {
             );
         }
 
+        if (!$updated) {
+            $updated = $wpdb->update(
+                $wpdb->prefix . 'crmbiz_newsletters',
+                ['status' => 'cancelled'],
+                ['id' => $newsletterId, 'status' => 'scheduled'],
+                ['%s'], ['%d', '%s']
+            );
+        }
+
         if ($updated) {
             $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
+            wp_clear_scheduled_hook($this->cronHook, [$newsletterId]);
             wp_send_json_success(['message' => '발송이 취소되었습니다.']);
         } else {
             wp_send_json_error(['message' => '이미 발송 완료되었거나 취소할 수 없는 상태입니다.']);
