@@ -28,8 +28,13 @@ jobs:
             --exclude='build/' \
             --exclude='docs/' \
             --exclude='archive/' \
-            --exclude='PLAN.md' \
+            --exclude='tests/' \
+            --exclude='vendor/bin/' \
             --exclude='*.md' \
+            --exclude='phpunit.xml' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='.gitignore' \
             . build/crmbiz-newsletter/
           cd build
           zip -r ../crmbiz-newsletter-${{ steps.version.outputs.version }}.zip crmbiz-newsletter/
