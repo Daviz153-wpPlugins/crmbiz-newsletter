@@ -260,7 +260,7 @@ class NewsletterSender {
             return;
         }
 
-        $adminEmail = (string) get_option('admin_email');
+        $adminEmail = $this->settings->getNotifyEmail();
         if (!is_email($adminEmail)) {
             return;
         }
