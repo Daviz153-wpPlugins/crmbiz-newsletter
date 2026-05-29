@@ -56,22 +56,20 @@ class EmailTemplateRenderer {
     private function buildHtml(array $d): string {
         $post           = $d['post'];
         $content        = $d['content'];
-        $subscriber     = $d['subscriber'];
         $unsubscribeUrl = esc_url($d['unsubscribe_url']);
         $recentPosts    = $d['recent_posts'];
-        $featuredImg    = $d['featured_img'];
         $siteName       = esc_html($d['site_name']);
         $siteUrl        = esc_url($d['site_url']);
         $postTitle      = esc_html(get_the_title($post));
         $postUrl        = esc_url(get_permalink($post));
         $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
 
-        $featuredSection = $featuredImg
-            ? '<img src="' . esc_url($featuredImg) . '" alt="" style="width:100%;max-width:600px;height:auto;display:block;margin:0 0 24px">'
+        $featuredSection = $d['featured_img']
+            ? '<img src="' . esc_url($d['featured_img']) . '" alt="" style="width:100%;max-width:600px;height:auto;display:block;margin:0 0 24px">'
             : '';
 
-        $logoId  = get_theme_mod('custom_logo');
-        $logoSrc = $logoId ? (wp_get_attachment_image_src($logoId, 'medium')[0] ?? '') : '';
+        $logoId      = get_theme_mod('custom_logo');
+        $logoSrc     = $logoId ? (wp_get_attachment_image_src($logoId, 'medium')[0] ?? '') : '';
         $headerBrand = $logoSrc
             ? '<a href="' . $siteUrl . '"><img src="' . esc_url($logoSrc) . '" alt="' . $siteName . '" style="max-height:40px;width:auto;display:block"></a>'
             : '<a href="' . $siteUrl . '" style="color:#ffffff;text-decoration:none;font-size:18px;font-weight:700">' . $siteName . '</a>';
@@ -87,88 +85,15 @@ class EmailTemplateRenderer {
                     esc_html(get_the_date('Y.m.d', $rp))
                 );
             }
-            $recentSection = '
-            <div style="margin-top:40px;padding-top:24px;border-top:1px solid #e5e7eb">
-                <p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px">최근 뉴스레터</p>
-                <ul style="margin:0;padding-left:18px;color:#374151;font-size:14px">' . $items . '</ul>
-            </div>';
+            $recentSection = '<div style="margin-top:40px;padding-top:24px;border-top:1px solid #e5e7eb">'
+                . '<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px">최근 뉴스레터</p>'
+                . '<ul style="margin:0;padding-left:18px;color:#374151;font-size:14px">' . $items . '</ul>'
+                . '</div>';
         }
 
-        return '<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>' . $postTitle . '</title>
-<style>
-  body { margin:0;padding:0;background:#f3f4f6; }
-  img  { max-width:100%;height:auto;display:block; }
-  .nl-outer  { padding:24px 12px !important; }
-  .nl-inner  { width:100% !important;max-width:600px !important; }
-  .nl-hd-td  { padding:14px 20px !important; }
-  .nl-body   { padding:24px 20px !important; }
-  .nl-foot   { padding:16px 20px !important; }
-  .nl-h1     { font-size:22px !important; }
-  /* 본문 이미지 반응형 */
-  .nl-body img, .nl-body table img { max-width:100% !important;height:auto !important; }
-  /* 본문 내 고정폭 테이블 제거 */
-  .nl-body table { max-width:100% !important; }
-  @media only screen and (max-width:620px) {
-    .nl-outer  { padding:0 !important; }
-    .nl-inner  { border-radius:0 !important; }
-    .nl-hd-td  { padding:12px 16px !important; }
-    .nl-body   { padding:20px 16px !important; }
-    .nl-foot   { padding:14px 16px !important; }
-    .nl-h1     { font-size:20px !important; }
-    .nl-web    { display:none !important; }
-  }
-</style>
-</head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" class="nl-outer" style="background:#f3f4f6;padding:32px 16px">
-<tr><td align="center">
-<table cellpadding="0" cellspacing="0" class="nl-inner" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden">
-
-  <!-- 헤더 -->
-  <tr>
-    <td class="nl-hd-td" style="background:#1a1a2e;padding:16px 32px">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td>' . $headerBrand . '</td>
-          <td align="right" class="nl-web"><a href="' . $postUrl . '" style="color:#a5b4fc;text-decoration:none;font-size:12px">웹에서 보기 →</a></td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <!-- 본문 -->
-  <tr>
-    <td class="nl-body" style="padding:32px">
-      ' . $featuredSection . '
-      <h1 class="nl-h1" style="margin:0 0 8px;font-size:26px;font-weight:700;color:#111827;line-height:1.3">' . $postTitle . '</h1>
-      <p style="margin:0 0 24px;font-size:13px;color:#9ca3af">' . $postDate . '</p>
-      <div style="font-size:16px;line-height:1.7;color:#374151">' . $content . '</div>
-
-      ' . $recentSection . '
-    </td>
-  </tr>
-
-  <!-- 푸터 -->
-  <tr>
-    <td class="nl-foot" style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb">
-      <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
-        이 이메일은 <strong>' . $siteName . '</strong> 뉴스레터 구독자에게 발송됩니다.<br>
-        더 이상 받지 않으시려면
-        <a href="' . $unsubscribeUrl . '" style="color:#6b7280;text-decoration:underline">수신거부</a>를 클릭하세요.
-      </p>
-    </td>
-  </tr>
-
-</table>
-</td></tr>
-</table>
-</body>
-</html>';
+        ob_start();
+        include CRMBIZ_NL_DIR . 'templates/email.php';
+        return (string) ob_get_clean();
     }
 
     private function injectTracking(string $html, int $newsletterId, string $email): string {

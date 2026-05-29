@@ -47,6 +47,12 @@ class MetaBox {
         $lists       = $fcAvailable ? FluentCRMBridge::getListsForSelect() : [];
 
         $isDryRun = $this->settings->isDryRun();
+
+        global $wpdb;
+        $nlRecord = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE post_id = %d ORDER BY created_at DESC LIMIT 1",
+            $post->ID
+        ));
         ?>
         <div id="crmbiz-nl-metabox">
 
@@ -58,8 +64,12 @@ class MetaBox {
 
             <?php if ($isDryRun): ?>
                 <div style="background:#cff4fc;border:1px solid #0dcaf0;border-radius:4px;padding:6px 10px;margin-bottom:12px;font-size:12px;color:#055160">
-                    Dry-run 모드 — 실제 발송 안 됨
+                    테스트 모드 — 실제 발송 안 됨
                 </div>
+            <?php endif; ?>
+
+            <?php if ($nlRecord): ?>
+                <?php echo $this->renderStatusCard($nlRecord); ?>
             <?php endif; ?>
 
             <label style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:14px;cursor:pointer">
@@ -129,8 +139,16 @@ class MetaBox {
                     </label>
                     <label style="display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:12px;cursor:pointer">
                         <input type="radio" name="crmbiz_nl_send_mode" value="manual" <?php checked($sendMode, 'manual'); ?>>
-                        수동 발송 (이력 페이지에서)
+                        수동 발송
                     </label>
+                    <div id="crmbiz-manual-hint" style="margin:4px 0 4px 16px;<?php echo $sendMode === 'manual' ? '' : 'display:none'; ?>">
+                        <div style="background:#fefce8;border:1px solid #fde68a;border-radius:4px;padding:7px 10px;font-size:11px;color:#854d0e;line-height:1.6">
+                            발행해도 자동으로 발송되지 않습니다.<br>
+                            발행 후 <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>"
+                                      style="color:#854d0e;font-weight:600">발송 이력</a> 페이지에서
+                            <strong>▶ 발송</strong> 버튼을 눌러 직접 발송하세요.
+                        </div>
+                    </div>
                     <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
                         <input type="radio" name="crmbiz_nl_send_mode" value="scheduled" <?php checked($sendMode, 'scheduled'); ?>>
                         예약 발송
@@ -140,6 +158,9 @@ class MetaBox {
                                name="crmbiz_nl_scheduled_at"
                                value="<?php echo esc_attr($schedAt); ?>"
                                style="font-size:12px;width:100%">
+                        <p style="margin:4px 0 0;font-size:11px;color:#888">
+                            사이트 시간대: <?php echo esc_html(wp_timezone_string()); ?>
+                        </p>
                     </div>
                 </div>
 
@@ -164,11 +185,13 @@ class MetaBox {
                 document.getElementById('crmbiz-nl-options').style.display = this.checked ? '' : 'none';
             });
 
-            // 예약 발송 시각 필드 토글
+            // 발송 모드별 힌트 토글
             document.querySelectorAll('[name="crmbiz_nl_send_mode"]').forEach(function(r) {
                 r.addEventListener('change', function() {
                     document.getElementById('crmbiz-scheduled-at').style.display =
                         this.value === 'scheduled' ? '' : 'none';
+                    document.getElementById('crmbiz-manual-hint').style.display =
+                        this.value === 'manual' ? '' : 'none';
                 });
             });
 
@@ -211,6 +234,21 @@ class MetaBox {
             <?php if (!empty($tagIds) || !empty($listIds)): ?>
             countRecipients();
             <?php endif; ?>
+
+            // Classic editor: 발행 버튼 클릭 시 즉시 발송 confirm
+            var publishBtn = document.getElementById('publish');
+            if (publishBtn) {
+                publishBtn.addEventListener('click', function(e) {
+                    var enabled = document.getElementById('crmbiz_nl_enabled').checked;
+                    var modeEl  = document.querySelector('[name="crmbiz_nl_send_mode"]:checked');
+                    if (!enabled || !modeEl || modeEl.value !== 'immediate') return;
+                    var count = document.getElementById('crmbiz-count-value').textContent || '?';
+                    if (!confirm('발행 즉시 ' + count + '명에게 뉴스레터가 발송됩니다.\n계속하시겠습니까?')) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                    }
+                }, true);
+            }
         })();
         </script>
         <?php
@@ -243,5 +281,83 @@ class MetaBox {
         update_post_meta($postId, '_crmbiz_nl_list_ids',     array_values($listIds));
         update_post_meta($postId, '_crmbiz_nl_send_mode',    $sendMode);
         update_post_meta($postId, '_crmbiz_nl_scheduled_at', $schedAt);
+    }
+
+    private function renderStatusCard(object $nl): string {
+        $status = $nl->status;
+
+        $configs = [
+            'sent'      => ['bg' => '#d1e7dd', 'border' => '#0f5132', 'color' => '#0f5132', 'label' => '발송 완료'],
+            'sending'   => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => '발송 중'],
+            'queued'    => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => '발송 대기 중'],
+            'scheduled' => ['bg' => '#fff3cd', 'border' => '#997404', 'color' => '#664d03', 'label' => '예약됨'],
+            'draft'     => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => '수동 발송 대기'],
+            'failed'    => ['bg' => '#f8d7da', 'border' => '#842029', 'color' => '#842029', 'label' => '발송 실패'],
+            'cancelled' => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => '취소됨'],
+        ];
+        $cfg = $configs[$status] ?? $configs['draft'];
+
+        // 날짜 문자열
+        if ($status === 'scheduled' && $nl->scheduled_at) {
+            $dateLabel = '예약 시각: ' . $this->formatLocalDate($nl->scheduled_at);
+        } elseif ($nl->sent_at) {
+            $dateLabel = '발송일: ' . $this->formatLocalDate($nl->sent_at);
+        } elseif ($nl->created_at) {
+            $dateLabel = '생성일: ' . $this->formatLocalDate($nl->created_at);
+        } else {
+            $dateLabel = '';
+        }
+
+        // 수신자 정보
+        $counts = '';
+        if ($status === 'sent') {
+            $counts = '수신자 ' . number_format((int) $nl->success_count) . '명 발송됨';
+            if ((int) $nl->fail_count > 0) {
+                $counts .= ' · 실패 ' . number_format((int) $nl->fail_count) . '명';
+            }
+        } elseif (in_array($status, ['sending', 'queued'], true) && (int) $nl->recipient_count > 0) {
+            $counts = '총 수신자 ' . number_format((int) $nl->recipient_count) . '명';
+        }
+
+        $historyUrl = admin_url('admin.php?page=crmbiz-nl-history');
+
+        $notice = in_array($status, ['sent', 'sending', 'queued'], true)
+            ? '<div style="font-size:11px;color:' . esc_attr($cfg['color']) . ';margin-top:5px;opacity:.85">포스트를 저장해도 재발송되지 않습니다.</div>'
+            : '';
+
+        ob_start();
+        ?>
+        <div style="background:<?php echo esc_attr($cfg['bg']); ?>;border:1px solid <?php echo esc_attr($cfg['border']); ?>;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <strong style="color:<?php echo esc_attr($cfg['color']); ?>;font-size:12px">
+                    <?php echo esc_html($cfg['label']); ?>
+                </strong>
+                <a href="<?php echo esc_url($historyUrl); ?>"
+                   style="font-size:11px;color:<?php echo esc_attr($cfg['color']); ?>;text-decoration:underline;opacity:.75">
+                    이력 보기 ↗
+                </a>
+            </div>
+            <?php if ($dateLabel): ?>
+                <div style="color:<?php echo esc_attr($cfg['color']); ?>;opacity:.9"><?php echo esc_html($dateLabel); ?></div>
+            <?php endif; ?>
+            <?php if ($counts): ?>
+                <div style="color:<?php echo esc_attr($cfg['color']); ?>;opacity:.9"><?php echo esc_html($counts); ?></div>
+            <?php endif; ?>
+            <?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $notice is internally built HTML with esc_attr
+            echo $notice;
+            ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function formatLocalDate(string $dt): string {
+        try {
+            $d = new \DateTime($dt, wp_timezone());
+            return $d->format('Y년 m월 d일 G:i');
+        } catch (\Throwable $e) {
+            return $dt;
+        }
     }
 }

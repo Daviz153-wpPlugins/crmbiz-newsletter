@@ -1,0 +1,308 @@
+<?php
+namespace CRMBizNewsletter\Admin;
+
+use CRMBizNewsletter\EmailTemplateRenderer;
+use CRMBizNewsletter\FluentCRMBridge;
+use CRMBizNewsletter\NewsletterSender;
+use CRMBizNewsletter\Settings;
+
+defined('ABSPATH') || exit;
+
+class AjaxHandlers {
+
+    private Settings $settings;
+    private string $cronHook;
+
+    public function __construct(Settings $settings, string $cronHook) {
+        $this->settings = $settings;
+        $this->cronHook = $cronHook;
+    }
+
+    public function handleTestEmail(): void {
+        if (!check_ajax_referer('crmbiz_nl_diagnostics', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $to = sanitize_email($_POST['test_email'] ?? '');
+        if (!is_email($to)) {
+            wp_send_json_error(['message' => '유효하지 않은 이메일 주소입니다.']);
+        }
+
+        if ($this->settings->isDryRun()) {
+            FluentCRMBridge::debugLog('CRMBiz Newsletter', 'DRY-RUN: 테스트 이메일 건너뜀. To: ' . $to);
+            wp_send_json_success(['dry_run' => true, 'to' => $to]);
+        }
+
+        $fromName  = str_replace(["\r", "\n"], '', $this->settings->getFromName());
+        $fromEmail = str_replace(["\r", "\n"], '', $this->settings->getFromEmail());
+        $result = wp_mail(
+            $to,
+            '[테스트] CRMBiz Newsletter 발송 테스트',
+            $this->buildTestEmailBody($to),
+            ['Content-Type: text/html; charset=UTF-8', 'From: ' . $fromName . ' <' . $fromEmail . '>']
+        );
+
+        $result
+            ? wp_send_json_success(['message' => '발송 성공: ' . $to])
+            : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
+    }
+
+    public function handleCountRecipients(): void {
+        if (!check_ajax_referer('crmbiz_nl_metabox', 'nonce', false)) {
+            wp_send_json_error([], 403);
+        }
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error([], 403);
+        }
+
+        if (!FluentCRMBridge::isAvailable()) {
+            wp_send_json_success(['count' => 0]);
+        }
+
+        $tagIds  = array_filter(array_map('intval', (array) ($_POST['tag_ids']  ?? [])));
+        $listIds = array_filter(array_map('intval', (array) ($_POST['list_ids'] ?? [])));
+
+        if (empty($tagIds) && empty($listIds)) {
+            wp_send_json_success(['count' => 0]);
+        }
+
+        try {
+            $query = new \FluentCrm\App\Services\ContactsQuery([
+                'tags'     => $tagIds,
+                'lists'    => $listIds,
+                'statuses' => ['subscribed'],
+            ]);
+            wp_send_json_success(['count' => $query->getModel()->count()]);
+        } catch (\Throwable $e) {
+            wp_send_json_success(['count' => 0]);
+        }
+    }
+
+    public function handleManualSend(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        if (!FluentCRMBridge::isAvailable()) {
+            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
+        }
+
+        global $wpdb;
+        $record = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d AND status = 'draft'",
+                $newsletterId
+            )
+        );
+
+        if (!$record) {
+            wp_send_json_error(['message' => '발송 가능한 레코드를 찾을 수 없습니다.']);
+        }
+
+        $tagIds  = array_filter(array_map('intval', json_decode($record->tag_ids,  true) ?? []));
+        $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
+
+        if (empty($tagIds) && empty($listIds)) {
+            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
+        }
+
+        if (!get_post((int) $record->post_id)) {
+            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+        }
+
+        $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            ['status' => 'queued'],
+            ['id' => $newsletterId],
+            ['%s'], ['%d']
+        );
+        wp_schedule_single_event(time(), $this->cronHook, [$newsletterId]);
+
+        wp_send_json_success(['message' => '발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
+    }
+
+    public function handleResend(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        global $wpdb;
+        $record = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+                $newsletterId
+            )
+        );
+
+        if (!$record) {
+            wp_send_json_error(['message' => '레코드를 찾을 수 없습니다.']);
+        }
+
+        if (!FluentCRMBridge::isAvailable()) {
+            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
+        }
+
+        $postId = (int) $record->post_id;
+        if (!get_post($postId)) {
+            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+        }
+
+        $tagIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
+        $listIds = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
+        if (empty($tagIds) && empty($listIds)) {
+            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
+        }
+
+        $newId = (new NewsletterSender($this->settings))->createQueuedRecord($postId);
+        if ($newId <= 0) {
+            wp_send_json_error(['message' => '레코드 생성에 실패했습니다.']);
+        }
+        wp_schedule_single_event(time(), $this->cronHook, [$newId]);
+
+        wp_send_json_success(['message' => '재발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
+    }
+
+    public function handleResendSingle(): void {
+        if (!check_ajax_referer('crmbiz_nl_resend_single', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        $email        = sanitize_email($_POST['email'] ?? '');
+
+        if ($newsletterId <= 0 || !is_email($email)) {
+            wp_send_json_error(['message' => '유효하지 않은 입력입니다.']);
+        }
+
+        $sent = (new NewsletterSender($this->settings))->sendToEmail($newsletterId, $email);
+
+        $sent
+            ? wp_send_json_success(['message' => $email . ' 재발송 완료'])
+            : wp_send_json_error(['message' => $email . ' 발송 실패 (수신거부 또는 오류)']);
+    }
+
+    public function handleCancelSend(): void {
+        if (!check_ajax_referer('crmbiz_nl_manual_send', 'nonce', false)) {
+            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
+        }
+
+        global $wpdb;
+        $updated = $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            ['status' => 'cancelled'],
+            ['id' => $newsletterId, 'status' => 'queued'],
+            ['%s'], ['%d', '%s']
+        );
+
+        if (!$updated) {
+            $updated = $wpdb->update(
+                $wpdb->prefix . 'crmbiz_newsletters',
+                ['status' => 'cancelled'],
+                ['id' => $newsletterId, 'status' => 'sending'],
+                ['%s'], ['%d', '%s']
+            );
+        }
+
+        if ($updated) {
+            $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
+            wp_send_json_success(['message' => '발송이 취소되었습니다.']);
+        } else {
+            wp_send_json_error(['message' => '이미 발송 완료되었거나 취소할 수 없는 상태입니다.']);
+        }
+    }
+
+    public function handleGetLog(): void {
+        if (!check_ajax_referer('crmbiz_nl_get_log', 'nonce', false)) {
+            wp_send_json_error([], 403);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([], 403);
+        }
+
+        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
+        if ($newsletterId <= 0) {
+            wp_send_json_error([]);
+        }
+
+        wp_send_json_success(['html' => (new HistoryPage())->renderLogPublic($newsletterId)]);
+    }
+
+    public function handlePreviewEmail(): void {
+        $postId = (int) ($_GET['post_id'] ?? 0);
+        $nonce  = $_GET['nonce'] ?? '';
+
+        if (!wp_verify_nonce($nonce, 'crmbiz_nl_preview_' . $postId)) {
+            wp_die('보안 검증 실패.', '오류', ['response' => 403]);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_die('권한이 없습니다.', '오류', ['response' => 403]);
+        }
+
+        $post = get_post($postId);
+        if (!$post) {
+            wp_die('포스트를 찾을 수 없습니다.');
+        }
+
+        $dummy = (object) [
+            'email'      => wp_get_current_user()->user_email,
+            'first_name' => wp_get_current_user()->display_name,
+            'last_name'  => '',
+            'full_name'  => wp_get_current_user()->display_name,
+        ];
+
+        $html = (new EmailTemplateRenderer($this->settings))->render($post, $dummy);
+
+        header('Content-Type: text/html; charset=UTF-8');
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo $html;
+        exit;
+    }
+
+    private function buildTestEmailBody(string $to): string {
+        return sprintf(
+            '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
+            '<div style="max-width:500px;margin:0 auto;background:#fff;padding:32px;border-radius:8px">' .
+            '<h2 style="color:#1a1a2e;margin:0 0 16px">테스트 이메일</h2>' .
+            '<p>CRMBiz Newsletter 플러그인에서 발송한 테스트 이메일입니다.</p>' .
+            '<table style="font-size:13px;color:#555;margin-top:16px"><tr><td style="padding:3px 12px 3px 0">발신자</td><td>%s &lt;%s&gt;</td></tr>' .
+            '<tr><td>수신자</td><td>%s</td></tr>' .
+            '<tr><td>시각</td><td>%s</td></tr></table>' .
+            '<p style="margin-top:24px;color:#0f5132;background:#d1e7dd;padding:10px 14px;border-radius:4px;font-size:13px">FluentSMTP 연결이 정상입니다.</p>' .
+            '</div></body></html>',
+            esc_html($this->settings->getFromName()),
+            esc_html($this->settings->getFromEmail()),
+            esc_html($to),
+            esc_html(current_time('Y-m-d H:i:s'))
+        );
+    }
+}

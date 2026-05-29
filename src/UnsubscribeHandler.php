@@ -7,7 +7,6 @@ class UnsubscribeHandler {
 
     public function init(): void {
         add_action('template_redirect', [$this, 'handleUnsubscribeRequest']);
-        add_action('fluentcrm_after_subscribers_deleted',        [$this, 'cleanupOnDelete']);
         add_action('fluentcrm_subscriber_status_to_subscribed',  [$this, 'removeOnResubscribe'], 10, 2);
     }
 
@@ -115,9 +114,6 @@ class UnsubscribeHandler {
             ['%s', '%s', '%s']
         );
     }
-
-    // FluentCRM 연락처 삭제 시 — 수신거부 레코드는 스팸 재구독 방지용으로 유지
-    public function cleanupOnDelete(array $subscriberIds): void {}
 
     // FluentCRM 재구독 시 우리 수신거부 테이블에서 제거
     public function removeOnResubscribe($subscriber, string $previousStatus): void {

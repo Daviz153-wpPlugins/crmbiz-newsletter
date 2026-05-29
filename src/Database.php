@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.3.0';
+    const DB_VERSION = '1.4.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -61,6 +61,15 @@ class Database {
   UNIQUE KEY uq_email (email)
 ) $charset;");
 
+        dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_queue (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  newsletter_id BIGINT UNSIGNED NOT NULL,
+  email VARCHAR(191) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_nl_email (newsletter_id, email),
+  KEY idx_newsletter_id (newsletter_id)
+) $charset;");
+
         dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_events (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   newsletter_id BIGINT UNSIGNED NOT NULL,
@@ -81,6 +90,8 @@ class Database {
                 $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters DROP COLUMN error_log");
             }
         }
+
+        // 1.4.0: crmbiz_nl_queue 테이블 추가 (dbDelta가 이미 처리), subscriber_emails 컬럼 잔존 (하위호환)
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

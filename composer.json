@@ -1,0 +1,22 @@
+{
+  "name": "crmbiz/newsletter",
+  "description": "FluentCRM 연동 WordPress 뉴스레터 플러그인",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "CRMBizNewsletter\\": "src/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit"
+  },
+  "config": {
+    "optimize-autoloader": true
+  }
+}

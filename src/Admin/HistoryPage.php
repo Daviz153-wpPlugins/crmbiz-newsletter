@@ -10,26 +10,15 @@ class HistoryPage {
             wp_die('권한이 없습니다.');
         }
 
-        global $wpdb;
+        $allowed_per  = [20, 50, 100];
+        $per_page_raw = (int) ($_GET['per_page'] ?? 20);
+        $per_page     = in_array($per_page_raw, $allowed_per, true) ? $per_page_raw : 20;
+        $paged        = max(1, (int) ($_GET['paged'] ?? 1));
+        $search      = sanitize_text_field($_GET['s'] ?? '');
 
-        $rows = $wpdb->get_results(
-            "SELECT n.*, p.post_title,
-                COALESCE(ec.open_count, 0)  AS open_count,
-                COALESCE(ec.click_count, 0) AS click_count
-             FROM {$wpdb->prefix}crmbiz_newsletters n
-             LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
-             LEFT JOIN (
-                 SELECT newsletter_id,
-                     COUNT(DISTINCT CASE WHEN type = 'open'  THEN email END) AS open_count,
-                     COUNT(DISTINCT CASE WHEN type = 'click' THEN email END) AS click_count
-                 FROM {$wpdb->prefix}crmbiz_nl_events
-                 WHERE type IN ('open','click')
-                 GROUP BY newsletter_id
-             ) ec ON ec.newsletter_id = n.id
-             ORDER BY n.created_at DESC
-             LIMIT 100"
-        );
-        $total = count($rows);
+        [$total, $rows] = $this->fetchRows($search, $per_page, ($paged - 1) * $per_page);
+        $total_pages = max(1, (int) ceil($total / $per_page));
+        $paged       = min($paged, $total_pages);
         ?>
         <div class="wrap" style="max-width:1200px">
 
@@ -38,29 +27,46 @@ class HistoryPage {
                 <h1 style="margin:0;font-size:20px;font-weight:700;color:#111827">
                     뉴스레터 이력
                     <?php if ($total > 0): ?>
-                    <span style="font-size:14px;font-weight:400;color:#9ca3af;margin-left:6px">(<?php echo esc_html($total); ?>개)</span>
+                    <span style="font-size:14px;font-weight:400;color:#9ca3af;margin-left:6px">(총 <?php echo esc_html(number_format($total)); ?>개)</span>
                     <?php endif; ?>
                 </h1>
             </div>
 
+            <!-- 검색 -->
+            <form method="get" action="" style="margin-bottom:16px">
+                <input type="hidden" name="page" value="crmbiz-nl-history">
+                <div style="display:flex;align-items:center;gap:8px;max-width:480px">
+                    <div style="position:relative;flex:1">
+                        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none">🔍</span>
+                        <input type="text"
+                               name="s"
+                               value="<?php echo esc_attr($search); ?>"
+                               placeholder="제목으로 검색..."
+                               style="width:100%;box-sizing:border-box;padding:8px 12px 8px 32px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;color:#374151;outline:none;background:#fff"
+                               autocomplete="off">
+                    </div>
+                    <button type="submit"
+                            style="padding:8px 14px;background:#111827;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer">
+                        검색
+                    </button>
+                    <?php if ($search !== ''): ?>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>"
+                       style="font-size:12px;color:#6b7280;text-decoration:none;white-space:nowrap">초기화 ✕</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+
             <?php if (empty($rows)): ?>
                 <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:48px;text-align:center;color:#9ca3af">
-                    <div style="font-size:36px;margin-bottom:12px">📭</div>
-                    <p style="margin:0;font-size:14px">발송 이력이 없습니다. 포스트를 발행하면 여기에 기록됩니다.</p>
+                    <?php if ($search !== ''): ?>
+                        <div style="font-size:36px;margin-bottom:12px">🔍</div>
+                        <p style="margin:0;font-size:14px">"<?php echo esc_html($search); ?>"에 해당하는 이력이 없습니다.</p>
+                    <?php else: ?>
+                        <div style="font-size:36px;margin-bottom:12px">📭</div>
+                        <p style="margin:0;font-size:14px">발송 이력이 없습니다. 포스트를 발행하면 여기에 기록됩니다.</p>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
-
-            <!-- 검색 -->
-            <div style="margin-bottom:16px">
-                <div style="position:relative;max-width:420px">
-                    <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none">🔍</span>
-                    <input type="text"
-                           id="crmbiz-search"
-                           placeholder="제목으로 검색..."
-                           style="width:100%;box-sizing:border-box;padding:8px 12px 8px 32px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;color:#374151;outline:none;background:#fff"
-                           autocomplete="off">
-                </div>
-            </div>
 
             <!-- 테이블 -->
             <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
@@ -85,6 +91,7 @@ class HistoryPage {
                         ?>
                         <tr class="crmbiz-row"
                             data-title="<?php echo esc_attr(mb_strtolower($title)); ?>"
+                            data-status="<?php echo esc_attr($row->status); ?>"
                             style="border-bottom:1px solid #f3f4f6;transition:background .12s">
 
                             <!-- 제목 -->
@@ -107,7 +114,7 @@ class HistoryPage {
 
                             <!-- 상태 -->
                             <td style="padding:14px 12px;text-align:center">
-                                <?php echo $this->statusBadge($row->status); ?>
+                                <?php echo $this->statusBadge($row); ?>
                             </td>
 
                             <!-- 발송 일시 -->
@@ -161,23 +168,25 @@ class HistoryPage {
                                 </button>
                                 <?php endif; ?>
 
+                                <?php if (in_array($row->status, ['queued', 'sending'], true)): ?>
+                                <button type="button"
+                                        class="crmbiz-cancel-send"
+                                        data-id="<?php echo esc_attr($row->id); ?>"
+                                        title="발송 취소"
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #dc2626;border-radius:6px;cursor:pointer;font-size:13px;color:#dc2626;background:#fef2f2;margin-right:2px">
+                                    ✕
+                                </button>
+                                <?php endif; ?>
+
                                 <?php if (in_array($row->status, ['sent', 'failed'], true)): ?>
                                 <button type="button"
                                         class="crmbiz-resend"
                                         data-id="<?php echo esc_attr($row->id); ?>"
                                         title="재발송"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff;margin-right:2px">
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:14px;color:#6b7280;background:#fff">
                                     ↺
                                 </button>
                                 <?php endif; ?>
-
-                                <button type="button"
-                                        class="crmbiz-toggle-row"
-                                        data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="상세/로그"
-                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer;font-size:13px;color:#6b7280;background:#fff">
-                                    📊
-                                </button>
                             </td>
                         </tr>
 
@@ -192,204 +201,133 @@ class HistoryPage {
                 </table>
             </div>
 
+            <!-- 페이지네이션 -->
+            <?php echo $this->renderPagination($total, $paged, $per_page, $total_pages, $search); ?>
+
             <?php endif; ?>
         </div>
 
-        <style>
-        #crmbiz-history-table tbody tr.crmbiz-row:hover { background:#f9fafb; }
-        #crmbiz-search:focus { border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,.15); }
-        .crmbiz-nl-tab { padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13px;color:#6b7280;border-bottom:2px solid transparent;font-weight:500; }
-        .crmbiz-nl-tab.is-active { color:#111827;border-bottom-color:#2563eb; }
-        .crmbiz-nl-tab:hover:not(.is-active) { color:#374151; }
-        .crmbiz-nl-filter { padding:5px 14px;border:1px solid #e5e7eb;border-radius:20px;background:#fff;cursor:pointer;font-size:12px;color:#6b7280; }
-        .crmbiz-nl-filter.is-active { background:#111827;color:#fff;border-color:#111827; }
-        .crmbiz-nl-filter:hover:not(.is-active) { background:#f9fafb; }
-        .crmbiz-toggle-row { transition:all .15s; }
-        .crmbiz-toggle-row.is-open { transform:rotate(90deg);color:#2563eb !important; }
-        </style>
-
-        <script>
-        (function($) {
-            var ajaxUrl          = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
-            var nonce            = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_manual_send')); ?>;
-            var logNonce         = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_get_log')); ?>;
-            var singleResendNonce = <?php echo wp_json_encode(wp_create_nonce('crmbiz_nl_resend_single')); ?>;
-
-            /* ── 검색 ── */
-            $('#crmbiz-search').on('input', function() {
-                var q = $(this).val().toLowerCase();
-                $('#crmbiz-history-table tbody .crmbiz-row').each(function() {
-                    var match = !q || $(this).data('title').indexOf(q) !== -1;
-                    $(this).toggle(match);
-                    var id = $(this).find('.crmbiz-toggle-row').first().data('id');
-                    if (!match) $('#crmbiz-detail-row-' + id).hide();
-                });
-            });
-
-            /* ── 상세행 토글 ── */
-            $(document).on('click', '.crmbiz-toggle-row', function() {
-                var id     = $(this).data('id');
-                var $wrap  = $('#crmbiz-detail-' + id);
-                var $row   = $('#crmbiz-detail-row-' + id);
-                var $btns  = $('.crmbiz-toggle-row[data-id="' + id + '"]');
-
-                if ($row.is(':visible')) {
-                    $row.hide();
-                    $btns.removeClass('is-open');
-                    return;
-                }
-
-                if ($wrap.data('loaded')) {
-                    $row.show();
-                    $btns.addClass('is-open');
-                    return;
-                }
-
-                $btns.css('opacity', '.4');
-                $.post(ajaxUrl, {
-                    action:        'crmbiz_nl_get_log',
-                    nonce:         logNonce,
-                    newsletter_id: id
-                }, function(res) {
-                    $btns.css('opacity', '1');
-                    var html = res.success ? res.data.html : '<p style="margin:12px 16px;color:#842029;font-size:12px">로드 실패</p>';
-                    $wrap.html(html).data('loaded', true);
-                    $row.show();
-                    $btns.addClass('is-open');
-                    crmbizInitPanel($wrap.find('.crmbiz-nl-panel'));
-                }).fail(function() {
-                    $btns.css('opacity', '1');
-                });
-            });
-
-            /* ── 탭 전환 ── */
-            $(document).on('click', '.crmbiz-nl-tab', function() {
-                var $panel = $(this).closest('.crmbiz-nl-panel');
-                var tab    = $(this).data('tab');
-                $panel.find('.crmbiz-nl-tab').removeClass('is-active');
-                $(this).addClass('is-active');
-                $panel.find('.crmbiz-nl-tab-body').hide();
-                $panel.find('.crmbiz-nl-tab-body[data-tab="' + tab + '"]').show();
-            });
-
-            /* ── 필터 ── */
-            $(document).on('click', '.crmbiz-nl-filter', function() {
-                var $panel  = $(this).closest('.crmbiz-nl-panel');
-                var filter  = $(this).data('filter');
-                $panel.find('.crmbiz-nl-filter').removeClass('is-active');
-                $(this).addClass('is-active');
-                $panel.find('.crmbiz-nl-recipient').each(function() {
-                    var s   = $(this).data('status');
-                    var vis = filter === 'all'
-                           || (filter === 'click'        && s === 'clicked')
-                           || (filter === 'open'         && (s === 'clicked' || s === 'opened'))
-                           || (filter === 'unopened'     && s === 'unopened')
-                           || (filter === 'unsubscribed' && s === 'unsubscribed');
-                    $(this).data('fv', vis);
-                });
-                $panel.find('.crmbiz-nl-pager').data('pg', 1);
-                crmbizPaginate($panel);
-            });
-
-            /* ── 페이지네이션 ── */
-            function crmbizPaginate($panel) {
-                var $pager  = $panel.find('.crmbiz-nl-pager');
-                var perPage = parseInt($pager.find('.cp-per').val() || 20);
-                var page    = $pager.data('pg') || 1;
-
-                var $all = $panel.find('.crmbiz-nl-recipient');
-                var $vis = $all.filter(function() { return $(this).data('fv') !== false; });
-
-                var total      = $vis.length;
-                var totalPages = Math.max(1, Math.ceil(total / perPage));
-                page = Math.max(1, Math.min(page, totalPages));
-
-                $all.hide();
-                $vis.slice((page - 1) * perPage, page * perPage).show();
-
-                $pager.find('.cp-cur').text(page);
-                $pager.find('.cp-tot').text(totalPages);
-                $pager.find('.cp-cnt').text(total);
-                $pager.data('pg', page);
-                $pager.find('.cp-prev').prop('disabled', page <= 1);
-                $pager.find('.cp-next').prop('disabled', page >= totalPages);
-            }
-
-            $(document).on('click', '.cp-prev', function() {
-                var $panel = $(this).closest('.crmbiz-nl-panel');
-                var $pager = $panel.find('.crmbiz-nl-pager');
-                $pager.data('pg', Math.max(1, ($pager.data('pg') || 1) - 1));
-                crmbizPaginate($panel);
-            });
-            $(document).on('click', '.cp-next', function() {
-                var $panel = $(this).closest('.crmbiz-nl-panel');
-                var $pager = $panel.find('.crmbiz-nl-pager');
-                $pager.data('pg', ($pager.data('pg') || 1) + 1);
-                crmbizPaginate($panel);
-            });
-            $(document).on('change', '.cp-per', function() {
-                var $panel = $(this).closest('.crmbiz-nl-panel');
-                $panel.find('.crmbiz-nl-pager').data('pg', 1);
-                crmbizPaginate($panel);
-            });
-
-            function crmbizInitPanel($panel) {
-                if (!$panel.length) return;
-                $panel.find('.crmbiz-nl-recipient').data('fv', true);
-                crmbizPaginate($panel);
-            }
-
-            /* ── 재발송 ── */
-            $(document).on('click', '.crmbiz-resend', function() {
-                var $btn = $(this), id = $btn.data('id');
-                if (!confirm('같은 수신자에게 다시 발송합니다. 계속하시겠습니까?')) return;
-                $btn.prop('disabled', true).text('…');
-                $.post(ajaxUrl, { action: 'crmbiz_nl_resend', nonce: nonce, newsletter_id: id }, function(res) {
-                    if (res.success) { alert(res.data.message || '재발송 완료'); location.reload(); }
-                    else { alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패')); $btn.prop('disabled', false).text('↺'); }
-                }).fail(function() { alert('서버 오류'); $btn.prop('disabled', false).text('↺'); });
-            });
-
-            /* ── 개별 수신자 재발송 ── */
-            $(document).on('click', '.crmbiz-resend-single', function() {
-                var $btn  = $(this);
-                var nlId  = $btn.data('nl-id');
-                var email = $btn.data('email');
-                if (!confirm(email + ' 에게 재발송합니다. 계속하시겠습니까?')) return;
-                $btn.prop('disabled', true).text('…');
-                $.post(ajaxUrl, {
-                    action:        'crmbiz_nl_resend_single',
-                    nonce:         singleResendNonce,
-                    newsletter_id: nlId,
-                    email:         email
-                }, function(res) {
-                    if (res.success) {
-                        $btn.text('✓').css('color', '#0f5132');
-                        setTimeout(function() { $btn.prop('disabled', false).text('↺').css('color', '#6b7280'); }, 2000);
-                    } else {
-                        alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패'));
-                        $btn.prop('disabled', false).text('↺');
-                    }
-                }).fail(function() {
-                    alert('서버 오류');
-                    $btn.prop('disabled', false).text('↺');
-                });
-            });
-
-            /* ── 수동 발송 ── */
-            $(document).on('click', '.crmbiz-manual-send', function() {
-                var $btn = $(this), id = $btn.data('id');
-                if (!confirm('이 뉴스레터를 지금 발송하시겠습니까?')) return;
-                $btn.prop('disabled', true).text('…');
-                $.post(ajaxUrl, { action: 'crmbiz_nl_manual_send', nonce: nonce, newsletter_id: id }, function(res) {
-                    if (res.success) { alert(res.data.message || '발송 완료'); location.reload(); }
-                    else { alert('오류: ' + (res.data && res.data.message ? res.data.message : '실패')); $btn.prop('disabled', false).text('▶'); }
-                }).fail(function() { alert('서버 오류'); $btn.prop('disabled', false).text('▶'); });
-            });
-
-        })(jQuery);
-        </script>
         <?php
+    }
+
+    private function fetchRows(string $search, int $perPage, int $offset): array {
+        global $wpdb;
+
+        $ec_sub = "(SELECT newsletter_id,
+            COUNT(DISTINCT CASE WHEN type = 'open'  THEN email END) AS open_count,
+            COUNT(DISTINCT CASE WHEN type = 'click' THEN email END) AS click_count
+         FROM {$wpdb->prefix}crmbiz_nl_events
+         WHERE type IN ('open','click')
+         GROUP BY newsletter_id) ec";
+
+        $select = "SELECT n.*, p.post_title,
+            COALESCE(ec.open_count, 0)  AS open_count,
+            COALESCE(ec.click_count, 0) AS click_count";
+
+        $from = "FROM {$wpdb->prefix}crmbiz_newsletters n
+                 LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
+                 LEFT JOIN $ec_sub ON ec.newsletter_id = n.id";
+
+        if ($search !== '') {
+            $like  = '%' . $wpdb->esc_like($search) . '%';
+            $total = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters n
+                 LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
+                 WHERE p.post_title LIKE %s",
+                $like
+            ));
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "$select $from WHERE p.post_title LIKE %s ORDER BY n.created_at DESC LIMIT %d OFFSET %d",
+                $like, $perPage, $offset
+            ));
+        } else {
+            $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters");
+            $rows  = $wpdb->get_results($wpdb->prepare(
+                "$select $from ORDER BY n.created_at DESC LIMIT %d OFFSET %d",
+                $perPage, $offset
+            ));
+        }
+
+        return [$total, $rows ?: []];
+    }
+
+    private function renderPagination(int $total, int $paged, int $perPage, int $totalPages, string $search): string {
+        if ($totalPages <= 1 && $total <= 20) {
+            return '';
+        }
+
+        $base = admin_url('admin.php');
+        $args = ['page' => 'crmbiz-nl-history'];
+        if ($search !== '') {
+            $args['s'] = $search;
+        }
+
+        ob_start();
+        ?>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;font-size:13px;color:#6b7280;flex-wrap:wrap;gap:10px">
+
+            <!-- 표시 건수 선택 -->
+            <form method="get" action="" style="display:flex;align-items:center;gap:6px">
+                <input type="hidden" name="page" value="crmbiz-nl-history">
+                <?php if ($search !== ''): ?>
+                <input type="hidden" name="s" value="<?php echo esc_attr($search); ?>">
+                <?php endif; ?>
+                <label style="font-size:12px">페이지당
+                    <select name="per_page" onchange="this.form.submit()"
+                            style="border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font-size:12px;color:#374151;background:#fff;cursor:pointer;margin:0 2px">
+                        <?php foreach ([20, 50, 100] as $opt): ?>
+                        <option value="<?php echo $opt; ?>" <?php selected($perPage, $opt); ?>><?php echo $opt; ?>개</option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <span style="color:#9ca3af">· 총 <?php echo esc_html(number_format($total)); ?>개</span>
+            </form>
+
+            <!-- 페이지 버튼 -->
+            <div style="display:flex;align-items:center;gap:4px">
+                <?php
+                $btn_style  = 'display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;text-decoration:none;';
+                $active_sty = $btn_style . 'background:#111827;color:#fff;border-color:#111827;font-weight:600;';
+                $normal_sty = $btn_style . 'background:#fff;color:#374151;';
+                $disable_sty = $btn_style . 'background:#f9fafb;color:#d1d5db;pointer-events:none;';
+
+                // 이전 버튼
+                if ($paged > 1) {
+                    echo '<a href="' . esc_url(add_query_arg(array_merge($args, ['paged' => $paged - 1]), $base)) . '" style="' . $normal_sty . '">◀</a>';
+                } else {
+                    echo '<span style="' . $disable_sty . '">◀</span>';
+                }
+
+                // 페이지 번호
+                $range = 2;
+                $pages = array_unique(array_filter(array_merge(
+                    [1],
+                    range(max(2, $paged - $range), min($totalPages - 1, $paged + $range)),
+                    [$totalPages]
+                )));
+                sort($pages);
+
+                $prev = 0;
+                foreach ($pages as $p) {
+                    if ($prev && $p - $prev > 1) {
+                        echo '<span style="' . $disable_sty . '">…</span>';
+                    }
+                    $sty = ($p === $paged) ? $active_sty : $normal_sty;
+                    echo '<a href="' . esc_url(add_query_arg(array_merge($args, ['paged' => $p]), $base)) . '" style="' . esc_attr($sty) . '">' . $p . '</a>';
+                    $prev = $p;
+                }
+
+                // 다음 버튼
+                if ($paged < $totalPages) {
+                    echo '<a href="' . esc_url(add_query_arg(array_merge($args, ['paged' => $paged + 1]), $base)) . '" style="' . $normal_sty . '">▶</a>';
+                } else {
+                    echo '<span style="' . $disable_sty . '">▶</span>';
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     public function renderLogPublic(int $newsletterId): string {
@@ -480,7 +418,7 @@ class HistoryPage {
                     <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">캠페인 성과</div>
                     <table style="width:100%;border-collapse:collapse">
                         <?php foreach ([
-                            ['Sent 이메일', (string)$sent,                                  '#111827'],
+                            ['발송된 이메일', (string)$sent,                                 '#111827'],
                             ['오픈률',       $opens  . ' (' . $openRate  . '%)',             '#0f5132'],
                             ['클릭률',       $clicks . ' (' . $clickRate . '%)',             '#1d4ed8'],
                             ['클릭/오픈률',  $ctr . '%',                                    '#7c3aed'],
@@ -693,7 +631,8 @@ class HistoryPage {
         }
     }
 
-    private function statusBadge(string $status): string {
+    private function statusBadge(object $row): string {
+        $status = $row->status;
         $map = [
             'draft'     => ['#6b7280', '#f3f4f6', '대기'],
             'queued'    => ['#d97706', '#fef3c7', '발송 예약'],
@@ -701,12 +640,32 @@ class HistoryPage {
             'sent'      => ['#0f5132', '#d1e7dd', '완료'],
             'failed'    => ['#842029', '#f8d7da', '실패'],
             'scheduled' => ['#7c3aed', '#ede9fe', '예약'],
+            'cancelled' => ['#6b7280', '#f3f4f6', '취소됨'],
         ];
         [$color, $bg, $label] = $map[$status] ?? ['#6b7280', '#f3f4f6', $status];
-        return sprintf(
+
+        $badge = sprintf(
             '<span style="color:%s;background:%s;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap">%s</span>',
             esc_attr($color), esc_attr($bg), esc_html($label)
         );
+
+        if ($status === 'sending') {
+            $done  = (int) $row->success_count + (int) $row->fail_count;
+            $total = (int) $row->recipient_count;
+            $pct   = $total > 0 ? min(100, round($done / $total * 100)) : 0;
+            $badge .= sprintf(
+                '<div style="margin-top:4px;font-size:10px;color:%s;white-space:nowrap">%s / %s</div>' .
+                '<div style="background:#e5e7eb;border-radius:2px;height:3px;margin-top:2px;overflow:hidden">' .
+                '<div style="background:%s;height:100%%;width:%s%%"></div></div>',
+                esc_attr($color),
+                number_format($done),
+                number_format($total),
+                esc_attr($color),
+                esc_attr((string) $pct)
+            );
+        }
+
+        return $badge;
     }
 
     private function sendModeLabel(string $mode): string {

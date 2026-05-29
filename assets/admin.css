@@ -1,0 +1,11 @@
+#crmbiz-history-table tbody tr.crmbiz-row { cursor:pointer; }
+#crmbiz-history-table tbody tr.crmbiz-row:hover { background:#f9fafb; }
+#crmbiz-search:focus { border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,.15); }
+.crmbiz-nl-tab { padding:10px 16px;border:none;background:none;cursor:pointer;font-size:13px;color:#6b7280;border-bottom:2px solid transparent;font-weight:500; }
+.crmbiz-nl-tab.is-active { color:#111827;border-bottom-color:#2563eb; }
+.crmbiz-nl-tab:hover:not(.is-active) { color:#374151; }
+.crmbiz-nl-filter { padding:5px 14px;border:1px solid #e5e7eb;border-radius:20px;background:#fff;cursor:pointer;font-size:12px;color:#6b7280; }
+.crmbiz-nl-filter.is-active { background:#111827;color:#fff;border-color:#111827; }
+.crmbiz-nl-filter:hover:not(.is-active) { background:#f9fafb; }
+.crmbiz-toggle-row { transition:all .15s; }
+.crmbiz-toggle-row.is-open { transform:rotate(90deg);color:#2563eb !important; }

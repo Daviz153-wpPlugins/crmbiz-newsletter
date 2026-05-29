@@ -46,11 +46,11 @@ class NewsletterSender {
     }
 
     /**
-     * WP Cron에서 호출 — 배치 단위로 발송 후 다음 배치 오프셋 반환 (0 = 완료).
+     * WP Cron에서 호출 — 배치 단위로 발송. true 반환 시 다음 배치 필요, false 반환 시 완료.
      */
-    public function sendFromRecord(int $newsletterId, int $offset = 0): int {
+    public function sendFromRecord(int $newsletterId): bool {
         if (!FluentCRMBridge::isAvailable()) {
-            return 0;
+            return false;
         }
 
         global $wpdb;
@@ -62,7 +62,7 @@ class NewsletterSender {
         );
 
         if (!$record || !in_array($record->status, ['queued', 'scheduled', 'sending'], true)) {
-            return 0;
+            return false;
         }
 
         $post    = get_post((int) $record->post_id);
@@ -70,33 +70,41 @@ class NewsletterSender {
         $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
 
         if (!$post || (empty($tagIds) && empty($listIds))) {
-            return 0;
+            return false;
         }
 
-        // 첫 배치: 구독자 이메일 목록을 DB에 저장 — 이후 배치는 재조회 없이 사용
-        if ($offset === 0) {
-            $allEmails = $this->getSubscriberEmails($tagIds, $listIds);
-            $total     = count($allEmails);
+        // 큐가 비어있으면 구독자 목록으로 채움 (INSERT IGNORE — 재시작 시 중복 방지)
+        $queued = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_queue WHERE newsletter_id = %d",
+            $newsletterId
+        ));
+        if ($queued === 0) {
+            $this->populateQueue($newsletterId, $tagIds, $listIds);
+        } elseif ($record->status !== 'sending') {
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                [
-                    'status'            => 'sending',
-                    'recipient_count'   => $total,
-                    'subscriber_emails' => wp_json_encode($allEmails),
-                ],
+                ['status' => 'sending'],
                 ['id' => $newsletterId],
-                ['%s', '%d', '%s'], ['%d']
+                ['%s'], ['%d']
             );
-        } else {
-            $allEmails = json_decode((string) $wpdb->get_var($wpdb->prepare(
-                "SELECT subscriber_emails FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
-                $newsletterId
-            )), true) ?? [];
-            $total = count($allEmails);
         }
 
-        // 이번 배치 이메일로 구독자 객체만 조회 (batch_size건만 DB 조회)
-        $batchEmails = array_slice($allEmails, $offset, self::BATCH_SIZE);
+        // 이번 배치 큐에서 꺼내기
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, email FROM {$wpdb->prefix}crmbiz_nl_queue
+             WHERE newsletter_id = %d
+             ORDER BY id ASC
+             LIMIT %d",
+            $newsletterId, self::BATCH_SIZE
+        ), ARRAY_A);
+
+        if (empty($rows)) {
+            $this->finalizeSend($newsletterId);
+            return false;
+        }
+
+        $batchEmails = array_column($rows, 'email');
+        $batchIds    = array_column($rows, 'id');
         $subscribers = $this->getSubscribersByEmails($batchEmails);
         $success     = 0;
         $fail        = 0;
@@ -110,6 +118,15 @@ class NewsletterSender {
             $sent ? $success++ : $fail++;
         }
 
+        // 처리된 큐 행 삭제
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->prefix}crmbiz_nl_queue WHERE id IN ("
+                . implode(',', array_fill(0, count($batchIds), '%d')) . ")",
+                ...$batchIds
+            )
+        );
+
         // 카운터 누적 업데이트
         $wpdb->query($wpdb->prepare(
             "UPDATE {$wpdb->prefix}crmbiz_newsletters
@@ -120,31 +137,70 @@ class NewsletterSender {
             $success, $fail, current_time('mysql'), $newsletterId
         ));
 
-        $nextOffset = $offset + self::BATCH_SIZE;
+        // 남은 큐 확인
+        $remaining = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_queue WHERE newsletter_id = %d",
+            $newsletterId
+        ));
 
-        if ($nextOffset < $total) {
-            return $nextOffset; // 다음 배치 오프셋 반환
+        if ($remaining > 0) {
+            return true;
         }
 
-        // 마지막 배치 — 최종 상태 업데이트
+        $this->finalizeSend($newsletterId);
+        return false;
+    }
+
+    private function populateQueue(int $newsletterId, array $tagIds, array $listIds): void {
+        global $wpdb;
+
+        $allEmails = $this->getSubscriberEmails($tagIds, $listIds);
+        if (empty($allEmails)) {
+            return;
+        }
+
+        $table = $wpdb->prefix . 'crmbiz_nl_queue';
+        foreach (array_chunk($allEmails, 200) as $chunk) {
+            $values = [];
+            foreach ($chunk as $email) {
+                $values[] = $newsletterId;
+                $values[] = $email;
+            }
+            $wpdb->query(
+                $wpdb->prepare(
+                    "INSERT IGNORE INTO {$table} (newsletter_id, email) VALUES "
+                    . implode(',', array_fill(0, count($chunk), '(%d,%s)')),
+                    ...$values
+                )
+            );
+        }
+
+        $wpdb->update(
+            $wpdb->prefix . 'crmbiz_newsletters',
+            ['status' => 'sending', 'recipient_count' => count($allEmails)],
+            ['id' => $newsletterId],
+            ['%s', '%d'], ['%d']
+        );
+    }
+
+    private function finalizeSend(int $newsletterId): void {
+        global $wpdb;
+
         $final = $wpdb->get_row($wpdb->prepare(
             "SELECT success_count, fail_count FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
             $newsletterId
         ));
 
+        $status = ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent';
+
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
-            [
-                'status'            => ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent',
-                'sent_at'           => current_time('mysql'),
-                'updated_at'        => current_time('mysql'),
-                'subscriber_emails' => null, // 발송 완료 후 임시 목록 삭제
-            ],
+            ['status' => $status, 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
             ['id' => $newsletterId],
-            ['%s', '%s', '%s', '%s'], ['%d']
+            ['%s', '%s', '%s'], ['%d']
         );
 
-        return 0;
+        $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
     }
 
     /**

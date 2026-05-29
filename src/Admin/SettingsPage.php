@@ -2,6 +2,8 @@
 namespace CRMBizNewsletter\Admin;
 
 use CRMBizNewsletter\Settings;
+use CRMBizNewsletter\FluentCRMBridge;
+use CRMBizNewsletter\Database;
 
 defined('ABSPATH') || exit;
 
@@ -26,10 +28,11 @@ class SettingsPage {
             $saved = true;
         }
 
-        $fromName  = esc_attr($this->settings->get('from_name', ''));
-        $fromEmail = esc_attr($this->settings->get('from_email', ''));
-        $isDryRun  = $this->settings->isDryRun();
-        $isDebug   = $this->settings->isDebugMode();
+        $fromName     = esc_attr($this->settings->get('from_name', ''));
+        $fromEmail    = esc_attr($this->settings->get('from_email', ''));
+        $isDryRun     = $this->settings->isDryRun();
+        $isDebug      = $this->settings->isDebugMode();
+        $defaultEmail = esc_attr(wp_get_current_user()->user_email ?? '');
         ?>
         <div class="wrap">
             <h1>CRMBiz Newsletter — 설정</h1>
@@ -81,8 +84,8 @@ class SettingsPage {
                                            name="dry_run"
                                            value="1"
                                            <?php checked($isDryRun); ?>>
-                                    Dry-run 모드 활성화
-                                    <span class="description">— 실제 이메일을 발송하지 않고 로그만 기록합니다.</span>
+                                    테스트 모드 활성화 (실제 발송 안 함)
+                                    <span class="description">— 이메일을 실제로 발송하지 않고 로그만 기록합니다.</span>
                                 </label>
                                 <br>
                                 <label>
@@ -100,6 +103,34 @@ class SettingsPage {
 
                 <?php submit_button('설정 저장'); ?>
             </form>
+
+            <hr style="margin:32px 0">
+
+            <h2>테스트 이메일 발송</h2>
+            <p>실제 이메일을 발송하여 SMTP 연결을 확인합니다.</p>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th><label for="crmbiz-test-email">수신 이메일</label></th>
+                    <td>
+                        <input type="email"
+                               id="crmbiz-test-email"
+                               value="<?php echo $defaultEmail; ?>"
+                               class="regular-text"
+                               placeholder="test@example.com">
+                        <button type="button"
+                                id="crmbiz-send-test"
+                                class="button button-primary"
+                                style="margin-left:8px">
+                            테스트 발송
+                        </button>
+                        <p class="description">
+                            발신자: <?php echo esc_html($this->settings->getFromName()); ?>
+                            &lt;<?php echo esc_html($this->settings->getFromEmail()); ?>&gt;
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            <div id="crmbiz-test-result" style="margin-top:12px;display:none;padding:10px 14px;border-radius:4px;max-width:600px"></div>
         </div>
         <?php
     }
