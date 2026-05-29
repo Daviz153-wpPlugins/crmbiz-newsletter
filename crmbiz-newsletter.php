@@ -7,6 +7,8 @@
  * Author:      CRMBiz
  * License:     GPL-2.0-or-later
  * Text Domain: crmbiz-newsletter
+ * Requires PHP: 8.0
+ * Requires Plugins: fluentcrm
  */
 
 defined('ABSPATH') || exit;
