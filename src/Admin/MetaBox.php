@@ -171,6 +171,25 @@ class MetaBox {
                     HTML 미리보기 ↗
                 </a>
 
+                <!-- 테스트 발송 -->
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb">
+                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">테스트 발송</label>
+                    <div style="display:flex;gap:6px">
+                        <input type="text"
+                               id="crmbiz-nl-test-email"
+                               placeholder="test@example.com"
+                               value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>"
+                               style="flex:1;font-size:12px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box">
+                        <button type="button"
+                                id="crmbiz-nl-send-test"
+                                data-post-id="<?php echo esc_attr($post->ID); ?>"
+                                style="font-size:12px;padding:4px 10px;background:#1d4ed8;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                            테스트 발송
+                        </button>
+                    </div>
+                    <div id="crmbiz-nl-test-result" style="display:none;margin-top:6px;font-size:11px;padding:5px 8px;border-radius:4px"></div>
+                </div>
+
             </div><!-- /crmbiz-nl-options -->
         </div>
 
@@ -251,6 +270,41 @@ class MetaBox {
                     }
                 }, true);
             }
+            // 테스트 발송
+            var testBtn = document.getElementById('crmbiz-nl-send-test');
+            if (testBtn) {
+                testBtn.addEventListener('click', function() {
+                    var email  = document.getElementById('crmbiz-nl-test-email').value.trim();
+                    var postId = this.dataset.postId;
+                    var result = document.getElementById('crmbiz-nl-test-result');
+                    if (!email) { return; }
+
+                    var btn = this;
+                    btn.disabled = true;
+                    btn.textContent = '발송 중...';
+
+                    fetch(ajaxUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: new URLSearchParams({
+                            action:     'crmbiz_nl_test_newsletter',
+                            nonce:      nonce,
+                            post_id:    postId,
+                            test_email: email
+                        })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        result.style.display  = '';
+                        result.style.background = res.success ? '#d1e7dd' : '#f8d7da';
+                        result.style.color      = res.success ? '#0f5132' : '#842029';
+                        result.textContent      = res.data.message;
+                        btn.disabled    = false;
+                        btn.textContent = '테스트 발송';
+                    });
+                });
+            }
+
         })();
         </script>
         <?php
