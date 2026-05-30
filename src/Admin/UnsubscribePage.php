@@ -63,11 +63,12 @@ class UnsubscribePage {
                 <input type="hidden" name="page" value="crmbiz-nl-unsubscribers">
                 <div class="crmbiz-search-wrap">
                     <div class="crmbiz-search-inner">
+                        <span class="dashicons dashicons-search"></span>
                         <input type="text" name="s" value="<?php echo esc_attr($search); ?>"
                                placeholder="이메일로 검색..."
                                class="crmbiz-search-input" autocomplete="off">
                     </div>
-                    <button type="submit" class="crmbiz-btn crmbiz-btn--primary">검색</button>
+                    <button type="submit" class="crmbiz-btn crmbiz-btn--secondary" style="border-radius:12px;padding:8px 16px;font-size:13px">검색</button>
                     <?php if ($search): ?>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-unsubscribers')); ?>"
                        class="crmbiz-search-clear">초기화 ✕</a>

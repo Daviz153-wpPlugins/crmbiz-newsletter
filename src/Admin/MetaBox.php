@@ -72,16 +72,19 @@ class MetaBox {
                 <?php echo $this->renderStatusCard($nlRecord); ?>
             <?php endif; ?>
 
-            <label class="crmbiz-mb-enabled-label">
+            <label class="crmbiz-mb-enabled-label" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:<?php echo $enabled ? '#eff6ff' : '#f9fafb'; ?>;border:1px solid <?php echo $enabled ? '#bfdbfe' : '#e5e7eb'; ?>;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:<?php echo $enabled ? '#1d4ed8' : '#374151'; ?>;transition:all .15s">
                 <input type="checkbox"
                        id="crmbiz_nl_enabled"
                        name="crmbiz_nl_enabled"
                        value="1"
                        <?php checked($enabled); ?>>
-                이 포스트를 뉴스레터로 발송
+                <span style="display:flex;align-items:center;gap:6px">
+                    <span class="dashicons <?php echo $enabled ? 'dashicons-email-alt' : 'dashicons-email'; ?>" style="font-size:16px;width:16px;height:16px"></span>
+                    뉴스레터로 발송
+                </span>
             </label>
 
-            <div id="crmbiz-nl-options" <?php echo $enabled ? '' : 'style="display:none"'; ?>>
+            <div id="crmbiz-nl-options" <?php echo $enabled ? '' : 'style="display:none"'; ?> style="margin-top:12px">
 
                 <?php if (!empty($tags)): ?>
                 <div class="crmbiz-mb-section">

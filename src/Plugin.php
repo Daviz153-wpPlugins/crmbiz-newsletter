@@ -65,6 +65,7 @@ class Plugin {
             add_action('admin_enqueue_scripts',       [$this, 'enqueueAdminAssets']);
             add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']);
             add_filter('script_loader_tag',           [$this, 'addModuleType'], 10, 2);
+            add_filter('admin_body_class',            [$this, 'addBodyClass']);
         }
     }
 
@@ -264,6 +265,14 @@ class Plugin {
     // -------------------------------------------------------------------------
     // 어드민 에셋 등록
     // -------------------------------------------------------------------------
+
+    public function addBodyClass(string $classes): string {
+        $page = sanitize_key($_GET['page'] ?? '');
+        if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings', 'crmbiz-nl-unsubscribers'], true)) {
+            $classes .= ' crmbiz-nl-page';
+        }
+        return $classes;
+    }
 
     public function addModuleType(string $tag, string $handle): string {
         static $handles = ['crmbiz-nl-vue-dash', 'crmbiz-nl-vue-history'];
