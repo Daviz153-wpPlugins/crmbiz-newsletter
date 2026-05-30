@@ -11,13 +11,14 @@
 
     <!-- Search -->
     <div class="flex gap-2 mb-5">
-      <div class="relative flex-1 max-w-sm">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      <div class="flex items-center gap-2 flex-1 max-w-sm border border-gray-200 rounded-xl bg-white px-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+        <Search class="w-4 h-4 text-gray-400 flex-shrink-0" />
         <input
           v-model="searchInput"
           type="text"
           placeholder="제목으로 검색..."
-          class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="flex-1 py-2 text-sm bg-transparent focus:outline-none"
+          style="box-shadow:none;border:none;padding-left:0;padding-right:0;margin:0"
           @input="debouncedSearch"
         >
       </div>
