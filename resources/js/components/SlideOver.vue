@@ -6,7 +6,7 @@
       leave-active-class="transition-opacity duration-300"
       leave-to-class="opacity-0"
     >
-      <div v-if="open" class="fixed inset-0 z-[9999] flex justify-end font-sans">
+      <div v-if="open" class="fixed inset-0 z-[9999] flex justify-end font-sans" style="top:32px">
 
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-gray-900/40" @click="$emit('close')" />
