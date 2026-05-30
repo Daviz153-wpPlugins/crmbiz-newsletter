@@ -173,7 +173,7 @@ class SettingsPage {
             <div class="crmbiz-settings-section-body">
                 <div class="crmbiz-settings-field">
                     <label class="crmbiz-settings-field-label" for="crmbiz-test-email">수신 이메일</label>
-                    <div class="crmbiz-settings-field-body" style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">
+                    <div class="crmbiz-settings-field-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                         <input type="email" id="crmbiz-test-email" value="<?php echo $defaultEmail; ?>"
                                class="crmbiz-settings-input" style="max-width:280px" placeholder="test@example.com">
                         <button type="button" id="crmbiz-send-test"
@@ -230,7 +230,7 @@ class SettingsPage {
                     <!-- 미리보기 -->
                     <div style="padding:16px 20px;border-bottom:1px solid var(--cn-bg-muted)">
                         <div id="crmbiz-preset-preview"
-                             style="display:none;max-width:360px;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+                             style="display:none;max-width:560px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
                             <div id="crmbiz-preset-header" style="padding:14px 18px;border-bottom:3px solid #1a56db;background:#fff">
                                 <div id="crmbiz-preset-title" style="font-size:14px;font-weight:700;color:#111827;margin-bottom:3px">뉴스레터 제목 미리보기</div>
                                 <span id="crmbiz-preset-link" style="font-size:11px;color:#1a56db;text-decoration:underline">웹에서 보기</span>

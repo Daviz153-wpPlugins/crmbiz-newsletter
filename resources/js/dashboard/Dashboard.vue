@@ -11,7 +11,7 @@
         </p>
       </div>
       <a :href="historyUrl"
-         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors">
+         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors">
         발송 이력
         <ChevronRight class="w-3.5 h-3.5" />
       </a>

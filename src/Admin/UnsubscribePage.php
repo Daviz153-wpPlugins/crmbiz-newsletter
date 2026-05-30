@@ -40,7 +40,7 @@ class UnsubscribePage {
             'crmbiz_export_unsub'
         );
         ?>
-        <div class="wrap crmbiz-wrap">
+        <div class="wrap crmbiz-wrap crmbiz-unsub-wrap">
 
             <div class="crmbiz-page-header">
                 <h1 class="crmbiz-page-title">

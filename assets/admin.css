@@ -42,6 +42,23 @@
   --cn-radius-lg:     8px;
 }
 
+/* ---- WP Admin Reset — Vue 앱 내부에서 WP admin 기본 스타일 차단 ---- */
+#crmbiz-dashboard-app,
+#crmbiz-history-app {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+#crmbiz-dashboard-app h1, #crmbiz-dashboard-app h2, #crmbiz-dashboard-app h3,
+#crmbiz-dashboard-app p,
+#crmbiz-history-app  h1, #crmbiz-history-app  h2, #crmbiz-history-app  h3,
+#crmbiz-history-app  p {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+}
+
 /* ---- Layout ---- */
 .crmbiz-wrap    { max-width: 1200px; }
 .crmbiz-wrap-md { max-width: 1000px; }
@@ -325,7 +342,165 @@
 .crmbiz-settings-wrap    { max-width: 780px; }
 .crmbiz-settings-header  { margin: 0 0 24px; }
 .crmbiz-settings-title   { margin: 0 0 2px !important; font-size: 22px !important; font-weight: 700 !important; color: var(--cn-primary) !important; }
-.crmbiz-settings-subtitle { margin: 0; font-size: 13px; color: var(--cn-light); }
+.crmbiz-settings-subtitle { margin: 0 !important; font-size: 13px; color: var(--cn-light); }
+
+/* WP admin override: 설정 카드 내부 요소 강제 스타일 */
+.crmbiz-settings-wrap .crmbiz-settings-section {
+  background: #fff !important;
+  border: 1px solid var(--cn-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  margin-bottom: 16px !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-section-head {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid var(--cn-bg-muted) !important;
+  background: #fff !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-section-head h3 {
+  margin: 0 0 2px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--cn-primary) !important;
+  line-height: 1.4 !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-section-head p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--cn-muted) !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-section-body {
+  background: #fff !important;
+  padding: 4px 0 !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-row {
+  background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--cn-bg-muted) !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-row:last-child { border-bottom: none !important; }
+.crmbiz-settings-wrap .crmbiz-toggle-info h4 {
+  margin: 0 0 2px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--cn-text) !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-info p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--cn-muted) !important;
+}
+/* 토글 스위치 — WP admin label 스타일 override */
+.crmbiz-settings-wrap .crmbiz-toggle-switch {
+  position: relative !important;
+  display: inline-block !important;
+  width: 40px !important;
+  height: 22px !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-switch input[type="checkbox"] {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-track {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 11px !important;
+  background: var(--cn-border) !important;
+  cursor: pointer !important;
+  transition: background .2s !important;
+  border: none !important;
+  display: block !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-switch input[type="checkbox"]:checked + .crmbiz-toggle-track {
+  background: var(--cn-blue) !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-track::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 16px !important;
+  height: 16px !important;
+  left: 3px !important;
+  top: 3px !important;
+  background: #fff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25) !important;
+  transition: transform .2s !important;
+}
+.crmbiz-settings-wrap .crmbiz-toggle-switch input[type="checkbox"]:checked + .crmbiz-toggle-track::after {
+  transform: translateX(18px) !important;
+}
+/* 설정 필드 WP admin override */
+.crmbiz-settings-wrap .crmbiz-settings-field {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 20px !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid var(--cn-bg-muted) !important;
+  background: #fff !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-field:last-child { border-bottom: none !important; }
+.crmbiz-settings-wrap .crmbiz-settings-input {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  padding: 7px 10px !important;
+  border: 1px solid var(--cn-border) !important;
+  border-radius: var(--cn-radius) !important;
+  background: #fff !important;
+  color: var(--cn-text) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  width: 100% !important;
+  max-width: 380px !important;
+  box-sizing: border-box !important;
+}
+.crmbiz-settings-wrap .crmbiz-settings-input:focus {
+  border-color: var(--cn-blue) !important;
+  box-shadow: 0 0 0 2px rgba(37,99,235,.12) !important;
+}
+/* 수신거부/이력 페이지 공통 요소 */
+.crmbiz-wrap .crmbiz-page-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--cn-primary) !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+.crmbiz-wrap .crmbiz-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  line-height: 1 !important;
+  border-radius: var(--cn-radius) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+.crmbiz-wrap .crmbiz-btn--primary  { background: var(--cn-primary) !important; color: #fff !important; border: none !important; }
+.crmbiz-wrap .crmbiz-btn--secondary { background: #fff !important; color: var(--cn-text) !important; border: 1px solid var(--cn-border) !important; }
+.crmbiz-wrap .crmbiz-search-input  { font-size: 13px !important; padding: 8px 12px !important; border: 1px solid var(--cn-border) !important; border-radius: var(--cn-radius) !important; background: #fff !important; outline: none !important; box-shadow: none !important; }
+.crmbiz-wrap .crmbiz-search-input:focus { border-color: var(--cn-blue) !important; box-shadow: 0 0 0 2px rgba(37,99,235,.15) !important; }
+
+/* ---- 수신거부 페이지 ---- */
+.crmbiz-unsub-wrap .crmbiz-empty {
+  background: #fff !important;
+  border: 1px solid var(--cn-border) !important;
+  border-radius: var(--cn-radius-lg) !important;
+}
+.crmbiz-unsub-wrap .crmbiz-icon-btn {
+  font-size: 13px !important;
+  width: 28px !important;
+  height: 28px !important;
+}
 
 /* Custom tabs */
 .crmbiz-settings-tabs {
