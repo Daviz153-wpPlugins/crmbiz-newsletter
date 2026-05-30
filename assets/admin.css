@@ -274,23 +274,46 @@ body.crmbiz-nl-page #wpbody-content {
 .crmbiz-progress-fill { height: 100%; }
 
 /* ---- Search ---- */
-.crmbiz-search-wrap  { display: flex; align-items: center; gap: 8px; max-width: 480px; margin-bottom: 20px; }
-.crmbiz-search-inner { flex: 1; display: flex; align-items: center; gap: 8px; border: 1px solid var(--cn-border); border-radius: 12px; background: #fff; padding: 0 12px; transition: box-shadow .15s, border-color .15s; }
-.crmbiz-search-inner:focus-within { border-color: var(--cn-blue); box-shadow: 0 0 0 2px rgba(37,99,235,.12); }
-.crmbiz-search-inner .dashicons-search { color: var(--cn-light); font-size: 16px; width: 16px; flex-shrink: 0; }
+.crmbiz-search-wrap  { display: flex !important; align-items: center !important; gap: 8px !important; max-width: 480px; margin-bottom: 20px; }
+.crmbiz-search-inner {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  border: 1px solid var(--cn-border) !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  padding: 0 12px !important;
+  transition: box-shadow .15s, border-color .15s;
+  box-sizing: border-box !important;
+}
+.crmbiz-search-inner:focus-within { border-color: var(--cn-blue) !important; box-shadow: 0 0 0 2px rgba(37,99,235,.12) !important; }
+.crmbiz-search-inner .dashicons-search {
+  color: var(--cn-light) !important;
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+  float: none !important;
+  position: static !important;
+}
 .crmbiz-search-input {
-  flex: 1;
-  padding: 8px 0;
+  flex: 1 !important;
+  width: 100% !important;
+  padding: 8px 0 !important;
   border: none !important;
   border-radius: 0 !important;
-  font-size: 13px;
-  color: var(--cn-text);
+  font-size: 13px !important;
+  color: var(--cn-text) !important;
   outline: none !important;
   background: transparent !important;
   box-shadow: none !important;
   margin: 0 !important;
+  float: none !important;
 }
-.crmbiz-search-input:focus { border: none !important; box-shadow: none !important; }
+.crmbiz-search-input:focus { border: none !important; box-shadow: none !important; outline: none !important; }
 .crmbiz-search-clear { font-size: 12px; color: var(--cn-muted); text-decoration: none; white-space: nowrap; }
 
 /* ---- Empty State ---- */
