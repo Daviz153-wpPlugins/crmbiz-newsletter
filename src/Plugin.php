@@ -324,8 +324,8 @@ class Plugin {
 
         if ($page === 'crmbiz-nl-settings') {
             wp_enqueue_media();
-            wp_enqueue_script('crmbiz-nl-diagnostics', CRMBIZ_NL_URL . 'assets/admin-test-email.js', ['jquery'], CRMBIZ_NL_VERSION, true);
-            wp_localize_script('crmbiz-nl-diagnostics', 'crmbizNLDiag', [
+            wp_enqueue_script('crmbiz-nl-test-email', CRMBIZ_NL_URL . 'assets/admin-test-email.js', ['jquery'], CRMBIZ_NL_VERSION, true);
+            wp_localize_script('crmbiz-nl-test-email', 'crmbizNLDiag', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce'   => wp_create_nonce('crmbiz_nl_diagnostics'),
             ]);

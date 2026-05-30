@@ -276,7 +276,7 @@ class UnsubscribePage {
         );
 
         header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="unsubscribers-' . date('Y-m-d') . '.csv"');
+        header('Content-Disposition: attachment; filename="unsubscribers-' . gmdate('Y-m-d') . '.csv"');
         header('Pragma: no-cache');
 
         $out = fopen('php://output', 'w');
