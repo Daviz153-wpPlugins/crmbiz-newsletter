@@ -46,6 +46,7 @@
 #crmbiz-dashboard-app,
 #crmbiz-history-app {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0;
 }
 /* 마진/패딩만 리셋 — 폰트는 Tailwind 클래스에 맡김 */
 #crmbiz-dashboard-app h1, #crmbiz-dashboard-app h2, #crmbiz-dashboard-app h3,
@@ -102,7 +103,7 @@ body.crmbiz-nl-page #wpbody-content {
 }
 .crmbiz-page-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--cn-primary);
 }
@@ -396,12 +397,12 @@ body.crmbiz-nl-page #wpbody-content {
 .crmbiz-test-result    { margin-top: 12px; display: none; padding: 10px 14px; border-radius: var(--cn-radius); max-width: 600px; }
 
 /* Settings layout */
-.crmbiz-settings-wrap    { max-width: 780px; }
+.crmbiz-settings-wrap    { max-width: 1200px; }
 .crmbiz-settings-header  { margin: 0 0 24px; }
 /* WP admin #wpcontent h1 보다 높은 특이성 확보 */
 .crmbiz-settings-wrap .crmbiz-settings-header h1.crmbiz-settings-title {
   margin: 0 0 2px !important;
-  font-size: 22px !important;
+  font-size: 24px !important;
   font-weight: 700 !important;
   color: var(--cn-primary) !important;
   line-height: 1.3 !important;
@@ -534,7 +535,7 @@ body.crmbiz-nl-page #wpbody-content {
 /* 수신거부/이력 페이지 공통 요소 — WP admin ID 셀렉터 대응 */
 .crmbiz-unsub-wrap h1.crmbiz-page-title,
 .crmbiz-wrap .crmbiz-page-title {
-  font-size: 22px !important;
+  font-size: 24px !important;
   font-weight: 700 !important;
   color: var(--cn-primary) !important;
   margin: 0 !important;
@@ -812,9 +813,9 @@ body.crmbiz-nl-page #wpbody-content {
   line-height: 1.6;
 }
 .crmbiz-mb-hint-box a { color: #854d0e; font-weight: 600; }
-.crmbiz-mb-divider { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cn-border); }
-.crmbiz-mb-section { margin-bottom: 12px; }
-.crmbiz-mb-row    { display: flex; gap: 6px; }
+.crmbiz-mb-divider { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--cn-border); }
+.crmbiz-mb-section { margin-bottom: 14px; }
+.crmbiz-mb-row    { display: flex; gap: 8px; flex-direction: column; }
 .crmbiz-mb-input  {
   flex: 1;
   font-size: 12px;

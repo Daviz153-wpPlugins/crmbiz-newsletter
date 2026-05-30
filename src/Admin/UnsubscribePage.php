@@ -44,7 +44,7 @@ class UnsubscribePage {
         <div class="crmbiz-admin-page">
 
             <div class="crmbiz-page-header">
-                <h1 class="crmbiz-page-title" style="font-size:22px;font-weight:700;color:#111827;margin:0;padding:0;line-height:1.3">
+                <h1 class="crmbiz-page-title" style="font-size:24px;font-weight:700;color:#111827;margin:0;padding:0;line-height:1.3">
                     수신거부 관리
                     <span class="crmbiz-page-title-count">(총 <?php echo esc_html(number_format($total)); ?>명)</span>
                 </h1>
@@ -68,7 +68,6 @@ class UnsubscribePage {
                                placeholder="이메일로 검색..."
                                class="crmbiz-search-input" autocomplete="off">
                     </div>
-                    <button type="submit" class="crmbiz-btn crmbiz-btn--secondary" style="border-radius:12px;padding:8px 16px;font-size:13px">검색</button>
                     <?php if ($search): ?>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-unsubscribers')); ?>"
                        class="crmbiz-search-clear">초기화 ✕</a>

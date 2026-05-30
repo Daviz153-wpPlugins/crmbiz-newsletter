@@ -36,7 +36,7 @@ class SettingsPage {
         <div class="crmbiz-admin-page">
 
             <div class="crmbiz-settings-header">
-                <h1 class="crmbiz-settings-title" style="font-size:22px;font-weight:700;color:#111827;margin:0 0 2px;padding:0;line-height:1.3">설정</h1>
+                <h1 class="crmbiz-settings-title" style="font-size:24px;font-weight:700;color:#111827;margin:0 0 2px;padding:0;line-height:1.3">설정</h1>
                 <p class="crmbiz-settings-subtitle">CRMBiz Newsletter</p>
             </div>
 
@@ -355,9 +355,15 @@ class SettingsPage {
 
             <!-- 시그니처 -->
             <div class="crmbiz-settings-section">
-                <div class="crmbiz-settings-section-head">
-                    <h3>시그니처</h3>
-                    <p>이메일 본문 하단에 표시됩니다.</p>
+                <div class="crmbiz-settings-section-head" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                    <div>
+                        <h3>시그니처</h3>
+                        <p>이메일 본문 하단에 표시됩니다.</p>
+                    </div>
+                    <label class="crmbiz-toggle-switch" style="flex-shrink:0">
+                        <input type="checkbox" id="sig_enabled" name="sig_enabled" value="1" <?php checked($sig['enabled']); ?>>
+                        <span class="crmbiz-toggle-track"></span>
+                    </label>
                 </div>
                 <div class="crmbiz-settings-section-body" style="padding:16px 20px">
                     <?php $this->renderSignatureFields($sig); ?>
@@ -606,17 +612,6 @@ class SettingsPage {
     // -------------------------------------------------------------------------
 
     private function renderSignatureFields(array $sig): void { ?>
-        <div class="crmbiz-toggle-row" style="padding:0 0 14px">
-            <div class="crmbiz-toggle-info">
-                <h4>시그니처 사용</h4>
-                <p>이메일 본문 하단에 시그니처를 표시합니다.</p>
-            </div>
-            <label class="crmbiz-toggle-switch">
-                <input type="checkbox" id="sig_enabled" name="sig_enabled" value="1" <?php checked($sig['enabled']); ?>>
-                <span class="crmbiz-toggle-track"></span>
-            </label>
-        </div>
-
         <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
             <label class="crmbiz-settings-field-label" for="sig_photo_url">프로필 사진</label>
             <div class="crmbiz-settings-field-body">
