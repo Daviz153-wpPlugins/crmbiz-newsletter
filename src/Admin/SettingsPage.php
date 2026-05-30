@@ -416,6 +416,21 @@ class SettingsPage {
                 $('#crmbiz-preset-link').css('color', accent);
             }
             $('#style_outer_bg, #style_header_bg, #style_header_color, #style_accent_color').on('input', syncPreview);
+
+            // "실제 이메일 전체보기" — 클릭 시 현재 설정을 먼저 저장한 뒤 미리보기 열기
+            $('#crmbiz-settings-full-preview').on('click', function(e) {
+                e.preventDefault();
+                var previewUrl = $(this).attr('href');
+                var $btn = $(this);
+                var $form = $btn.closest('form');
+                $btn.text('저장 중...').css('pointer-events', 'none');
+                $.post(window.location.href, $form.serialize())
+                    .always(function() {
+                        $btn.html('<span class="dashicons dashicons-visibility"></span> 실제 이메일 전체보기 ↗')
+                            .css('pointer-events', '');
+                        window.open(previewUrl, '_blank');
+                    });
+            });
         });
         </script>
 
