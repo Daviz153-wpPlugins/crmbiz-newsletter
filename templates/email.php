@@ -71,19 +71,23 @@
   }
 </style>
 </head>
-<!--[if mso]><center><table width="800"><tr><td><![endif]-->
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" class="nl-wrap" style="background:#f3f4f6;padding:32px 20px">
+<!--[if mso]><center><table width="<?php echo $contentWidth; ?>"><tr><td><![endif]-->
+<body style="margin:0;padding:0;background:<?php echo $outerBg; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" class="nl-wrap" style="background:<?php echo $outerBg; ?>;padding:32px 20px">
 <tr><td align="center">
-<table cellpadding="0" cellspacing="0" class="nl-inner" style="width:100%;max-width:800px;background:#ffffff;border-radius:8px;overflow:hidden">
+<table cellpadding="0" cellspacing="0" class="nl-inner" style="width:100%;max-width:<?php echo $contentWidth; ?>px;background:<?php echo $headerBg; ?>;border-radius:8px;overflow:hidden">
 
   <!-- 타이틀 / 날짜 / 웹에서 보기 -->
   <tr>
-    <td class="nl-top" style="padding:28px 32px 20px;border-bottom:1px solid #e5e7eb">
-      <p style="margin:0 0 10px;font-size:12px;color:#9ca3af"><?php echo $siteName; ?></p>
-      <h1 class="nl-h1" style="margin:0 0 10px;font-size:26px;font-weight:700;color:#111827;line-height:1.35"><?php echo $postTitle; ?></h1>
-      <p style="margin:0 0 8px;font-size:13px;color:#9ca3af"><?php echo $postDate; ?></p>
-      <a href="<?php echo $postUrl; ?>" style="font-size:13px;color:#6b7280;text-decoration:underline">웹에서 보기</a>
+    <td class="nl-top" style="padding:28px 32px 20px;border-bottom:1px solid #e5e7eb;background:<?php echo $headerBg; ?>">
+      <p style="margin:0 0 10px;font-size:12px;color:<?php echo $headerColor; ?>;opacity:.6"><?php echo $siteName; ?></p>
+      <h1 class="nl-h1" style="margin:0 0 10px;font-size:26px;font-weight:700;color:<?php echo $headerColor; ?>;line-height:1.35"><?php echo $postTitle; ?></h1>
+      <?php if ($showDate): ?>
+      <p style="margin:0 0 8px;font-size:13px;color:<?php echo $headerColor; ?>;opacity:.5"><?php echo $postDate; ?></p>
+      <?php endif; ?>
+      <?php if ($showWebView): ?>
+      <a href="<?php echo $postUrl; ?>" style="font-size:13px;color:<?php echo $accentColor; ?>;text-decoration:underline">웹에서 보기</a>
+      <?php endif; ?>
     </td>
   </tr>
 
@@ -183,7 +187,7 @@
       <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
         이 이메일은 <strong><?php echo $siteName; ?></strong> 뉴스레터 구독자에게 발송됩니다.<br>
         더 이상 받지 않으시려면
-        <a href="<?php echo $unsubscribeUrl; ?>" style="color:#6b7280;text-decoration:underline">수신거부</a>를 클릭하세요.
+        <a href="<?php echo $unsubscribeUrl; ?>" style="color:<?php echo $accentColor; ?>;text-decoration:underline">수신거부</a>를 클릭하세요.
       </p>
     </td>
   </tr>

@@ -31,6 +31,16 @@ class Settings {
             $this->data['dry_run']      = isset($post['dry_run'])    ? 1 : 0;
             $this->data['debug_mode']   = isset($post['debug_mode']) ? 1 : 0;
             $this->data['notify_email'] = sanitize_email($post['notify_email'] ?? '');
+        } elseif ($tab === 'style') {
+            $this->data['style_outer_bg']      = sanitize_hex_color($post['style_outer_bg']    ?? '') ?: '#f3f4f6';
+            $this->data['style_header_bg']     = sanitize_hex_color($post['style_header_bg']   ?? '') ?: '#ffffff';
+            $this->data['style_header_color']  = sanitize_hex_color($post['style_header_color'] ?? '') ?: '#111827';
+            $this->data['style_accent_color']  = sanitize_hex_color($post['style_accent_color'] ?? '') ?: '#1a56db';
+            $this->data['style_content_width'] = min(800, max(480, (int) ($post['style_content_width'] ?? 640)));
+            $this->data['style_show_featured'] = isset($post['style_show_featured']) ? 1 : 0;
+            $this->data['style_show_recent']   = isset($post['style_show_recent'])   ? 1 : 0;
+            $this->data['style_show_web_view'] = isset($post['style_show_web_view']) ? 1 : 0;
+            $this->data['style_show_date']     = isset($post['style_show_date'])     ? 1 : 0;
         } elseif ($tab === 'template') {
             // style 속성 허용하되 url() 함수 제거 (CSS exfiltration 방어)
             $allowed = ['strong' => [], 'b' => [], 'em' => [], 'i' => [], 'span' => ['style' => []], 'a' => ['href' => [], 'style' => []], 'br' => []];
@@ -59,6 +69,20 @@ class Settings {
         }
 
         update_option(self::OPTION_KEY, $this->data);
+    }
+
+    public function getEmailStyle(): array {
+        return [
+            'outer_bg'      => (string) ($this->get('style_outer_bg')      ?: '#f3f4f6'),
+            'header_bg'     => (string) ($this->get('style_header_bg')     ?: '#ffffff'),
+            'header_color'  => (string) ($this->get('style_header_color')  ?: '#111827'),
+            'accent_color'  => (string) ($this->get('style_accent_color')  ?: '#1a56db'),
+            'content_width' => (int)    ($this->get('style_content_width') ?: 640),
+            'show_featured' => (bool)   ($this->get('style_show_featured') ?? true),
+            'show_recent'   => (bool)   ($this->get('style_show_recent')   ?? true),
+            'show_web_view' => (bool)   ($this->get('style_show_web_view') ?? true),
+            'show_date'     => (bool)   ($this->get('style_show_date')     ?? true),
+        ];
     }
 
     public function getSignature(): array {

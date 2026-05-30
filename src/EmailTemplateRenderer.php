@@ -34,6 +34,10 @@ class EmailTemplateRenderer {
         $recentPosts    = $this->getRecentNewsletters(3, $post->ID);
         $featuredImg    = $this->getFeaturedImageUrl($post);
 
+        $style         = $this->settings->getEmailStyle();
+        $recentPosts   = $style['show_recent']   ? $recentPosts : [];
+        $featuredImg   = $style['show_featured'] ? $featuredImg : '';
+
         $html = $this->buildHtml([
             'post'            => $post,
             'content'         => $content,
@@ -45,6 +49,7 @@ class EmailTemplateRenderer {
             'site_name'       => get_bloginfo('name'),
             'site_url'        => home_url('/'),
             'sig'             => $this->settings->getSignature(),
+            'style'           => $style,
         ]);
 
         // 트래킹 픽셀 + 링크 치환 (newsletterId가 있을 때만)
@@ -123,6 +128,14 @@ class EmailTemplateRenderer {
         $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
 
         $sig            = $d['sig'];
+        $style          = $d['style'];
+        $outerBg        = esc_attr($style['outer_bg']);
+        $headerBg       = esc_attr($style['header_bg']);
+        $headerColor    = esc_attr($style['header_color']);
+        $accentColor    = esc_attr($style['accent_color']);
+        $contentWidth   = (int) $style['content_width'];
+        $showWebView    = $style['show_web_view'];
+        $showDate       = $style['show_date'];
 
         $featuredSection = $d['featured_img']
             ? '<img src="' . esc_url($d['featured_img']) . '" alt="" style="width:100%;height:auto;display:block">'
