@@ -36,12 +36,12 @@ class SettingsPage {
         <div class="crmbiz-admin-page">
 
             <div class="crmbiz-settings-header">
-                <h1 class="crmbiz-settings-title" style="font-size:24px;font-weight:700;color:#111827;margin:0 0 2px;padding:0;line-height:1.3">설정</h1>
+                <h1 class="crmbiz-settings-title">설정</h1>
                 <p class="crmbiz-settings-subtitle">CRMBiz Newsletter</p>
             </div>
 
             <?php if ($saved): ?>
-                <div style="background:var(--cn-green-bg);border:1px solid var(--cn-green-badge);border-radius:var(--cn-radius);padding:10px 16px;margin-bottom:16px;font-size:13px;color:var(--cn-green-text);display:flex;align-items:center;gap:8px">
+                <div class="crmbiz-settings-notice crmbiz-settings-notice--success">
                     ✓ 설정이 저장되었습니다.
                 </div>
             <?php endif; ?>
@@ -159,7 +159,7 @@ class SettingsPage {
             </div>
 
             <div class="crmbiz-settings-footer">
-                <button type="submit" class="crmbiz-btn crmbiz-btn--primary" style="padding:9px 20px;font-size:13px;border-radius:8px">
+                <button type="submit" class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form">
                     설정 저장
                 </button>
             </div>
@@ -174,11 +174,11 @@ class SettingsPage {
             <div class="crmbiz-settings-section-body">
                 <div class="crmbiz-settings-field">
                     <label class="crmbiz-settings-field-label" for="crmbiz-test-email">수신 이메일</label>
-                    <div class="crmbiz-settings-field-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div class="crmbiz-settings-field-body crmbiz-test-email-row">
                         <input type="email" id="crmbiz-test-email" value="<?php echo $defaultEmail; ?>"
-                               class="crmbiz-settings-input" style="max-width:280px" placeholder="test@example.com">
+                               class="crmbiz-settings-input crmbiz-test-email-input" placeholder="test@example.com">
                         <button type="button" id="crmbiz-send-test"
-                                class="crmbiz-btn crmbiz-btn--primary" style="padding:7px 16px;font-size:13px;border-radius:8px;flex-shrink:0">
+                                class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form crmbiz-flex-shrink-0">
                             테스트 발송
                         </button>
                     </div>
@@ -216,20 +216,19 @@ class SettingsPage {
                 <div class="crmbiz-settings-section-body">
 
                     <!-- 프리셋 -->
-                    <div style="display:flex;gap:10px;padding:16px 20px;border-bottom:1px solid var(--cn-bg-muted);flex-wrap:wrap">
+                    <div class="crmbiz-preset-row">
                         <?php foreach ($presets as $key => $preset): ?>
                         <button type="button" class="crmbiz-preset-btn"
-                                data-preset="<?php echo esc_attr(wp_json_encode($preset)); ?>"
-                                style="border:2px solid var(--cn-border);border-radius:8px;padding:0;cursor:pointer;overflow:hidden;background:none;width:100px;transition:border-color .15s">
+                                data-preset="<?php echo esc_attr(wp_json_encode($preset)); ?>">
                             <div style="height:28px;background:<?php echo esc_attr($preset['header_bg']); ?>;border-bottom:3px solid <?php echo esc_attr($preset['accent_color']); ?>"></div>
                             <div style="height:20px;background:<?php echo esc_attr($preset['outer_bg']); ?>"></div>
-                            <div style="padding:4px 0;font-size:11px;font-weight:600;color:var(--cn-text);background:#fff;text-align:center"><?php echo esc_html($preset['label']); ?></div>
+                            <div class="crmbiz-preset-label"><?php echo esc_html($preset['label']); ?></div>
                         </button>
                         <?php endforeach; ?>
                     </div>
 
                     <!-- 미리보기 -->
-                    <div style="padding:16px 20px;border-bottom:1px solid var(--cn-bg-muted)">
+                    <div class="crmbiz-preview-block">
 
                         <!-- 색상 미리보기 (레이아웃 모형) -->
                         <div id="crmbiz-preset-preview"
@@ -252,40 +251,39 @@ class SettingsPage {
                                'nonce'  => wp_create_nonce('crmbiz_nl_settings_preview'),
                            ], admin_url('admin-ajax.php'))); ?>"
                            target="_blank"
-                           class="crmbiz-btn crmbiz-btn--secondary"
-                           style="font-size:13px;padding:7px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px">
-                            <span class="dashicons dashicons-visibility" style="font-size:16px;width:16px;height:16px;margin-top:1px"></span>
+                           class="crmbiz-btn crmbiz-btn--secondary crmbiz-btn--inline">
+                            <span class="dashicons dashicons-visibility"></span>
                             실제 이메일 전체보기 ↗
                         </a>
-                        <p style="margin:8px 0 0;font-size:12px;color:var(--cn-muted)">저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요.</p>
+                        <p class="crmbiz-settings-hint">저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요.</p>
                     </div>
 
                     <div class="crmbiz-settings-field">
                         <label class="crmbiz-settings-field-label" for="style_outer_bg">외부 배경</label>
-                        <div class="crmbiz-settings-field-body" style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_outer_bg" name="style_outer_bg" value="<?php echo esc_attr($s['outer_bg']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint" style="margin:0">이메일 바깥 여백 색상</span>
+                            <span class="crmbiz-settings-hint--inline">이메일 바깥 여백 색상</span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
                         <label class="crmbiz-settings-field-label" for="style_header_bg">헤더 배경</label>
-                        <div class="crmbiz-settings-field-body" style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_header_bg" name="style_header_bg" value="<?php echo esc_attr($s['header_bg']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint" style="margin:0">제목 영역 배경</span>
+                            <span class="crmbiz-settings-hint--inline">제목 영역 배경</span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
                         <label class="crmbiz-settings-field-label" for="style_header_color">헤더 텍스트</label>
-                        <div class="crmbiz-settings-field-body" style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_header_color" name="style_header_color" value="<?php echo esc_attr($s['header_color']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint" style="margin:0">제목/날짜 글자 색상</span>
+                            <span class="crmbiz-settings-hint--inline">제목/날짜 글자 색상</span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
                         <label class="crmbiz-settings-field-label" for="style_accent_color">강조 색상</label>
-                        <div class="crmbiz-settings-field-body" style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_accent_color" name="style_accent_color" value="<?php echo esc_attr($s['accent_color']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint" style="margin:0">링크, 수신거부 버튼</span>
+                            <span class="crmbiz-settings-hint--inline">링크, 수신거부 버튼</span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
@@ -355,23 +353,23 @@ class SettingsPage {
 
             <!-- 시그니처 -->
             <div class="crmbiz-settings-section">
-                <div class="crmbiz-settings-section-head" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+                <div class="crmbiz-settings-section-head crmbiz-section-head--toggle">
                     <div>
                         <h3>시그니처</h3>
                         <p>이메일 본문 하단에 표시됩니다.</p>
                     </div>
-                    <label class="crmbiz-toggle-switch" style="flex-shrink:0">
+                    <label class="crmbiz-toggle-switch">
                         <input type="checkbox" id="sig_enabled" name="sig_enabled" value="1" <?php checked($sig['enabled']); ?>>
                         <span class="crmbiz-toggle-track"></span>
                     </label>
                 </div>
-                <div class="crmbiz-settings-section-body" style="padding:16px 20px">
+                <div class="crmbiz-settings-section-body crmbiz-settings-section-body--padded">
                     <?php $this->renderSignatureFields($sig); ?>
                 </div>
             </div>
 
             <div class="crmbiz-settings-footer">
-                <button type="submit" class="crmbiz-btn crmbiz-btn--primary" style="padding:9px 20px;font-size:13px;border-radius:8px">
+                <button type="submit" class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form">
                     커스터마이징 저장
                 </button>
             </div>
@@ -426,161 +424,6 @@ class SettingsPage {
     }
 
     // -------------------------------------------------------------------------
-    // 이메일 스타일 탭 (하위호환 유지 — customize 탭으로 대체됨)
-    // -------------------------------------------------------------------------
-
-    private function renderStyleTab(): void {
-        $s = $this->settings->getEmailStyle();
-
-        $presets = [
-            'modern'  => ['label' => '모던',    'outer_bg' => '#f3f4f6', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#1a56db'],
-            'dark'    => ['label' => '다크',    'outer_bg' => '#111827', 'header_bg' => '#1e293b', 'header_color' => '#f9fafb', 'accent_color' => '#60a5fa'],
-            'minimal' => ['label' => '미니멀', 'outer_bg' => '#ffffff', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#111827'],
-        ];
-        ?>
-        <form method="post">
-            <?php wp_nonce_field('crmbiz_nl_settings_save', 'crmbiz_nl_settings_nonce'); ?>
-            <input type="hidden" name="crmbiz_tab" value="style">
-
-            <!-- A. 프리셋 -->
-            <h2 class="crmbiz-sig-section-title">프리셋</h2>
-            <p class="description crmbiz-sig-desc">클릭 한 번으로 전체 색상을 적용합니다. 저장 전 아래 색상을 직접 조정할 수 있습니다.</p>
-            <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap">
-                <?php foreach ($presets as $key => $preset): ?>
-                <button type="button"
-                        class="crmbiz-preset-btn"
-                        data-preset="<?php echo esc_attr(wp_json_encode($preset)); ?>"
-                        style="border:2px solid #e5e7eb;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;background:none;width:120px">
-                    <div style="height:36px;background:<?php echo esc_attr($preset['header_bg']); ?>;border-bottom:3px solid <?php echo esc_attr($preset['accent_color']); ?>"></div>
-                    <div style="height:28px;background:<?php echo esc_attr($preset['outer_bg']); ?>"></div>
-                    <div style="padding:6px 0;font-size:12px;font-weight:600;color:#374151;background:#fff;text-align:center">
-                        <?php echo esc_html($preset['label']); ?>
-                    </div>
-                </button>
-                <?php endforeach; ?>
-            </div>
-
-            <!-- B. 색상 / 너비 -->
-            <h2 class="crmbiz-sig-section-title">색상 및 레이아웃</h2>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th><label for="style_outer_bg">외부 배경</label></th>
-                    <td>
-                        <input type="color" id="style_outer_bg" name="style_outer_bg"
-                               value="<?php echo esc_attr($s['outer_bg']); ?>"
-                               class="crmbiz-color-input">
-                        <span class="description" style="margin-left:8px">이메일 바깥 여백 색상</span>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="style_header_bg">헤더 배경</label></th>
-                    <td>
-                        <input type="color" id="style_header_bg" name="style_header_bg"
-                               value="<?php echo esc_attr($s['header_bg']); ?>"
-                               class="crmbiz-color-input">
-                        <span class="description" style="margin-left:8px">제목/날짜 영역 배경</span>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="style_header_color">헤더 텍스트</label></th>
-                    <td>
-                        <input type="color" id="style_header_color" name="style_header_color"
-                               value="<?php echo esc_attr($s['header_color']); ?>"
-                               class="crmbiz-color-input">
-                        <span class="description" style="margin-left:8px">제목/날짜 글자 색상</span>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="style_accent_color">강조 색상</label></th>
-                    <td>
-                        <input type="color" id="style_accent_color" name="style_accent_color"
-                               value="<?php echo esc_attr($s['accent_color']); ?>"
-                               class="crmbiz-color-input">
-                        <span class="description" style="margin-left:8px">링크, 수신거부 버튼 색상</span>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="style_content_width">콘텐츠 너비</label></th>
-                    <td>
-                        <div class="crmbiz-sig-range-row">
-                            <input type="range" id="style_content_width" name="style_content_width"
-                                   class="crmbiz-sig-range" min="480" max="800" step="20"
-                                   value="<?php echo esc_attr($s['content_width']); ?>">
-                            <span id="crmbiz-width-val" class="crmbiz-sig-range-val"><?php echo $s['content_width']; ?>px</span>
-                        </div>
-                        <p class="description">이메일 본문 최대 너비 (480–800px, 기본 640px)</p>
-                    </td>
-                </tr>
-            </table>
-
-            <!-- C. 섹션 토글 -->
-            <h2 class="crmbiz-sig-section-title">섹션 표시</h2>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th>대표 이미지</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="style_show_featured" value="1" <?php checked($s['show_featured']); ?>>
-                            포스트 대표 이미지를 이메일 상단에 표시
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th>최근 뉴스레터 목록</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="style_show_recent" value="1" <?php checked($s['show_recent']); ?>>
-                            본문 하단에 최근 3개 뉴스레터 링크 표시
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th>웹에서 보기 링크</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="style_show_web_view" value="1" <?php checked($s['show_web_view']); ?>>
-                            헤더에 "웹에서 보기" 링크 표시
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <th>발송 날짜</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="style_show_date" value="1" <?php checked($s['show_date']); ?>>
-                            제목 아래 발송 날짜 표시
-                        </label>
-                    </td>
-                </tr>
-            </table>
-
-            <?php submit_button('스타일 저장'); ?>
-        </form>
-
-        <script>
-        (function($) {
-            // 프리셋 클릭 → 색상 필드 자동 입력
-            $('.crmbiz-preset-btn').on('click', function() {
-                var p = $(this).data('preset');
-                if (typeof p === 'string') p = JSON.parse(p);
-                $('#style_outer_bg').val(p.outer_bg);
-                $('#style_header_bg').val(p.header_bg);
-                $('#style_header_color').val(p.header_color);
-                $('#style_accent_color').val(p.accent_color);
-                $('.crmbiz-preset-btn').css('border-color', '#e5e7eb');
-                $(this).css('border-color', '#2563eb');
-            });
-
-            // 너비 슬라이더 실시간 값 표시
-            $('#style_content_width').on('input', function() {
-                $('#crmbiz-width-val').text($(this).val() + 'px');
-            });
-        })(jQuery);
-        </script>
-        <?php
-    }
-
-    // -------------------------------------------------------------------------
     // RGBA 컬러 피커 위젯
     // -------------------------------------------------------------------------
 
@@ -612,7 +455,7 @@ class SettingsPage {
     // -------------------------------------------------------------------------
 
     private function renderSignatureFields(array $sig): void { ?>
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
             <label class="crmbiz-settings-field-label" for="sig_photo_url">프로필 사진</label>
             <div class="crmbiz-settings-field-body">
                 <div class="crmbiz-sig-photo-row">
@@ -620,12 +463,12 @@ class SettingsPage {
                         <img id="crmbiz-sig-photo-preview" src="<?php echo esc_url($sig['photo_url']); ?>"
                              class="crmbiz-sig-preview" style="border-color:<?php echo esc_attr($sig['border_color']); ?>">
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div class="crmbiz-sig-photo-actions">
                         <input type="text" id="sig_photo_url" name="sig_photo_url"
                                value="<?php echo esc_attr($sig['photo_url']); ?>"
-                               class="crmbiz-settings-input" placeholder="https://" style="max-width:260px">
+                               class="crmbiz-settings-input crmbiz-sig-input--narrow" placeholder="https://">
                         <button type="button" id="crmbiz-upload-sig-photo"
-                                class="crmbiz-btn crmbiz-btn--secondary" style="padding:6px 12px;font-size:12px;border-radius:6px">
+                                class="crmbiz-btn crmbiz-btn--secondary crmbiz-btn--sm">
                             사진 선택
                         </button>
                     </div>
@@ -633,9 +476,9 @@ class SettingsPage {
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
-            <div class="crmbiz-settings-field-label" style="padding-top:0">
-                <label style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;color:var(--cn-text)">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
+            <div class="crmbiz-settings-field-label crmbiz-settings-field-label--top">
+                <label class="crmbiz-settings-checkbox-label">
                     <input type="checkbox" id="sig_show_name" name="sig_show_name" value="1" <?php checked($sig['show_name']); ?>>
                     이름 / 직함
                 </label>
@@ -643,29 +486,27 @@ class SettingsPage {
             <div class="crmbiz-settings-field-body">
                 <input type="text" id="sig_name" name="sig_name"
                        value="<?php echo esc_attr($sig['name']); ?>"
-                       class="crmbiz-settings-input"
-                       placeholder="예: 당신의 재무 파트너 신 팀장입니다."
-                       <?php echo $sig['show_name'] ? '' : 'style="opacity:0.4"'; ?>>
+                       class="crmbiz-settings-input<?php echo $sig['show_name'] ? '' : ' crmbiz-input--inactive'; ?>"
+                       placeholder="예: 당신의 재무 파트너 신 팀장입니다.">
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
-            <div class="crmbiz-settings-field-label" style="padding-top:0">
-                <label style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;color:var(--cn-text)">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
+            <div class="crmbiz-settings-field-label crmbiz-settings-field-label--top">
+                <label class="crmbiz-settings-checkbox-label">
                     <input type="checkbox" id="sig_show_bio" name="sig_show_bio" value="1" <?php checked($sig['show_bio']); ?>>
                     소개 문구
                 </label>
             </div>
             <div class="crmbiz-settings-field-body">
                 <textarea id="sig_bio" name="sig_bio" rows="3"
-                          class="crmbiz-settings-input" style="max-width:100%;resize:vertical"
-                          placeholder="예: 재무상담 17년 차이며..."
-                          <?php echo $sig['show_bio'] ? '' : 'style="opacity:0.4"'; ?>><?php echo esc_textarea($sig['bio']); ?></textarea>
+                          class="crmbiz-settings-input crmbiz-sig-textarea<?php echo $sig['show_bio'] ? '' : ' crmbiz-input--inactive'; ?>"
+                          placeholder="예: 재무상담 17년 차이며..."><?php echo esc_textarea($sig['bio']); ?></textarea>
                 <p class="crmbiz-settings-hint">HTML 사용 가능: <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;a href="..."&gt;</code></p>
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
             <label class="crmbiz-settings-field-label">사진 테두리</label>
             <div class="crmbiz-settings-field-body">
                 <?php $this->renderRgbaPicker('sig_border_color', 'sig_border_opacity', $sig['border_color'], $sig['border_opacity'], 'crmbiz-border-picker'); ?>
@@ -673,7 +514,7 @@ class SettingsPage {
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
             <label class="crmbiz-settings-field-label">배경 색상</label>
             <div class="crmbiz-settings-field-body">
                 <?php $this->renderRgbaPicker('sig_bg_color', 'sig_bg_opacity', $sig['bg_color'], $sig['bg_opacity'], 'crmbiz-bg-picker'); ?>
@@ -681,18 +522,18 @@ class SettingsPage {
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
             <label class="crmbiz-settings-field-label">간격</label>
-            <div class="crmbiz-settings-field-body" style="display:flex;flex-direction:column;gap:10px">
+            <div class="crmbiz-settings-field-body crmbiz-sig-gap-col">
                 <div>
-                    <p class="crmbiz-settings-hint" style="margin-bottom:4px">사진 ↔ 텍스트</p>
+                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label">사진 ↔ 텍스트</p>
                     <div class="crmbiz-sig-range-row">
                         <input type="range" id="sig_photo_gap" name="sig_photo_gap" class="crmbiz-sig-range" min="0" max="80" step="2" value="<?php echo esc_attr($sig['photo_gap']); ?>">
                         <span id="crmbiz-photo-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['photo_gap']; ?>px</span>
                     </div>
                 </div>
                 <div>
-                    <p class="crmbiz-settings-hint" style="margin-bottom:4px">이름 ↔ 소개</p>
+                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label">이름 ↔ 소개</p>
                     <div class="crmbiz-sig-range-row">
                         <input type="range" id="sig_text_gap" name="sig_text_gap" class="crmbiz-sig-range" min="0" max="40" step="2" value="<?php echo esc_attr($sig['text_gap']); ?>">
                         <span id="crmbiz-text-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['text_gap']; ?>px</span>
@@ -701,11 +542,11 @@ class SettingsPage {
             </div>
         </div>
 
-        <div class="crmbiz-settings-field" style="padding-left:0;padding-right:0">
+        <div class="crmbiz-settings-field crmbiz-settings-field--flush">
             <label class="crmbiz-settings-field-label">사진 위치</label>
-            <div class="crmbiz-settings-field-body" style="display:flex;gap:16px">
+            <div class="crmbiz-settings-field-body crmbiz-sig-position-row">
                 <?php foreach (['left' => '왼쪽', 'top' => '위', 'right' => '오른쪽'] as $val => $lbl): ?>
-                <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--cn-text);cursor:pointer">
+                <label class="crmbiz-sig-position-label">
                     <input type="radio" name="sig_photo_position" value="<?php echo $val; ?>" <?php checked($sig['photo_position'], $val); ?>>
                     <?php echo $lbl; ?>
                 </label>
@@ -728,14 +569,14 @@ class SettingsPage {
         .crmbiz-vp-btn { cursor:pointer; padding:4px 12px; border-radius:4px; font-size:13px; border:1px solid #c3c4c7; background:#fff; }
         .crmbiz-vp-btn.active { background:#2271b1; color:#fff; border-color:#2271b1; }
         </style>
-        <hr style="margin:8px 0 16px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-            <h3 style="margin:0">미리보기</h3>
+        <hr class="crmbiz-settings-hr">
+        <div class="crmbiz-preview-header">
+            <h3>미리보기</h3>
             <button type="button" class="crmbiz-vp-btn active" data-vp="laptop">💻 랩탑</button>
             <button type="button" class="crmbiz-vp-btn" data-vp="tablet">📱 태블릿</button>
             <button type="button" class="crmbiz-vp-btn" data-vp="mobile">📲 모바일</button>
         </div>
-        <div id="crmbiz-preview-viewport" class="vp-laptop" style="max-width:640px;border:none !important;box-shadow:none !important;outline:none !important;background:transparent !important;padding:0 !important">
+        <div id="crmbiz-preview-viewport" class="crmbiz-preview-viewport vp-laptop">
         <?php
             $initBg          = self::hexToRgba($sig['bg_color'],     $sig['bg_opacity']);
             $initBorderColor = self::hexToRgba($sig['border_color'], $sig['border_opacity']);

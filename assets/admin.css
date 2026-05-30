@@ -108,6 +108,65 @@
 /* WP admin이 grid 아이템에 추가하는 margin 제거 */
 #crmbiz-dashboard-app .grid > *,
 #crmbiz-history-app .grid > * { margin: 0 !important; }
+
+/* margin-bottom 유틸리티 */
+#crmbiz-dashboard-app .mb-1,   #crmbiz-history-app .mb-1   { margin-bottom: 0.25rem !important; }
+#crmbiz-dashboard-app .mb-1\.5,#crmbiz-history-app .mb-1\.5{ margin-bottom: 0.375rem !important; }
+#crmbiz-dashboard-app .mb-2,   #crmbiz-history-app .mb-2   { margin-bottom: 0.5rem !important; }
+#crmbiz-dashboard-app .mb-3,   #crmbiz-history-app .mb-3   { margin-bottom: 0.75rem !important; }
+#crmbiz-dashboard-app .mb-4,   #crmbiz-history-app .mb-4   { margin-bottom: 1rem !important; }
+#crmbiz-dashboard-app .mb-5,   #crmbiz-history-app .mb-5   { margin-bottom: 1.25rem !important; }
+#crmbiz-dashboard-app .mb-6,   #crmbiz-history-app .mb-6   { margin-bottom: 1.5rem !important; }
+#crmbiz-dashboard-app .mb-8,   #crmbiz-history-app .mb-8   { margin-bottom: 2rem !important; }
+
+/* margin-top 유틸리티 */
+#crmbiz-dashboard-app .mt-0\.5,#crmbiz-history-app .mt-0\.5{ margin-top: 0.125rem !important; }
+#crmbiz-dashboard-app .mt-1,   #crmbiz-history-app .mt-1   { margin-top: 0.25rem !important; }
+#crmbiz-dashboard-app .mt-3,   #crmbiz-history-app .mt-3   { margin-top: 0.75rem !important; }
+#crmbiz-dashboard-app .mt-4,   #crmbiz-history-app .mt-4   { margin-top: 1rem !important; }
+
+/* margin-left/right 유틸리티 */
+#crmbiz-dashboard-app .ml-0\.5,#crmbiz-history-app .ml-0\.5{ margin-left: 0.125rem !important; }
+#crmbiz-dashboard-app .ml-1,   #crmbiz-history-app .ml-1   { margin-left: 0.25rem !important; }
+#crmbiz-dashboard-app .ml-1\.5,#crmbiz-history-app .ml-1\.5{ margin-left: 0.375rem !important; }
+#crmbiz-dashboard-app .mr-1\.5,#crmbiz-history-app .mr-1\.5{ margin-right: 0.375rem !important; }
+#crmbiz-dashboard-app .mx-1,   #crmbiz-history-app .mx-1   { margin-left: 0.25rem !important; margin-right: 0.25rem !important; }
+
+/* padding 유틸리티 */
+#crmbiz-dashboard-app .p-3,    #crmbiz-history-app .p-3    { padding: 0.75rem !important; }
+#crmbiz-dashboard-app .p-4,    #crmbiz-history-app .p-4    { padding: 1rem !important; }
+#crmbiz-dashboard-app .p-5,    #crmbiz-history-app .p-5    { padding: 1.25rem !important; }
+#crmbiz-dashboard-app .p-6,    #crmbiz-history-app .p-6    { padding: 1.5rem !important; }
+#crmbiz-dashboard-app .px-1\.5,#crmbiz-history-app .px-1\.5{ padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+#crmbiz-dashboard-app .px-2,   #crmbiz-history-app .px-2   { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+#crmbiz-dashboard-app .px-2\.5,#crmbiz-history-app .px-2\.5{ padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+#crmbiz-dashboard-app .px-3,   #crmbiz-history-app .px-3   { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+#crmbiz-dashboard-app .px-4,   #crmbiz-history-app .px-4   { padding-left: 1rem !important; padding-right: 1rem !important; }
+#crmbiz-dashboard-app .px-5,   #crmbiz-history-app .px-5   { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+#crmbiz-dashboard-app .px-6,   #crmbiz-history-app .px-6   { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+#crmbiz-dashboard-app .py-0\.5,#crmbiz-history-app .py-0\.5{ padding-top: 0.125rem !important; padding-bottom: 0.125rem !important; }
+#crmbiz-dashboard-app .py-1,   #crmbiz-history-app .py-1   { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+#crmbiz-dashboard-app .py-2,   #crmbiz-history-app .py-2   { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+#crmbiz-dashboard-app .py-2\.5,#crmbiz-history-app .py-2\.5{ padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+#crmbiz-dashboard-app .py-3,   #crmbiz-history-app .py-3   { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+#crmbiz-dashboard-app .py-3\.5,#crmbiz-history-app .py-3\.5{ padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+#crmbiz-dashboard-app .py-4,   #crmbiz-history-app .py-4   { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+#crmbiz-dashboard-app .py-6,   #crmbiz-history-app .py-6   { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+#crmbiz-dashboard-app .py-14,  #crmbiz-history-app .py-14  { padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
+#crmbiz-dashboard-app .py-16,  #crmbiz-history-app .py-16  { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+#crmbiz-dashboard-app .pt-0\.5,#crmbiz-history-app .pt-0\.5{ padding-top: 0.125rem !important; }
+#crmbiz-dashboard-app .pt-3,   #crmbiz-history-app .pt-3   { padding-top: 0.75rem !important; }
+#crmbiz-dashboard-app .pt-4,   #crmbiz-history-app .pt-4   { padding-top: 1rem !important; }
+#crmbiz-dashboard-app .pb-2,   #crmbiz-history-app .pb-2   { padding-bottom: 0.5rem !important; }
+#crmbiz-dashboard-app .pr-3,   #crmbiz-history-app .pr-3   { padding-right: 0.75rem !important; }
+
+/* space-y 유틸리티 (grid 외 세로 간격) */
+:where(#crmbiz-dashboard-app .space-y-1\.5 > :not(:last-child)),
+:where(#crmbiz-history-app .space-y-1\.5 > :not(:last-child)) { margin-bottom: 0.375rem !important; }
+:where(#crmbiz-dashboard-app .space-y-2\.5 > :not(:last-child)),
+:where(#crmbiz-history-app .space-y-2\.5 > :not(:last-child)) { margin-bottom: 0.625rem !important; }
+:where(#crmbiz-dashboard-app .space-y-3 > :not(:last-child)),
+:where(#crmbiz-history-app .space-y-3 > :not(:last-child))   { margin-bottom: 0.75rem !important; }
 /* WP admin ID 셀렉터를 이겨야 하므로 직접 값 지정 (inherit 금지) */
 #crmbiz-dashboard-app h1, #crmbiz-history-app h1 {
   font-size: 1.5rem !important;   /* = text-2xl */
@@ -134,11 +193,9 @@ body.crmbiz-nl-page #wpbody-content {
   background: #f9fafb !important;
 }
 
-/* ---- Vue 앱 루트 div 패딩 강제 (WP admin이 p-6 덮어쓰기 방지) ---- */
+/* ---- Vue 앱 루트 div 배경·박스 모델 (패딩은 p-6 !important 오버라이드로 처리) ---- */
 #crmbiz-dashboard-app > div,
 #crmbiz-history-app > div {
-  padding: 1.5rem !important; /* p-6 = 24px */
-  min-height: 100vh;
   background: #f9fafb;
   box-sizing: border-box;
 }
@@ -160,7 +217,7 @@ body.crmbiz-nl-page #wpbody-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
 }
 .crmbiz-page-title {
   margin: 0;
@@ -336,7 +393,7 @@ body.crmbiz-nl-page #wpbody-content {
 .crmbiz-progress-fill { height: 100%; }
 
 /* ---- Search ---- */
-.crmbiz-search-wrap  { display: flex !important; align-items: center !important; gap: 8px !important; max-width: 480px; margin-bottom: 20px; }
+.crmbiz-search-wrap  { display: flex !important; align-items: center !important; gap: 8px !important; max-width: 480px; margin-bottom: 24px; }
 .crmbiz-search-inner {
   flex: 1 !important;
   display: flex !important;
@@ -780,6 +837,48 @@ body.crmbiz-nl-page #wpbody-content {
 .crmbiz-sig-radio      { margin-right: 20px; }
 .crmbiz-sig-section-title { margin: 20px 0 4px !important; font-size: 14px !important; font-weight: 600 !important; color: var(--cn-primary) !important; }
 .crmbiz-sig-desc       { margin-bottom: 12px; font-size: 12px; color: var(--cn-muted); }
+.crmbiz-sig-gap-col    { display: flex; flex-direction: column; gap: 10px; }
+.crmbiz-sig-hint-label { margin-bottom: 4px; }
+.crmbiz-sig-position-row   { display: flex; gap: 16px; }
+.crmbiz-sig-position-label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--cn-text); cursor: pointer; }
+
+/* Settings Page — additional classes (replace inline styles) */
+.crmbiz-settings-notice { border-radius: var(--cn-radius); padding: 10px 16px; margin-bottom: 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.crmbiz-settings-notice--success { background: var(--cn-green-bg); border: 1px solid var(--cn-green-badge); color: var(--cn-green-text); }
+
+.crmbiz-btn--form   { padding: 9px 20px !important; font-size: 13px !important; border-radius: 8px !important; }
+.crmbiz-btn--sm     { padding: 6px 12px !important; font-size: 12px !important; border-radius: 6px !important; }
+.crmbiz-btn--inline { padding: 7px 14px !important; font-size: 13px !important; border-radius: 8px !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; }
+
+.crmbiz-preset-row   { display: flex; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--cn-bg-muted); flex-wrap: wrap; }
+.crmbiz-preset-btn   { border: 2px solid var(--cn-border); border-radius: 8px; padding: 0; cursor: pointer; overflow: hidden; background: none; width: 100px; transition: border-color .15s; }
+.crmbiz-preset-label { padding: 4px 0; font-size: 11px; font-weight: 600; color: var(--cn-text); background: #fff; text-align: center; }
+
+.crmbiz-preview-block { padding: 16px 20px; border-bottom: 1px solid var(--cn-bg-muted); }
+.crmbiz-preview-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.crmbiz-preview-header h3 { margin: 0 !important; }
+
+.crmbiz-color-field-body     { display: flex; align-items: center; gap: 10px; }
+.crmbiz-settings-hint--inline { margin: 0; font-size: 12px; color: var(--cn-muted); }
+
+.crmbiz-section-head--toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.crmbiz-settings-section-body--padded { padding: 16px 20px !important; }
+
+.crmbiz-settings-field--flush { padding-left: 0 !important; padding-right: 0 !important; }
+.crmbiz-settings-field-label--top { padding-top: 0; }
+
+.crmbiz-sig-photo-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.crmbiz-sig-input--narrow  { max-width: 260px !important; }
+.crmbiz-test-email-row     { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.crmbiz-test-email-input   { max-width: 280px !important; }
+
+.crmbiz-settings-checkbox-label { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; color: var(--cn-text); cursor: pointer; }
+.crmbiz-input--inactive { opacity: 0.4; }
+.crmbiz-sig-textarea    { max-width: 100% !important; resize: vertical; }
+
+.crmbiz-preview-viewport { max-width: 640px; border: none !important; box-shadow: none !important; outline: none !important; background: transparent !important; padding: 0 !important; }
+.crmbiz-flex-shrink-0 { flex-shrink: 0 !important; }
 
 /* RGBA picker */
 .crmbiz-rgba-picker    { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
