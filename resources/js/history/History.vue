@@ -2,9 +2,11 @@
   <div class="min-h-screen bg-gray-50 p-6 font-sans">
 
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">뉴스레터 이력</h1>
-      <p v-if="total > 0" class="text-sm text-gray-400 mt-0.5">총 {{ fmt(total) }}개</p>
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">뉴스레터 이력</h1>
+        <p v-if="total > 0" class="text-sm text-gray-400 mt-0.5">총 {{ fmt(total) }}개</p>
+      </div>
     </div>
 
     <!-- Search -->
@@ -31,9 +33,16 @@
     </div>
 
     <!-- Empty -->
-    <div v-else-if="!items.length" class="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-      <Mail class="w-12 h-12 text-gray-200" />
-      <p class="text-sm">{{ search ? `"${search}"에 해당하는 이력이 없습니다.` : '발송 이력이 없습니다.' }}</p>
+    <div v-else-if="!items.length" class="flex flex-col items-center justify-center h-48 gap-3">
+      <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+        <Mail class="w-7 h-7 text-gray-300" />
+      </div>
+      <div class="text-center">
+        <p class="text-sm font-medium text-gray-500">
+          {{ search ? `"${search}"에 해당하는 이력이 없습니다.` : '아직 발송된 뉴스레터가 없습니다.' }}
+        </p>
+        <p v-if="!search" class="text-xs text-gray-400 mt-1">포스트를 발행하면 여기에 기록됩니다.</p>
+      </div>
     </div>
 
     <!-- Table -->
@@ -41,139 +50,142 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-gray-100 bg-gray-50/60">
-            <th class="text-left font-semibold text-gray-500 text-xs px-4 py-3">제목</th>
-            <th class="text-center font-semibold text-gray-500 text-xs px-3 py-3 w-24">상태</th>
-            <th class="text-left font-semibold text-gray-500 text-xs px-3 py-3 w-36">발송 일시</th>
-            <th class="text-right font-semibold text-gray-500 text-xs px-3 py-3 w-16">수신자</th>
-            <th class="text-right font-semibold text-gray-500 text-xs px-3 py-3 w-16">오픈률</th>
-            <th class="text-right font-semibold text-gray-500 text-xs px-3 py-3 w-16">클릭률</th>
+            <th class="text-left font-semibold text-gray-400 text-xs px-5 py-3">제목</th>
+            <th class="text-center font-semibold text-gray-400 text-xs px-3 py-3 w-28">상태</th>
+            <th class="text-left font-semibold text-gray-400 text-xs px-3 py-3 w-36">발송 일시</th>
+            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">수신자</th>
+            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">오픈률</th>
+            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">클릭률</th>
             <th class="px-4 py-3 w-28"></th>
           </tr>
         </thead>
         <tbody>
-          <template v-for="item in items" :key="item.id">
+          <tr v-for="item in items" :key="item.id"
+              @click="openDetail(item.id)"
+              class="border-b border-gray-50 cursor-pointer transition-colors group"
+              :class="[
+                selectedId === item.id
+                  ? 'bg-blue-50/60'
+                  : 'hover:bg-gray-50/70',
+                item.status === 'sending' ? 'border-l-2 border-l-blue-400' : '',
+              ]">
 
-            <!-- Main row -->
-            <tr class="border-b border-gray-50 hover:bg-gray-50/40 transition-colors"
-                :class="{ 'bg-blue-50/20': expandedId === item.id }">
-
-              <!-- Title -->
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-2">
-                  <button @click="toggleExpand(item.id)"
-                          class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                          :title="expandedId === item.id ? '접기' : '상세 보기'">
-                    <ChevronRight class="w-4 h-4 transition-transform duration-150"
-                                  :class="{ 'rotate-90': expandedId === item.id }" />
-                  </button>
-                  <a v-if="item.post_url" :href="item.post_url" target="_blank"
-                     class="font-medium text-gray-900 hover:text-blue-600 hover:underline line-clamp-1">
+            <!-- Title -->
+            <td class="px-5 py-3.5">
+              <div class="flex items-center gap-2.5">
+                <div class="flex flex-col min-w-0">
+                  <span class="font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors"
+                        :class="{ 'text-blue-700': selectedId === item.id }">
                     {{ item.post_title }}
-                  </a>
-                  <span v-else class="font-medium text-gray-500 line-clamp-1">{{ item.post_title }}</span>
+                  </span>
+                  <span v-if="item.status === 'sending' && item._progress"
+                        class="text-xs text-blue-500 mt-0.5 font-medium">
+                    {{ fmt(item._progress.done) }} / {{ fmt(item._progress.total) }} 발송 중...
+                  </span>
                 </div>
-              </td>
+              </div>
+            </td>
 
-              <!-- Status -->
-              <td class="px-3 py-3 text-center">
-                <div class="flex flex-col items-center gap-1">
-                  <NlStatusBadge :status="item.status" />
-                  <template v-if="item.status === 'sending' && item._progress">
-                    <div class="text-xs text-gray-400">{{ item._progress.done }}/{{ item._progress.total }}</div>
-                    <div class="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
-                      <div class="h-full bg-blue-500 rounded-full transition-all" :style="{ width: item._progress.percent + '%' }"></div>
-                    </div>
-                  </template>
+            <!-- Status -->
+            <td class="px-3 py-3.5 text-center">
+              <div class="flex flex-col items-center gap-1.5">
+                <NlStatusBadge :status="item.status" />
+                <div v-if="item.status === 'sending' && item._progress"
+                     class="w-20 h-1 bg-blue-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                       :style="{ width: item._progress.percent + '%' }"></div>
                 </div>
-              </td>
+              </div>
+            </td>
 
-              <!-- Date -->
-              <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{{ formatDate(item) }}</td>
+            <!-- Date -->
+            <td class="px-3 py-3.5 text-xs text-gray-400 whitespace-nowrap">
+              {{ formatDate(item) }}
+            </td>
 
-              <!-- Recipients -->
-              <td class="px-3 py-3 text-right font-medium text-gray-700">{{ fmt(item.recipient_count) }}</td>
+            <!-- Recipients -->
+            <td class="px-3 py-3.5 text-right font-medium text-gray-700">
+              {{ fmt(item.recipient_count) }}
+            </td>
 
-              <!-- Open rate -->
-              <td class="px-3 py-3 text-right">
-                <span v-if="item.success_count > 0" class="font-semibold text-green-600">{{ item.open_rate }}%</span>
-                <span v-else class="text-gray-200">—</span>
-              </td>
+            <!-- Open rate -->
+            <td class="px-3 py-3.5 text-right">
+              <span v-if="item.success_count > 0" class="font-semibold text-green-600">
+                {{ item.open_rate }}%
+              </span>
+              <span v-else class="text-gray-200">—</span>
+            </td>
 
-              <!-- Click rate -->
-              <td class="px-3 py-3 text-right">
-                <span v-if="item.success_count > 0" class="font-semibold text-blue-600">{{ item.click_rate }}%</span>
-                <span v-else class="text-gray-200">—</span>
-              </td>
+            <!-- Click rate -->
+            <td class="px-3 py-3.5 text-right">
+              <span v-if="item.success_count > 0" class="font-semibold text-blue-600">
+                {{ item.click_rate }}%
+              </span>
+              <span v-else class="text-gray-200">—</span>
+            </td>
 
-              <!-- Actions -->
-              <td class="px-4 py-3">
-                <div class="flex items-center justify-end gap-0.5">
+            <!-- Actions -->
+            <td class="px-4 py-3.5" @click.stop>
+              <div class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                   :class="{ 'opacity-100': confirmDeleteId === item.id }">
 
-                  <!-- Preview -->
-                  <a v-if="item.preview_url" :href="item.preview_url" target="_blank" title="미리보기"
-                     class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-gray-400 hover:text-gray-700">
-                    <Eye class="w-3.5 h-3.5" />
-                  </a>
+                <!-- Preview -->
+                <a v-if="item.preview_url" :href="item.preview_url" target="_blank"
+                   title="미리보기"
+                   class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                  <Eye class="w-3.5 h-3.5" />
+                </a>
 
-                  <!-- Force send -->
-                  <button v-if="['queued','sending'].includes(item.status)"
-                          @click="doAction('force-send', item)"
-                          :disabled="isLoading(item.id, 'force-send')"
-                          title="지금 즉시 발송"
-                          class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-green-600 hover:bg-green-50 disabled:opacity-40">
-                    <PlayCircle class="w-3.5 h-3.5" />
+                <!-- Force send -->
+                <button v-if="['queued','sending'].includes(item.status)"
+                        @click="doAction('force-send', item)"
+                        :disabled="isLoading(item.id, 'force-send')"
+                        title="즉시 발송"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-green-600 hover:bg-green-50 transition-colors disabled:opacity-40">
+                  <PlayCircle class="w-3.5 h-3.5" />
+                </button>
+
+                <!-- Cancel -->
+                <button v-if="['queued','sending','scheduled'].includes(item.status)"
+                        @click="doAction('cancel', item)"
+                        :disabled="isLoading(item.id, 'cancel')"
+                        title="발송 취소"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-40">
+                  <XCircle class="w-3.5 h-3.5" />
+                </button>
+
+                <!-- Resend -->
+                <button v-if="['sent','failed'].includes(item.status)"
+                        @click="doAction('resend', item)"
+                        :disabled="isLoading(item.id, 'resend')"
+                        title="재발송"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-40">
+                  <RotateCw class="w-3.5 h-3.5" />
+                </button>
+
+                <!-- Delete -->
+                <template v-if="confirmDeleteId === item.id">
+                  <span class="text-xs text-red-600 mx-1">삭제?</span>
+                  <button @click="execDelete(item.id)"
+                          class="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
+                    예
                   </button>
-
-                  <!-- Cancel -->
-                  <button v-if="['queued','sending','scheduled'].includes(item.status)"
-                          @click="doAction('cancel', item)"
-                          :disabled="isLoading(item.id, 'cancel')"
-                          title="발송 취소"
-                          class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-orange-500 hover:bg-orange-50 disabled:opacity-40">
-                    <XCircle class="w-3.5 h-3.5" />
+                  <button @click="confirmDeleteId = null"
+                          class="px-2 py-1 rounded text-xs text-gray-500 hover:bg-gray-100 transition-colors">
+                    아니오
                   </button>
+                </template>
+                <button v-else
+                        @click="confirmDeleteId = item.id"
+                        :disabled="item.status === 'sending' || isLoading(item.id, 'delete')"
+                        :title="item.status === 'sending' ? '발송 중 — 취소 후 삭제 가능' : '삭제'"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-30">
+                  <Trash2 class="w-3.5 h-3.5" />
+                </button>
 
-                  <!-- Resend -->
-                  <button v-if="['sent','failed'].includes(item.status)"
-                          @click="doAction('resend', item)"
-                          :disabled="isLoading(item.id, 'resend')"
-                          title="재발송"
-                          class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-gray-500 hover:bg-gray-100 disabled:opacity-40">
-                    <RotateCw class="w-3.5 h-3.5" />
-                  </button>
-
-                  <!-- Delete confirm inline -->
-                  <template v-if="confirmDeleteId === item.id">
-                    <span class="text-xs text-red-600 mx-1">삭제?</span>
-                    <button @click="execDelete(item.id)"
-                            class="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">
-                      예
-                    </button>
-                    <button @click="confirmDeleteId = null"
-                            class="px-2 py-1 rounded text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors">
-                      아니오
-                    </button>
-                  </template>
-                  <button v-else
-                          @click="confirmDeleteId = item.id"
-                          :disabled="item.status === 'sending' || isLoading(item.id, 'delete')"
-                          :title="item.status === 'sending' ? '발송 중 — 취소 후 삭제 가능' : '삭제'"
-                          class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-red-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30">
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
-
-                </div>
-              </td>
-            </tr>
-
-            <!-- Detail row -->
-            <tr v-if="expandedId === item.id">
-              <td colspan="7" class="p-0">
-                <NewsletterDetail :id="item.id" />
-              </td>
-            </tr>
-
-          </template>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -182,7 +194,7 @@
     <div v-if="!loading && (pages > 1 || total > 20)"
          class="flex items-center justify-between text-sm text-gray-500 flex-wrap gap-3">
       <div class="flex items-center gap-2">
-        <span class="text-xs">페이지당</span>
+        <span class="text-xs text-gray-400">페이지당</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
                 class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option :value="20">20개</option>
@@ -200,9 +212,7 @@
           <span v-if="p === '...'" class="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
           <button v-else @click="changePage(p)"
                   class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-medium transition-colors"
-                  :class="p === page
-                    ? 'bg-gray-900 text-white border-gray-900'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
+                  :class="p === page ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
             {{ p }}
           </button>
         </template>
@@ -213,10 +223,32 @@
       </div>
     </div>
 
+    <!-- ── Slide-over ──────────────────────────────────────────────────────── -->
+    <SlideOver :open="!!selectedId" @close="selectedId = null">
+      <template #header>
+        <div v-if="selectedItem">
+          <div class="flex items-center gap-2 mb-1.5">
+            <NlStatusBadge :status="selectedItem.status" />
+            <span v-if="selectedItem.status === 'sending' && selectedItem._progress"
+                  class="text-xs text-blue-500 font-medium">
+              {{ selectedItem._progress.percent }}%
+            </span>
+          </div>
+          <h2 class="text-base font-semibold text-gray-900 leading-snug">
+            {{ selectedItem.post_title }}
+          </h2>
+          <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(selectedItem) }}</p>
+        </div>
+      </template>
+
+      <NewsletterDetail v-if="selectedId" :id="selectedId" />
+    </SlideOver>
+
     <!-- Toast -->
     <Transition enter-active-class="transition-all duration-300" enter-from-class="translate-y-2 opacity-0"
                 leave-active-class="transition-all duration-300" leave-to-class="translate-y-2 opacity-0">
-      <div v-if="toast" class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2"
+      <div v-if="toast"
+           class="fixed bottom-6 right-6 z-[9998] px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2"
            :class="toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-900 text-white'">
         <CheckCircle v-if="toast.type !== 'error'" class="w-4 h-4 text-green-400 flex-shrink-0" />
         <AlertCircle v-else class="w-4 h-4 flex-shrink-0" />
@@ -233,7 +265,8 @@ import {
   Search, Mail, ChevronRight, ChevronLeft,
   Eye, PlayCircle, XCircle, RotateCw, Trash2, CheckCircle, AlertCircle,
 } from 'lucide-vue-next'
-import NlStatusBadge from '@/components/NlStatusBadge.vue'
+import NlStatusBadge    from '@/components/NlStatusBadge.vue'
+import SlideOver        from '@/components/SlideOver.vue'
 import NewsletterDetail from './NewsletterDetail.vue'
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -246,17 +279,18 @@ const searchInput     = ref('')
 const search          = ref('')
 const perPage         = ref(20)
 const loading         = ref(true)
-const expandedId      = ref(null)
+const selectedId      = ref(null)
 const confirmDeleteId = ref(null)
 const loadingActions  = ref(new Set())
 const toast           = ref(null)
-let toastTimer    = null
-let pollTimer     = null
-let searchTimer   = null
+let toastTimer  = null
+let pollTimer   = null
+let searchTimer = null
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-const sendingIds = computed(() => items.value.filter(i => i.status === 'sending').map(i => i.id))
+const selectedItem = computed(() => items.value.find(i => i.id === selectedId.value) ?? null)
+const sendingIds   = computed(() => items.value.filter(i => i.status === 'sending').map(i => i.id))
 
 const pageNums = computed(() => {
   const range = 2
@@ -278,9 +312,7 @@ const pageNums = computed(() => {
 function fmt(n) { return Number(n).toLocaleString('ko-KR') }
 
 function formatDate(item) {
-  if (item.status === 'scheduled' && item.scheduled_at) {
-    return '⏰ ' + localDate(item.scheduled_at)
-  }
+  if (item.status === 'scheduled' && item.scheduled_at) return '⏰ ' + localDate(item.scheduled_at)
   if (item.status === 'queued') return '대기 중'
   if (item.status === 'draft')  return '—'
   const dt = item.sent_at ?? item.created_at
@@ -359,6 +391,7 @@ function clearSearch() {
 function changePage(p) {
   if (p < 1 || p > pages.value) return
   page.value = p
+  selectedId.value = null
   fetchList()
 }
 
@@ -374,7 +407,7 @@ async function pollProgress() {
     for (const row of rows) {
       const item = items.value.find(i => i.id === row.id)
       if (!item) continue
-      item.status = row.status
+      item.status    = row.status
       item._progress = { done: row.done, total: row.recipient_count, percent: row.percent }
       if (row.status !== 'sending') needsRefresh = true
     }
@@ -394,6 +427,11 @@ onUnmounted(() => {
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+
+function openDetail(id) {
+  confirmDeleteId.value = null
+  selectedId.value = selectedId.value === id ? null : id
+}
 
 async function doAction(action, item) {
   const key = item.id + ':' + action
@@ -425,7 +463,7 @@ async function execDelete(id) {
   try {
     await api('DELETE', `newsletters/${id}`)
     showToast('삭제되었습니다.')
-    if (expandedId.value === id) expandedId.value = null
+    if (selectedId.value === id) selectedId.value = null
     await fetchList()
   } catch (e) {
     showToast(e.message, 'error')
@@ -435,14 +473,7 @@ async function execDelete(id) {
   loadingActions.value = next
 }
 
-function toggleExpand(id) {
-  expandedId.value     = expandedId.value === id ? null : id
-  confirmDeleteId.value = null
-}
-
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 fetchList()
 </script>
-
-

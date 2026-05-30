@@ -1,13 +1,13 @@
 <template>
-  <div class="bg-gray-50 border-t border-gray-100">
+  <div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center items-center py-10">
+    <div v-if="loading" class="flex justify-center items-center py-16">
       <div class="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
     <template v-else-if="detail">
-      <div class="p-5">
+      <div class="p-5 bg-gray-50/60">
 
         <!-- Stats grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
