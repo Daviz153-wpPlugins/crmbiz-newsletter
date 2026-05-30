@@ -139,37 +139,39 @@ class RestApi {
     public function getNewsletters(\WP_REST_Request $req): \WP_REST_Response {
         global $wpdb;
 
-        $search   = sanitize_text_field($req->get_param('search') ?? '');
-        $page     = max(1, (int) ($req->get_param('page') ?? 1));
-        $perPage  = in_array((int) ($req->get_param('per_page') ?? 20), [20, 50, 100], true)
-                    ? (int) $req->get_param('per_page') : 20;
-        $offset   = ($page - 1) * $perPage;
+        $search  = sanitize_text_field($req->get_param('search') ?? '');
+        $page    = max(1, (int) ($req->get_param('page') ?? 1));
+        $perPage = in_array((int) ($req->get_param('per_page') ?? 20), [20, 50, 100], true)
+                   ? (int) $req->get_param('per_page') : 20;
+        $offset  = ($page - 1) * $perPage;
 
-        $where = $search
-            ? $wpdb->prepare(
-                "WHERE p.post_title LIKE %s OR n.status LIKE %s",
-                '%' . $wpdb->esc_like($search) . '%',
-                '%' . $wpdb->esc_like($search) . '%'
-              )
-            : '';
+        $select = "SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
+                          COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
+                          COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count";
+        $from   = "FROM {$wpdb->prefix}crmbiz_newsletters n
+                   LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
+                   LEFT JOIN {$wpdb->prefix}crmbiz_nl_events e ON e.newsletter_id = n.id";
+        $group  = "GROUP BY n.id ORDER BY n.created_at DESC";
 
-        $total = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters n
-             LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id $where"
-        );
-
-        $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
-                    COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
-                    COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count
-             FROM {$wpdb->prefix}crmbiz_newsletters n
-             LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
-             LEFT JOIN {$wpdb->prefix}crmbiz_nl_events e ON e.newsletter_id = n.id
-             $where
-             GROUP BY n.id ORDER BY n.created_at DESC
-             LIMIT %d OFFSET %d",
-            $perPage, $offset
-        ));
+        if ($search !== '') {
+            $like  = '%' . $wpdb->esc_like($search) . '%';
+            $total = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters n
+                 LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
+                 WHERE p.post_title LIKE %s",
+                $like
+            ));
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "$select $from WHERE p.post_title LIKE %s $group LIMIT %d OFFSET %d",
+                $like, $perPage, $offset
+            ));
+        } else {
+            $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters");
+            $rows  = $wpdb->get_results($wpdb->prepare(
+                "$select $from $group LIMIT %d OFFSET %d",
+                $perPage, $offset
+            ));
+        }
 
         return rest_ensure_response([
             'items' => array_map([$this, 'formatNewsletter'], $rows),
