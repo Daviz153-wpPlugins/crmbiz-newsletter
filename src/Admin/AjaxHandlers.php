@@ -6,6 +6,7 @@ use CRMBizNewsletter\FluentCRMBridge;
 use CRMBizNewsletter\NewsletterSender;
 use CRMBizNewsletter\Logger;
 use CRMBizNewsletter\Settings;
+use CRMBizNewsletter\Scheduler;
 
 defined('ABSPATH') || exit;
 
@@ -123,7 +124,7 @@ class AjaxHandlers {
             ['id' => $newsletterId],
             ['%s'], ['%d']
         );
-        wp_schedule_single_event(time(), $this->cronHook, [$newsletterId]);
+        Scheduler::scheduleSingle(time(), $this->cronHook, [$newsletterId]);
 
         wp_send_json_success(['message' => '발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
     }
@@ -167,7 +168,7 @@ class AjaxHandlers {
         if ($newId <= 0) {
             wp_send_json_error(['message' => '레코드 생성에 실패했습니다.']);
         }
-        wp_schedule_single_event(time(), $this->cronHook, [$newId]);
+        Scheduler::scheduleSingle(time(), $this->cronHook, [$newId]);
 
         wp_send_json_success(['message' => '재발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
     }
@@ -207,7 +208,7 @@ class AjaxHandlers {
 
         if ($updated) {
             $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
-            wp_clear_scheduled_hook($this->cronHook, [$newsletterId]);
+            Scheduler::unschedule($this->cronHook, [$newsletterId]);
             wp_send_json_success(['message' => '발송이 취소되었습니다.']);
         } else {
             wp_send_json_error(['message' => '이미 발송 완료되었거나 취소할 수 없는 상태입니다.']);
@@ -310,8 +311,8 @@ class AjaxHandlers {
         }
 
         $hasMore = (new \CRMBizNewsletter\NewsletterSender($this->settings))->sendFromRecord($newsletterId);
-        if ($hasMore && !wp_next_scheduled($this->cronHook, [$newsletterId])) {
-            wp_schedule_single_event(time() + 60, $this->cronHook, [$newsletterId]);
+        if ($hasMore && !Scheduler::isScheduled($this->cronHook, [$newsletterId])) {
+            Scheduler::scheduleSingle(time() + 60, $this->cronHook, [$newsletterId]);
         }
 
         wp_send_json_success(['message' => '발송 실행됨', 'has_more' => $hasMore]);

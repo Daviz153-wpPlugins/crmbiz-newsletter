@@ -296,6 +296,27 @@
   background: #fff; padding: 0;
 }
 
+/* ---- Dashboard Charts ---- */
+.crmbiz-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.crmbiz-chart-card {
+  background: #fff;
+  border: 1px solid var(--cn-border);
+  border-radius: var(--cn-radius-lg);
+  padding: 16px 20px;
+}
+.crmbiz-chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cn-primary);
+  margin-bottom: 12px;
+}
+.crmbiz-chart-wrap { position: relative; height: 200px; }
+
 /* ---- Settings Page ---- */
 .crmbiz-settings-hr    { margin: 32px 0; }
 .crmbiz-test-result    { margin-top: 12px; display: none; padding: 10px 14px; border-radius: var(--cn-radius); max-width: 600px; }
