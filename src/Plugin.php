@@ -51,18 +51,10 @@ class Plugin {
         $ajax = new AjaxHandlers($this->settings, self::CRON_HOOK);
         add_action('wp_ajax_crmbiz_nl_test_email',       [$ajax, 'handleTestEmail']);
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$ajax, 'handleCountRecipients']);
-        add_action('wp_ajax_crmbiz_nl_manual_send',      [$ajax, 'handleManualSend']);
-        add_action('wp_ajax_crmbiz_nl_resend',           [$ajax, 'handleResend']);
-        add_action('wp_ajax_crmbiz_nl_resend_single',    [$ajax, 'handleResendSingle']);
-        add_action('wp_ajax_crmbiz_nl_get_log',          [$ajax, 'handleGetLog']);
-        add_action('wp_ajax_crmbiz_nl_cancel_send',      [$ajax, 'handleCancelSend']);
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$ajax, 'handlePreviewEmail']);
-        add_action('wp_ajax_crmbiz_nl_progress',         [$ajax, 'handleProgress']);
-        add_action('wp_ajax_crmbiz_nl_test_newsletter',   [$ajax, 'handleTestNewsletter']);
-        add_action('wp_ajax_crmbiz_nl_force_send',         [$ajax, 'handleForceSend']);
-        add_action('wp_ajax_crmbiz_nl_delete_newsletter',   [$ajax, 'handleDeleteNewsletter']);
-        add_action('wp_ajax_crmbiz_nl_unsub_remove',        [$ajax, 'handleUnsubRemove']);
-        add_action('wp_ajax_crmbiz_nl_unsub_add',           [$ajax, 'handleUnsubAdd']);
+        add_action('wp_ajax_crmbiz_nl_test_newsletter',  [$ajax, 'handleTestNewsletter']);
+        add_action('wp_ajax_crmbiz_nl_unsub_remove',     [$ajax, 'handleUnsubRemove']);
+        add_action('wp_ajax_crmbiz_nl_unsub_add',        [$ajax, 'handleUnsubAdd']);
 
         if (is_admin()) {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);

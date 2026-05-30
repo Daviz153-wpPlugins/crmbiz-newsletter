@@ -3,10 +3,8 @@ namespace CRMBizNewsletter\Admin;
 
 use CRMBizNewsletter\EmailTemplateRenderer;
 use CRMBizNewsletter\FluentCRMBridge;
-use CRMBizNewsletter\NewsletterSender;
 use CRMBizNewsletter\Logger;
 use CRMBizNewsletter\Settings;
-use CRMBizNewsletter\Scheduler;
 
 defined('ABSPATH') || exit;
 
@@ -83,149 +81,6 @@ class AjaxHandlers {
         }
     }
 
-    public function handleManualSend(): void {
-        $this->requireAuth('crmbiz_nl_manual_send');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
-        }
-
-        if (!FluentCRMBridge::isAvailable()) {
-            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
-        }
-
-        global $wpdb;
-        $record = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d AND status = 'draft'",
-                $newsletterId
-            )
-        );
-
-        if (!$record) {
-            wp_send_json_error(['message' => '발송 가능한 레코드를 찾을 수 없습니다.']);
-        }
-
-        $tagIds  = array_filter(array_map('intval', json_decode($record->tag_ids,  true) ?? []));
-        $listIds = array_filter(array_map('intval', json_decode($record->list_ids, true) ?? []));
-
-        if (empty($tagIds) && empty($listIds)) {
-            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
-        }
-
-        if (!get_post((int) $record->post_id)) {
-            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
-        }
-
-        $wpdb->update(
-            $wpdb->prefix . 'crmbiz_newsletters',
-            ['status' => 'queued'],
-            ['id' => $newsletterId],
-            ['%s'], ['%d']
-        );
-        Scheduler::scheduleSingle(time(), $this->cronHook, [$newsletterId]);
-
-        wp_send_json_success(['message' => '발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
-    }
-
-    public function handleResend(): void {
-        $this->requireAuth('crmbiz_nl_manual_send');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
-        }
-
-        global $wpdb;
-        $record = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
-                $newsletterId
-            )
-        );
-
-        if (!$record) {
-            wp_send_json_error(['message' => '레코드를 찾을 수 없습니다.']);
-        }
-
-        if (!FluentCRMBridge::isAvailable()) {
-            wp_send_json_error(['message' => 'FluentCRM이 활성화되지 않았습니다.']);
-        }
-
-        $postId = (int) $record->post_id;
-        if (!get_post($postId)) {
-            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
-        }
-
-        $tagIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
-        $listIds = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
-        if (empty($tagIds) && empty($listIds)) {
-            wp_send_json_error(['message' => '수신자 태그/리스트가 지정되지 않았습니다.']);
-        }
-
-        $newId = (new NewsletterSender($this->settings))->createQueuedRecord($postId);
-        if ($newId <= 0) {
-            wp_send_json_error(['message' => '레코드 생성에 실패했습니다.']);
-        }
-        Scheduler::scheduleSingle(time(), $this->cronHook, [$newId]);
-
-        wp_send_json_success(['message' => '재발송이 예약되었습니다. 잠시 후 이력 페이지에서 결과를 확인하세요.']);
-    }
-
-    public function handleResendSingle(): void {
-        $this->requireAuth('crmbiz_nl_resend_single');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        $email        = sanitize_email($_POST['email'] ?? '');
-
-        if ($newsletterId <= 0 || !is_email($email)) {
-            wp_send_json_error(['message' => '유효하지 않은 입력입니다.']);
-        }
-
-        $sent = (new NewsletterSender($this->settings))->sendToEmail($newsletterId, $email);
-
-        $sent
-            ? wp_send_json_success(['message' => $email . ' 재발송 완료'])
-            : wp_send_json_error(['message' => $email . ' 발송 실패 (수신거부 또는 오류)']);
-    }
-
-    public function handleCancelSend(): void {
-        $this->requireAuth('crmbiz_nl_manual_send');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
-        }
-
-        global $wpdb;
-        $updated = $wpdb->query($wpdb->prepare(
-            "UPDATE {$wpdb->prefix}crmbiz_newsletters
-             SET status = 'cancelled'
-             WHERE id = %d AND status IN ('queued', 'sending', 'scheduled')",
-            $newsletterId
-        ));
-
-        if ($updated) {
-            $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
-            Scheduler::unschedule($this->cronHook, [$newsletterId]);
-            wp_send_json_success(['message' => '발송이 취소되었습니다.']);
-        } else {
-            wp_send_json_error(['message' => '이미 발송 완료되었거나 취소할 수 없는 상태입니다.']);
-        }
-    }
-
-    public function handleGetLog(): void {
-        $this->requireAuth('crmbiz_nl_get_log');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error([]);
-        }
-
-        wp_send_json_success(['html' => (new HistoryPage())->renderLogPublic($newsletterId)]);
-    }
-
     public function handlePreviewEmail(): void {
         $postId = (int) ($_GET['post_id'] ?? 0);
         $nonce  = $_GET['nonce'] ?? '';
@@ -255,67 +110,6 @@ class AjaxHandlers {
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo $html;
         exit;
-    }
-
-    public function handleProgress(): void {
-        $this->requireAuth('crmbiz_nl_progress');
-
-        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
-        if (empty($ids)) {
-            wp_send_json_error([]);
-        }
-
-        global $wpdb;
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, status, success_count, fail_count, recipient_count
-                 FROM {$wpdb->prefix}crmbiz_newsletters
-                 WHERE id IN ($placeholders)",
-                ...$ids
-            )
-        );
-
-        $data = [];
-        foreach ($rows as $row) {
-            $done  = (int) $row->success_count + (int) $row->fail_count;
-            $total = (int) $row->recipient_count;
-            $data[] = [
-                'id'              => (int) $row->id,
-                'status'          => $row->status,
-                'done'            => $done,
-                'recipient_count' => $total,
-                'percent'         => $total > 0 ? min(100, (int) round($done / $total * 100)) : 0,
-            ];
-        }
-
-        wp_send_json_success($data);
-    }
-
-    public function handleForceSend(): void {
-        $this->requireAuth('crmbiz_nl_manual_send');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
-        }
-
-        // 발송 가능한 상태인지 확인 (이미 완료된 뉴스레터 반복 발송 방지)
-        global $wpdb;
-        $status = $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
-            $newsletterId
-        ));
-        if (!in_array($status, ['queued', 'sending'], true)) {
-            wp_send_json_error(['message' => '이미 발송 완료되었거나 발송 불가 상태입니다.']);
-        }
-
-        $hasMore = (new \CRMBizNewsletter\NewsletterSender($this->settings))->sendFromRecord($newsletterId);
-        if ($hasMore && !Scheduler::isScheduled($this->cronHook, [$newsletterId])) {
-            Scheduler::scheduleSingle(time() + 60, $this->cronHook, [$newsletterId]);
-        }
-
-        wp_send_json_success(['message' => '발송 실행됨', 'has_more' => $hasMore]);
     }
 
     public function handleTestNewsletter(): void {
@@ -360,35 +154,6 @@ class AjaxHandlers {
             : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
     }
 
-
-    public function handleDeleteNewsletter(): void {
-        $this->requireAuth('crmbiz_nl_manual_send');
-
-        $newsletterId = (int) ($_POST['newsletter_id'] ?? 0);
-        if ($newsletterId <= 0) {
-            wp_send_json_error(['message' => '유효하지 않은 ID입니다.']);
-        }
-
-        global $wpdb;
-
-        $status = $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
-            $newsletterId
-        ));
-        if ($status === 'sending') {
-            wp_send_json_error(['message' => '현재 발송 중입니다. 먼저 발송을 취소한 후 삭제하세요.']);
-        }
-
-        wp_clear_scheduled_hook($this->cronHook, [$newsletterId]);
-        $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue',  ['newsletter_id' => $newsletterId], ['%d']);
-        $wpdb->delete($wpdb->prefix . 'crmbiz_nl_events', ['newsletter_id' => $newsletterId], ['%d']);
-
-        $deleted = (bool) $wpdb->delete($wpdb->prefix . 'crmbiz_newsletters', ['id' => $newsletterId], ['%d']);
-
-        $deleted
-            ? wp_send_json_success(['message' => '삭제되었습니다.'])
-            : wp_send_json_error(['message' => '삭제 실패 또는 이미 삭제된 항목입니다.']);
-    }
 
     public function handleUnsubRemove(): void {
         $this->requireAuth('crmbiz_nl_unsub_manage');

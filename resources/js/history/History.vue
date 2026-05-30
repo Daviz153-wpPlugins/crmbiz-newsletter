@@ -137,6 +137,15 @@
                   <Eye class="w-3.5 h-3.5" />
                 </a>
 
+                <!-- Send (draft → queued) -->
+                <button v-if="item.status === 'draft'"
+                        @click="doAction('send', item)"
+                        :disabled="isLoading(item.id, 'send')"
+                        title="발송 시작"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-40">
+                  <Send class="w-3.5 h-3.5" />
+                </button>
+
                 <!-- Force send -->
                 <button v-if="['queued','sending'].includes(item.status)"
                         @click="doAction('force-send', item)"
@@ -253,6 +262,15 @@
             <span>미리보기</span>
           </a>
 
+          <!-- Send (draft → queued) -->
+          <button v-if="selectedItem.status === 'draft'"
+                  @click="doAction('send', selectedItem)"
+                  :disabled="isLoading(selectedItem.id, 'send')"
+                  class="so-btn so-btn--green">
+            <Send class="w-3.5 h-3.5 flex-shrink-0" />
+            <span>발송 시작</span>
+          </button>
+
           <!-- Force send -->
           <button v-if="['queued','sending'].includes(selectedItem.status)"
                   @click="doAction('force-send', selectedItem)"
@@ -321,7 +339,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import {
   Search, Mail, ChevronRight, ChevronLeft,
-  Eye, PlayCircle, XCircle, RotateCw, Trash2, CheckCircle, AlertCircle,
+  Eye, Send, PlayCircle, XCircle, RotateCw, Trash2, CheckCircle, AlertCircle,
 } from 'lucide-vue-next'
 import NlStatusBadge    from '@/components/NlStatusBadge.vue'
 import SlideOver        from '@/components/SlideOver.vue'
@@ -495,7 +513,10 @@ async function doAction(action, item) {
   const key = item.id + ':' + action
   loadingActions.value = new Set([...loadingActions.value, key])
   try {
-    if (action === 'cancel') {
+    if (action === 'send') {
+      await api('POST', `newsletters/${item.id}/send`)
+      showToast('발송이 시작되었습니다.')
+    } else if (action === 'cancel') {
       await api('POST', `newsletters/${item.id}/cancel`)
       showToast('발송이 취소되었습니다.')
     } else if (action === 'force-send') {

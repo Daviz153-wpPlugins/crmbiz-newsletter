@@ -33,7 +33,7 @@ class RestApi {
         ]);
 
         // Actions
-        foreach (['cancel', 'force-send', 'resend'] as $action) {
+        foreach (['send', 'cancel', 'force-send', 'resend'] as $action) {
             $cb = lcfirst(str_replace('-', '', ucwords($action, '-'))) . 'Newsletter';
             register_rest_route(self::NAMESPACE, '/newsletters/(?P<id>[\d]+)/' . $action, [
                 'methods'             => 'POST',
@@ -279,6 +279,20 @@ class RestApi {
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
+
+    public function sendNewsletter(\WP_REST_Request $req): \WP_REST_Response {
+        global $wpdb;
+        $id = (int) $req->get_param('id');
+
+        $updated = $wpdb->query($wpdb->prepare(
+            "UPDATE {$wpdb->prefix}crmbiz_newsletters SET status = 'queued'
+             WHERE id = %d AND status = 'draft'", $id
+        ));
+        if (!$updated) return new \WP_REST_Response(['message' => '발송 가능한 상태가 아닙니다.'], 400);
+
+        Scheduler::scheduleSingle(time(), 'crmbiz_nl_send_newsletter', [$id]);
+        return rest_ensure_response(['status' => 'queued']);
+    }
 
     public function cancelNewsletter(\WP_REST_Request $req): \WP_REST_Response {
         global $wpdb;
