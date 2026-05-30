@@ -26,13 +26,28 @@ class UnsubscribePage {
         $paged  = max(1, (int) ($_GET['paged'] ?? 1));
         $offset = ($paged - 1) * self::PER_PAGE;
 
-        $where  = $search ? $wpdb->prepare("WHERE email LIKE %s", '%' . $wpdb->esc_like($search) . '%') : '';
-        $total  = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_unsubscribers $where");
-        $rows   = $wpdb->get_results(
-            "SELECT id, email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers
-             $where ORDER BY unsubscribed_at DESC
-             LIMIT " . self::PER_PAGE . " OFFSET $offset"
-        );
+        if ($search) {
+            $like  = '%' . $wpdb->esc_like($search) . '%';
+            $total = (int) $wpdb->get_var(
+                $wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_unsubscribers WHERE email LIKE %s", $like)
+            );
+            $rows  = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers
+                     WHERE email LIKE %s ORDER BY unsubscribed_at DESC LIMIT %d OFFSET %d",
+                    $like, self::PER_PAGE, $offset
+                )
+            );
+        } else {
+            $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_unsubscribers");
+            $rows  = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT id, email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers
+                     ORDER BY unsubscribed_at DESC LIMIT %d OFFSET %d",
+                    self::PER_PAGE, $offset
+                )
+            );
+        }
 
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
         $exportUrl  = wp_nonce_url(

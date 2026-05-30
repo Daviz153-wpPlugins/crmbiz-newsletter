@@ -607,7 +607,7 @@ class SettingsPage {
             </div>
             <div id="crmbiz-preview-text">
                 <p id="crmbiz-preview-name" style="margin:0 0 6px;font-size:15px;font-weight:700;color:#111827;<?php echo $sig['show_name'] ? '' : 'display:none'; ?>"><?php echo esc_html($sig['name']); ?></p>
-                <p id="crmbiz-preview-bio" style="margin:0;font-size:14px;color:#374151;line-height:1.75;<?php echo $sig['show_bio'] ? '' : 'display:none'; ?>"><?php echo $sig['bio']; // phpcs:ignore ?></p>
+                <p id="crmbiz-preview-bio" style="margin:0;font-size:14px;color:#374151;line-height:1.75;<?php echo $sig['show_bio'] ? '' : 'display:none'; ?>"><?php echo wp_kses($sig['bio'], ['strong' => [], 'em' => [], 'a' => ['href' => [], 'target' => []]]); ?></p>
             </div>
         </div>
         </div><!-- /crmbiz-admin-page -->
