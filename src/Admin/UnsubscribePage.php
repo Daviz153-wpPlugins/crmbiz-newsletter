@@ -41,9 +41,10 @@ class UnsubscribePage {
         );
         ?>
         <div class="wrap crmbiz-wrap crmbiz-unsub-wrap">
+        <div class="crmbiz-admin-page">
 
             <div class="crmbiz-page-header">
-                <h1 class="crmbiz-page-title">
+                <h1 class="crmbiz-page-title" style="font-size:22px;font-weight:700;color:#111827;margin:0;padding:0;line-height:1.3">
                     수신거부 관리
                     <span class="crmbiz-page-title-count">(총 <?php echo esc_html(number_format($total)); ?>명)</span>
                 </h1>
@@ -152,7 +153,8 @@ class UnsubscribePage {
                     <button type="button" class="crmbiz-btn crmbiz-btn--primary" id="crmbiz-unsub-modal-confirm">추가</button>
                 </div>
             </div>
-        </div>
+        </div><!-- /crmbiz-admin-page -->
+        </div><!-- /wrap -->
 
         <script>
         (function($) {

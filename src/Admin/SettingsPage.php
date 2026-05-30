@@ -33,9 +33,10 @@ class SettingsPage {
         $tabUrl = admin_url('admin.php?page=crmbiz-nl-settings&tab=');
         ?>
         <div class="wrap crmbiz-settings-wrap">
+        <div class="crmbiz-admin-page">
 
             <div class="crmbiz-settings-header">
-                <h1 class="crmbiz-settings-title">설정</h1>
+                <h1 class="crmbiz-settings-title" style="font-size:22px;font-weight:700;color:#111827;margin:0 0 2px;padding:0;line-height:1.3">설정</h1>
                 <p class="crmbiz-settings-subtitle">CRMBiz Newsletter</p>
             </div>
 
@@ -758,7 +759,8 @@ class SettingsPage {
                 <p id="crmbiz-preview-bio" style="margin:0;font-size:14px;color:#374151;line-height:1.75;<?php echo $sig['show_bio'] ? '' : 'display:none'; ?>"><?php echo $sig['bio']; // phpcs:ignore ?></p>
             </div>
         </div>
-        </div>
+        </div><!-- /crmbiz-admin-page -->
+        </div><!-- /wrap -->
 
         <script>
         jQuery(function($){

@@ -74,6 +74,18 @@
   line-height: 1.5 !important;
 }
 
+/* ---- PHP 페이지 레이아웃 쉘 — Vue 페이지와 동일한 배경·여백 ---- */
+.crmbiz-admin-page {
+  background: #f9fafb;
+  margin: -10px -20px -20px;
+  padding: 24px;
+  min-height: calc(100vh - 72px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  color: #374151;
+  box-sizing: border-box;
+}
+
 /* ---- Layout ---- */
 .crmbiz-wrap    { max-width: 1200px; }
 .crmbiz-wrap-md { max-width: 1000px; }
