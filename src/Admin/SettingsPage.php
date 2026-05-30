@@ -122,7 +122,7 @@ class SettingsPage {
             <?php submit_button('설정 저장'); ?>
         </form>
 
-        <hr style="margin:32px 0">
+        <hr class="crmbiz-settings-hr">
 
         <h2>테스트 이메일 발송</h2>
         <p>실제 이메일을 발송하여 SMTP 연결을 확인합니다.</p>
@@ -132,7 +132,7 @@ class SettingsPage {
                 <td>
                     <input type="email" id="crmbiz-test-email" value="<?php echo $defaultEmail; ?>"
                            class="regular-text" placeholder="test@example.com">
-                    <button type="button" id="crmbiz-send-test" class="button button-primary" style="margin-left:8px">
+                    <button type="button" id="crmbiz-send-test" class="button button-primary" style="margin-left:8px;flex-shrink:0">
                         테스트 발송
                     </button>
                     <p class="description">
@@ -142,7 +142,7 @@ class SettingsPage {
                 </td>
             </tr>
         </table>
-        <div id="crmbiz-test-result" style="margin-top:12px;display:none;padding:10px 14px;border-radius:4px;max-width:600px"></div>
+        <div id="crmbiz-test-result" class="crmbiz-test-result"></div>
         <?php
     }
 
@@ -162,15 +162,13 @@ class SettingsPage {
     private function renderRgbaPicker(string $colorName, string $opacityName, string $color, int $opacity, string $id): void {
         $rgba = self::hexToRgba($color, $opacity);
         ?>
-        <div class="crmbiz-rgba-picker" id="<?php echo esc_attr($id); ?>" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="crmbiz-rgba-picker" id="<?php echo esc_attr($id); ?>">
             <input type="color" class="crmbiz-color-input" name="<?php echo esc_attr($colorName); ?>"
-                   value="<?php echo esc_attr($color); ?>"
-                   style="width:48px;height:32px;padding:2px;border-radius:4px;cursor:pointer;border:1px solid #c3c4c7">
+                   value="<?php echo esc_attr($color); ?>">
             <input type="range" class="crmbiz-opacity-input" name="<?php echo esc_attr($opacityName); ?>"
-                   min="0" max="100" step="1" value="<?php echo esc_attr($opacity); ?>"
-                   style="width:140px;cursor:pointer">
-            <span class="crmbiz-opacity-val" style="font-size:13px;color:#374151;min-width:36px"><?php echo $opacity; ?>%</span>
-            <div class="crmbiz-swatch-fill" style="width:32px;height:32px;border-radius:4px;border:1px solid #e5e7eb;background:<?php echo esc_attr($rgba); ?>"></div>
+                   min="0" max="100" step="1" value="<?php echo esc_attr($opacity); ?>">
+            <span class="crmbiz-opacity-val"><?php echo $opacity; ?>%</span>
+            <div class="crmbiz-swatch-fill" style="background:<?php echo esc_attr($rgba); ?>"></div>
         </div>
         <?php
     }
@@ -186,8 +184,8 @@ class SettingsPage {
             <?php wp_nonce_field('crmbiz_nl_settings_save', 'crmbiz_nl_settings_nonce'); ?>
             <input type="hidden" name="crmbiz_tab" value="template">
 
-            <h2 style="margin-top:24px">시그니처</h2>
-            <p class="description" style="margin-bottom:16px">
+            <h2 class="crmbiz-sig-section-title">시그니처</h2>
+            <p class="description crmbiz-sig-desc">
                 이메일 본문 하단, 최근 뉴스레터 목록 위에 표시됩니다.
             </p>
 
@@ -205,11 +203,12 @@ class SettingsPage {
                 <tr>
                     <th><label for="sig_photo_url">프로필 사진</label></th>
                     <td>
-                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                            <div id="crmbiz-sig-photo-wrap" style="<?php echo $sig['photo_url'] ? '' : 'display:none'; ?>">
+                        <div class="crmbiz-sig-photo-row">
+                            <div id="crmbiz-sig-photo-wrap" <?php echo $sig['photo_url'] ? '' : 'style="display:none"'; ?>>
                                 <img id="crmbiz-sig-photo-preview"
                                      src="<?php echo esc_url($sig['photo_url']); ?>"
-                                     style="width:64px;height:64px;border-radius:50%;border:3px solid <?php echo esc_attr($sig['border_color']); ?>;object-fit:cover;display:block">
+                                     class="crmbiz-sig-preview"
+                                     style="border-color:<?php echo esc_attr($sig['border_color']); ?>">
                             </div>
                             <div>
                                 <input type="text" id="sig_photo_url" name="sig_photo_url"
@@ -226,7 +225,7 @@ class SettingsPage {
                 <tr>
                     <th>이름 / 직함</th>
                     <td>
-                        <label style="display:block;margin-bottom:8px">
+                        <label class="crmbiz-sig-toggle">
                             <input type="checkbox" id="sig_show_name" name="sig_show_name" value="1"
                                    <?php checked($sig['show_name']); ?>>
                             표시
@@ -240,7 +239,7 @@ class SettingsPage {
                 <tr>
                     <th>소개 문구</th>
                     <td>
-                        <label style="display:block;margin-bottom:8px">
+                        <label class="crmbiz-sig-toggle">
                             <input type="checkbox" id="sig_show_bio" name="sig_show_bio" value="1"
                                    <?php checked($sig['show_bio']); ?>>
                             표시
@@ -275,12 +274,11 @@ class SettingsPage {
                 <tr>
                     <th>사진 ↔ 텍스트 간격</th>
                     <td>
-                        <div style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-sig-range-row">
                             <input type="range" id="sig_photo_gap" name="sig_photo_gap"
-                                   min="0" max="80" step="2"
-                                   value="<?php echo esc_attr($sig['photo_gap']); ?>"
-                                   style="width:160px;cursor:pointer">
-                            <span id="crmbiz-photo-gap-val" style="font-size:13px;color:#374151;min-width:36px"><?php echo $sig['photo_gap']; ?>px</span>
+                                   class="crmbiz-sig-range" min="0" max="80" step="2"
+                                   value="<?php echo esc_attr($sig['photo_gap']); ?>">
+                            <span id="crmbiz-photo-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['photo_gap']; ?>px</span>
                         </div>
                         <p class="description">사진과 이름/소개 사이 간격 (기본 16px)</p>
                     </td>
@@ -288,12 +286,11 @@ class SettingsPage {
                 <tr>
                     <th>이름 ↔ 소개 간격</th>
                     <td>
-                        <div style="display:flex;align-items:center;gap:10px">
+                        <div class="crmbiz-sig-range-row">
                             <input type="range" id="sig_text_gap" name="sig_text_gap"
-                                   min="0" max="40" step="2"
-                                   value="<?php echo esc_attr($sig['text_gap']); ?>"
-                                   style="width:160px;cursor:pointer">
-                            <span id="crmbiz-text-gap-val" style="font-size:13px;color:#374151;min-width:36px"><?php echo $sig['text_gap']; ?>px</span>
+                                   class="crmbiz-sig-range" min="0" max="40" step="2"
+                                   value="<?php echo esc_attr($sig['text_gap']); ?>">
+                            <span id="crmbiz-text-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['text_gap']; ?>px</span>
                         </div>
                         <p class="description">이름과 소개 문구 사이 간격 (기본 8px)</p>
                     </td>
@@ -306,7 +303,7 @@ class SettingsPage {
                             $positions = ['left' => '왼쪽', 'top' => '위', 'right' => '오른쪽'];
                             foreach ($positions as $val => $label):
                             ?>
-                            <label style="margin-right:20px">
+                            <label class="crmbiz-sig-radio">
                                 <input type="radio" name="sig_photo_position" value="<?php echo $val; ?>"
                                        <?php checked($sig['photo_position'], $val); ?>>
                                 <?php echo $label; ?>

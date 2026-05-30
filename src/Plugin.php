@@ -277,8 +277,11 @@ class Plugin {
     public function enqueueAdminAssets(string $hookSuffix): void {
         $page = sanitize_key($_GET['page'] ?? '');
 
-        if ($page === 'crmbiz-nl-history') {
+        if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings'], true)) {
             wp_enqueue_style('crmbiz-nl-admin', CRMBIZ_NL_URL . 'assets/admin.css', [], CRMBIZ_NL_VERSION);
+        }
+
+        if ($page === 'crmbiz-nl-history') {
             wp_enqueue_script('crmbiz-nl-history', CRMBIZ_NL_URL . 'assets/admin-history.js', ['jquery'], CRMBIZ_NL_VERSION, true);
             wp_localize_script('crmbiz-nl-history', 'crmbizNL', [
                 'ajaxUrl'           => admin_url('admin-ajax.php'),

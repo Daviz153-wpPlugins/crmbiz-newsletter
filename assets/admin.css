@@ -227,12 +227,11 @@
 
 /* ---- Search ---- */
 .crmbiz-search-wrap  { display: flex; align-items: center; gap: 8px; max-width: 480px; margin-bottom: 16px; }
-.crmbiz-search-inner { position: relative; flex: 1; }
-.crmbiz-search-icon  { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--cn-light); font-size: 14px; pointer-events: none; }
+.crmbiz-search-inner { flex: 1; }
 .crmbiz-search-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 12px 8px 32px;
+  padding: 8px 12px;
   border: 1px solid var(--cn-border);
   border-radius: var(--cn-radius);
   font-size: 13px;
@@ -296,6 +295,151 @@
   cursor: pointer; font-size: 14px; color: var(--cn-muted);
   background: #fff; padding: 0;
 }
+
+/* ---- Settings Page ---- */
+.crmbiz-settings-hr    { margin: 32px 0; }
+.crmbiz-test-result    { margin-top: 12px; display: none; padding: 10px 14px; border-radius: var(--cn-radius); max-width: 600px; }
+
+/* Signature editor */
+.crmbiz-sig-photo-row  { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.crmbiz-sig-preview    { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block; border-width: 3px; border-style: solid; }
+.crmbiz-sig-toggle     { display: block; margin-bottom: 8px; }
+.crmbiz-sig-range-row  { display: flex; align-items: center; gap: 10px; }
+.crmbiz-sig-range      { width: 160px; cursor: pointer; }
+.crmbiz-sig-range-val  { font-size: 13px; color: var(--cn-text); min-width: 36px; }
+.crmbiz-sig-radio      { margin-right: 20px; }
+.crmbiz-sig-section-title { margin-top: 24px; }
+.crmbiz-sig-desc       { margin-bottom: 16px; }
+
+/* RGBA picker */
+.crmbiz-rgba-picker    { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crmbiz-color-input    { width: 48px; height: 32px; padding: 2px; border-radius: 4px; cursor: pointer; border: 1px solid #c3c4c7; }
+.crmbiz-opacity-input  { width: 140px; cursor: pointer; }
+.crmbiz-opacity-val    { font-size: 13px; color: var(--cn-text); min-width: 36px; }
+.crmbiz-swatch-fill    { width: 32px; height: 32px; border-radius: 4px; border: 1px solid var(--cn-border); }
+
+/* ---- MetaBox components ---- */
+.crmbiz-mb-notice {
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.crmbiz-mb-notice--warn { background: #fff3cd; border: 1px solid #ffc107; color: #856404; }
+.crmbiz-mb-notice--info { background: #cff4fc; border: 1px solid #0dcaf0; color: #055160; }
+
+.crmbiz-mb-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #555;
+}
+.crmbiz-mb-scroll {
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #fafafa;
+}
+.crmbiz-mb-check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.crmbiz-mb-count {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #0c4a6e;
+}
+.crmbiz-mb-count-note { color: #94a3b8; }
+.crmbiz-mb-hint {
+  margin: 4px 0 4px 16px;
+}
+.crmbiz-mb-hint-box {
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 11px;
+  color: #854d0e;
+  line-height: 1.6;
+}
+.crmbiz-mb-hint-box a { color: #854d0e; font-weight: 600; }
+.crmbiz-mb-divider { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cn-border); }
+.crmbiz-mb-section { margin-bottom: 12px; }
+.crmbiz-mb-row    { display: flex; gap: 6px; }
+.crmbiz-mb-input  {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.crmbiz-mb-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: #1d4ed8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.crmbiz-mb-test-result {
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+.crmbiz-mb-datetime {
+  font-size: 12px;
+  width: 100%;
+}
+.crmbiz-mb-tz-note { margin: 4px 0 0; font-size: 11px; color: #888; }
+.crmbiz-mb-preview-link {
+  display: inline-block;
+  font-size: 12px;
+  color: #1a56db;
+  text-decoration: none;
+  border: 1px solid #1a56db;
+  border-radius: 4px;
+  padding: 4px 10px;
+}
+.crmbiz-mb-enabled-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.crmbiz-mb-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Status card inside metabox */
+.crmbiz-mb-status { border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 12px; }
+.crmbiz-mb-status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.crmbiz-mb-status-label  { font-size: 12px; font-weight: 700; }
+.crmbiz-mb-status-link   { font-size: 11px; text-decoration: underline; opacity: .75; }
+.crmbiz-mb-status-row    { opacity: .9; }
+.crmbiz-mb-status-note   { font-size: 11px; margin-top: 5px; opacity: .85; }
 
 /* ---- Toast notifications ---- */
 #crmbiz-toast-container {

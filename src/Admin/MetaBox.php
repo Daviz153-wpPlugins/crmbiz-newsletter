@@ -57,13 +57,13 @@ class MetaBox {
         <div id="crmbiz-nl-metabox">
 
             <?php if (!$fcAvailable): ?>
-                <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px 10px;margin-bottom:12px;font-size:12px;color:#856404">
+                <div class="crmbiz-mb-notice crmbiz-mb-notice--warn">
                     FluentCRM이 활성화되지 않았습니다.
                 </div>
             <?php endif; ?>
 
             <?php if ($isDryRun): ?>
-                <div style="background:#cff4fc;border:1px solid #0dcaf0;border-radius:4px;padding:6px 10px;margin-bottom:12px;font-size:12px;color:#055160">
+                <div class="crmbiz-mb-notice crmbiz-mb-notice--info">
                     테스트 모드 — 실제 발송 안 됨
                 </div>
             <?php endif; ?>
@@ -72,7 +72,7 @@ class MetaBox {
                 <?php echo $this->renderStatusCard($nlRecord); ?>
             <?php endif; ?>
 
-            <label style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:14px;cursor:pointer">
+            <label class="crmbiz-mb-enabled-label">
                 <input type="checkbox"
                        id="crmbiz_nl_enabled"
                        name="crmbiz_nl_enabled"
@@ -81,14 +81,14 @@ class MetaBox {
                 이 포스트를 뉴스레터로 발송
             </label>
 
-            <div id="crmbiz-nl-options" style="<?php echo $enabled ? '' : 'display:none'; ?>">
+            <div id="crmbiz-nl-options" <?php echo $enabled ? '' : 'style="display:none"'; ?>>
 
                 <?php if (!empty($tags)): ?>
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">수신 태그</label>
-                    <div style="max-height:120px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:6px 8px;background:#fafafa">
+                <div class="crmbiz-mb-section">
+                    <label class="crmbiz-mb-label">수신 태그</label>
+                    <div class="crmbiz-mb-scroll">
                         <?php foreach ($tags as $tag): ?>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:pointer">
+                        <label class="crmbiz-mb-check-label">
                             <input type="checkbox"
                                    name="crmbiz_nl_tag_ids[]"
                                    value="<?php echo esc_attr($tag['id']); ?>"
@@ -102,11 +102,11 @@ class MetaBox {
                 <?php endif; ?>
 
                 <?php if (!empty($lists)): ?>
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">수신 리스트</label>
-                    <div style="max-height:120px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:6px 8px;background:#fafafa">
+                <div class="crmbiz-mb-section">
+                    <label class="crmbiz-mb-label">수신 리스트</label>
+                    <div class="crmbiz-mb-scroll">
                         <?php foreach ($lists as $list): ?>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:pointer">
+                        <label class="crmbiz-mb-check-label">
                             <input type="checkbox"
                                    name="crmbiz_nl_list_ids[]"
                                    value="<?php echo esc_attr($list['id']); ?>"
@@ -123,33 +123,29 @@ class MetaBox {
                     <p style="font-size:12px;color:#888">FluentCRM에 태그/리스트가 없습니다.</p>
                 <?php endif; ?>
 
-                <!-- 예상 수신자 수 -->
-                <div id="crmbiz-recipient-count"
-                     style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:4px;padding:6px 10px;margin-bottom:12px;font-size:12px;color:#0c4a6e;display:none">
+                <div id="crmbiz-recipient-count" class="crmbiz-mb-count" style="display:none">
                     예상 수신자: <strong id="crmbiz-count-value">0</strong>명
-                    <span style="color:#94a3b8">(중복·수신거부 제외는 발송 시 처리)</span>
+                    <span class="crmbiz-mb-count-note">(중복·수신거부 제외는 발송 시 처리)</span>
                 </div>
 
-                <!-- 발송 시점 -->
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">발송 시점</label>
-                    <label style="display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:12px;cursor:pointer">
+                <div class="crmbiz-mb-section">
+                    <label class="crmbiz-mb-label">발송 시점</label>
+                    <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="immediate" <?php checked($sendMode, 'immediate'); ?>>
                         즉시 발송
                     </label>
-                    <label style="display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:12px;cursor:pointer">
+                    <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="manual" <?php checked($sendMode, 'manual'); ?>>
                         수동 발송
                     </label>
-                    <div id="crmbiz-manual-hint" style="margin:4px 0 4px 16px;<?php echo $sendMode === 'manual' ? '' : 'display:none'; ?>">
-                        <div style="background:#fefce8;border:1px solid #fde68a;border-radius:4px;padding:7px 10px;font-size:11px;color:#854d0e;line-height:1.6">
+                    <div id="crmbiz-manual-hint" class="crmbiz-mb-hint" <?php echo $sendMode === 'manual' ? '' : 'style="display:none"'; ?>>
+                        <div class="crmbiz-mb-hint-box">
                             발행해도 자동으로 발송되지 않습니다.<br>
-                            발행 후 <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>"
-                                      style="color:#854d0e;font-weight:600">발송 이력</a> 페이지에서
+                            발행 후 <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>">발송 이력</a> 페이지에서
                             <strong>▶ 발송</strong> 버튼을 눌러 직접 발송하세요.
                         </div>
                     </div>
-                    <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+                    <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="scheduled" <?php checked($sendMode, 'scheduled'); ?>>
                         예약 발송
                     </label>
@@ -157,37 +153,35 @@ class MetaBox {
                         <input type="datetime-local"
                                name="crmbiz_nl_scheduled_at"
                                value="<?php echo esc_attr($schedAt); ?>"
-                               style="font-size:12px;width:100%">
-                        <p style="margin:4px 0 0;font-size:11px;color:#888">
+                               class="crmbiz-mb-datetime">
+                        <p class="crmbiz-mb-tz-note">
                             사이트 시간대: <?php echo esc_html(wp_timezone_string()); ?>
                         </p>
                     </div>
                 </div>
 
-                <!-- HTML 미리보기 -->
                 <a href="<?php echo esc_url(add_query_arg(['action' => 'crmbiz_nl_preview_email', 'post_id' => $post->ID, 'nonce' => wp_create_nonce('crmbiz_nl_preview_' . $post->ID)], admin_url('admin-ajax.php'))); ?>"
                    target="_blank"
-                   style="display:inline-block;font-size:12px;color:#1a56db;text-decoration:none;border:1px solid #1a56db;border-radius:4px;padding:4px 10px">
+                   class="crmbiz-mb-preview-link">
                     HTML 미리보기 ↗
                 </a>
 
-                <!-- 테스트 발송 -->
-                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb">
-                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#555">테스트 발송</label>
-                    <div style="display:flex;gap:6px">
+                <div class="crmbiz-mb-divider">
+                    <label class="crmbiz-mb-label">테스트 발송</label>
+                    <div class="crmbiz-mb-row">
                         <input type="text"
                                id="crmbiz-nl-test-email"
                                placeholder="test@example.com"
                                value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>"
-                               style="flex:1;font-size:12px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box">
+                               class="crmbiz-mb-input">
                         <button type="button"
                                 id="crmbiz-nl-send-test"
                                 data-post-id="<?php echo esc_attr($post->ID); ?>"
-                                style="font-size:12px;padding:4px 10px;background:#1d4ed8;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap">
+                                class="crmbiz-mb-btn">
                             테스트 발송
                         </button>
                     </div>
-                    <div id="crmbiz-nl-test-result" style="display:none;margin-top:6px;font-size:11px;padding:5px 8px;border-radius:4px"></div>
+                    <div id="crmbiz-nl-test-result" class="crmbiz-mb-test-result" style="display:none"></div>
                 </div>
 
             </div><!-- /crmbiz-nl-options -->
@@ -378,29 +372,29 @@ class MetaBox {
         $historyUrl = admin_url('admin.php?page=crmbiz-nl-history');
 
         $notice = in_array($status, ['sent', 'sending', 'queued'], true)
-            ? '<div style="font-size:11px;color:' . esc_attr($cfg['color']) . ';margin-top:5px;opacity:.85">포스트를 저장해도 재발송되지 않습니다.</div>'
+            ? '<div class="crmbiz-mb-status-note" style="color:' . esc_attr($cfg['color']) . '">포스트를 저장해도 재발송되지 않습니다.</div>'
             : '';
 
         ob_start();
         ?>
-        <div style="background:<?php echo esc_attr($cfg['bg']); ?>;border:1px solid <?php echo esc_attr($cfg['border']); ?>;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                <strong style="color:<?php echo esc_attr($cfg['color']); ?>;font-size:12px">
+        <div class="crmbiz-mb-status" style="background:<?php echo esc_attr($cfg['bg']); ?>;border:1px solid <?php echo esc_attr($cfg['border']); ?>">
+            <div class="crmbiz-mb-status-header">
+                <strong class="crmbiz-mb-status-label" style="color:<?php echo esc_attr($cfg['color']); ?>">
                     <?php echo esc_html($cfg['label']); ?>
                 </strong>
                 <a href="<?php echo esc_url($historyUrl); ?>"
-                   style="font-size:11px;color:<?php echo esc_attr($cfg['color']); ?>;text-decoration:underline;opacity:.75">
+                   class="crmbiz-mb-status-link" style="color:<?php echo esc_attr($cfg['color']); ?>">
                     이력 보기 ↗
                 </a>
             </div>
             <?php if ($dateLabel): ?>
-                <div style="color:<?php echo esc_attr($cfg['color']); ?>;opacity:.9"><?php echo esc_html($dateLabel); ?></div>
+                <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>"><?php echo esc_html($dateLabel); ?></div>
             <?php endif; ?>
             <?php if ($counts): ?>
-                <div style="color:<?php echo esc_attr($cfg['color']); ?>;opacity:.9"><?php echo esc_html($counts); ?></div>
+                <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>"><?php echo esc_html($counts); ?></div>
             <?php endif; ?>
             <?php
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $notice is internally built HTML with esc_attr
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo $notice;
             ?>
         </div>
