@@ -554,5 +554,12 @@ async function execDelete(id) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-fetchList()
+const nlParam = new URLSearchParams(window.location.search).get('nl')
+
+fetchList().then(() => {
+  if (nlParam) {
+    const id = parseInt(nlParam, 10)
+    if (id > 0) selectedId.value = id
+  }
+})
 </script>
