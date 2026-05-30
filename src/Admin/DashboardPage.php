@@ -10,7 +10,9 @@ class DashboardPage {
             wp_die('권한이 없습니다.');
         }
         ?>
+        <div class="wrap">
         <div id="crmbiz-dashboard-app"></div>
+        </div>
         <?php
     }
 }
