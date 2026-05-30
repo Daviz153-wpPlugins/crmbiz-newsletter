@@ -3,6 +3,7 @@ namespace CRMBizNewsletter;
 
 use CRMBizNewsletter\Admin\AjaxHandlers;
 use CRMBizNewsletter\Scheduler;
+use CRMBizNewsletter\RestApi;
 use CRMBizNewsletter\Admin\DashboardPage;
 use CRMBizNewsletter\Admin\HistoryPage;
 use CRMBizNewsletter\Admin\MetaBox;
@@ -33,6 +34,7 @@ class Plugin {
     private function registerHooks(): void {
         (new UnsubscribeHandler())->init();
         (new TrackingHandler())->init();
+        (new RestApi())->init();
 
         if (Database::getVersion() !== Database::DB_VERSION) {
             Database::install();
@@ -288,6 +290,16 @@ class Plugin {
 
         if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings', 'crmbiz-nl-unsubscribers'], true)) {
             wp_enqueue_style('crmbiz-nl-admin', CRMBIZ_NL_URL . 'assets/admin.css', [], CRMBIZ_NL_VERSION);
+        }
+
+        if ($page === 'crmbiz-newsletter') {
+            wp_enqueue_style('crmbiz-nl-vue-dash',  CRMBIZ_NL_URL . 'assets/vue/dashboard.css', [], CRMBIZ_NL_VERSION);
+            wp_enqueue_script('crmbiz-nl-vue-dash', CRMBIZ_NL_URL . 'assets/vue/dashboard.js',  [], CRMBIZ_NL_VERSION, true);
+            wp_localize_script('crmbiz-nl-vue-dash', 'CrmbizNL', [
+                'restUrl'    => rest_url('crmbiz-nl/v1/'),
+                'nonce'      => wp_create_nonce('wp_rest'),
+                'historyUrl' => admin_url('admin.php?page=crmbiz-nl-history'),
+            ]);
         }
 
         if ($page === 'crmbiz-nl-history') {

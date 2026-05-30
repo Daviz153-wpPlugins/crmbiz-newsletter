@@ -1,4 +1,6 @@
 vendor/
+node_modules/
 .DS_Store
 .phpunit.result.cache
 composer.lock
+# assets/vue/ 는 빌드 결과물이지만 배포에 필요하므로 Git에 포함

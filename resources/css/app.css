@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #111827;
+  --color-blue: #2563eb;
+  --color-green: #16a34a;
+  --color-red: #dc2626;
+  --color-yellow: #d97706;
+  --color-purple: #7c3aed;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
