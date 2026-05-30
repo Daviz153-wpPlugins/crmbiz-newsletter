@@ -22,14 +22,19 @@
                class="relative flex flex-col w-full max-w-2xl h-full bg-white shadow-2xl overflow-hidden">
 
             <!-- Header -->
-            <div class="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-100 flex-shrink-0">
+            <div class="flex items-start gap-3 px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <!-- Title -->
               <div class="min-w-0 flex-1">
                 <slot name="header" />
               </div>
-              <button @click="$emit('close')"
-                      class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
-                <X class="w-4 h-4" />
-              </button>
+              <!-- Actions + Close -->
+              <div class="flex items-center gap-2 flex-shrink-0 pt-0.5">
+                <slot name="actions" />
+                <button @click="$emit('close')"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                  <X class="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <!-- Scrollable content -->

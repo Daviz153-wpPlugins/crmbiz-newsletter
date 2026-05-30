@@ -484,6 +484,35 @@
 .crmbiz-opacity-val    { font-size: 13px; color: var(--cn-text); min-width: 36px; }
 .crmbiz-swatch-fill    { width: 32px; height: 32px; border-radius: 4px; border: 1px solid var(--cn-border); }
 
+/* ---- Slide-over action buttons ---- */
+.so-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--cn-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cn-text);
+  background: #fff;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: background .15s, opacity .15s;
+  white-space: nowrap;
+}
+.so-btn:hover { background: var(--cn-bg-subtle); color: var(--cn-text); }
+.so-btn:disabled { opacity: .4; cursor: not-allowed; }
+.so-btn--green  { color: var(--cn-green);  border-color: #bbf7d0; background: #f0fdf4; }
+.so-btn--green:hover  { background: #dcfce7; }
+.so-btn--orange { color: #c2410c; border-color: #fed7aa; background: #fff7ed; }
+.so-btn--orange:hover { background: #ffedd5; }
+.so-btn--red    { color: #fff; background: var(--cn-red); border-color: var(--cn-red); }
+.so-btn--red:hover    { background: #b91c1c; }
+.so-btn--red-outline  { color: var(--cn-red); border-color: #fecaca; background: var(--cn-red-bg); }
+.so-btn--red-outline:hover { background: #fee2e2; }
+.so-btn--red-outline:disabled { opacity: .3; cursor: not-allowed; }
+
 /* ---- MetaBox components ---- */
 .crmbiz-mb-notice {
   border-radius: 4px;

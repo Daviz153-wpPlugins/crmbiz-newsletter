@@ -242,6 +242,63 @@
         </div>
       </template>
 
+      <template #actions>
+        <div v-if="selectedItem" class="flex items-center gap-1.5">
+
+          <!-- Preview -->
+          <a v-if="selectedItem.preview_url"
+             :href="selectedItem.preview_url" target="_blank"
+             class="so-btn">
+            <Eye class="w-3.5 h-3.5 flex-shrink-0" />
+            <span>미리보기</span>
+          </a>
+
+          <!-- Force send -->
+          <button v-if="['queued','sending'].includes(selectedItem.status)"
+                  @click="doAction('force-send', selectedItem)"
+                  :disabled="isLoading(selectedItem.id, 'force-send')"
+                  class="so-btn so-btn--green">
+            <PlayCircle class="w-3.5 h-3.5 flex-shrink-0" />
+            <span>즉시 발송</span>
+          </button>
+
+          <!-- Cancel -->
+          <button v-if="['queued','sending','scheduled'].includes(selectedItem.status)"
+                  @click="doAction('cancel', selectedItem)"
+                  :disabled="isLoading(selectedItem.id, 'cancel')"
+                  class="so-btn so-btn--orange">
+            <XCircle class="w-3.5 h-3.5 flex-shrink-0" />
+            <span>취소</span>
+          </button>
+
+          <!-- Resend -->
+          <button v-if="['sent','failed'].includes(selectedItem.status)"
+                  @click="doAction('resend', selectedItem)"
+                  :disabled="isLoading(selectedItem.id, 'resend')"
+                  class="so-btn">
+            <RotateCw class="w-3.5 h-3.5 flex-shrink-0" />
+            <span>재발송</span>
+          </button>
+
+          <!-- Delete (with inline confirm) -->
+          <template v-if="confirmDeleteId === selectedItem.id">
+            <span class="text-xs text-red-600 font-medium">삭제할까요?</span>
+            <button @click="execDelete(selectedItem.id)"
+                    class="so-btn so-btn--red">예</button>
+            <button @click="confirmDeleteId = null"
+                    class="so-btn">아니오</button>
+          </template>
+          <button v-else
+                  @click="confirmDeleteId = selectedItem.id"
+                  :disabled="selectedItem.status === 'sending'"
+                  :title="selectedItem.status === 'sending' ? '발송 중 — 취소 후 삭제' : '삭제'"
+                  class="so-btn so-btn--red-outline">
+            <Trash2 class="w-3.5 h-3.5 flex-shrink-0" />
+          </button>
+
+        </div>
+      </template>
+
       <NewsletterDetail v-if="selectedId" :id="selectedId" />
     </SlideOver>
 
