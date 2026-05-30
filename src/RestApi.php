@@ -88,8 +88,8 @@ class RestApi {
 
         $labels = $counts = [];
         for ($i = 29; $i >= 0; $i--) {
-            $d       = date('Y-m-d', strtotime("-{$i} days"));
-            $labels[] = date('m/d', strtotime($d));
+            $d        = gmdate('Y-m-d', strtotime("-{$i} days"));
+            $labels[] = gmdate('m/d', strtotime($d));
             $counts[] = $dailyMap[$d] ?? 0;
         }
 

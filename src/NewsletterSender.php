@@ -51,7 +51,14 @@ class NewsletterSender {
      */
     public function sendFromRecord(int $newsletterId): bool {
         if (!FluentCRMBridge::isAvailable()) {
-            Logger::error('FluentCRM 비활성화, 발송 중단', ['nl_id' => $newsletterId]);
+            Logger::error('FluentCRM 비활성화 — 발송 실패 처리', ['nl_id' => $newsletterId]);
+            global $wpdb;
+            $wpdb->update(
+                $wpdb->prefix . 'crmbiz_newsletters',
+                ['status' => 'failed', 'updated_at' => current_time('mysql')],
+                ['id' => $newsletterId, 'status' => 'queued'],
+                ['%s', '%s'], ['%d', '%s']
+            );
             return false;
         }
 
@@ -215,7 +222,14 @@ class NewsletterSender {
 
         $allEmails = $this->getSubscriberEmails($tagIds, $listIds);
         if (empty($allEmails)) {
-            Logger::warning('수신자 없음 — 큐 채우기 중단', ['nl_id' => $newsletterId]);
+            Logger::warning('수신자 없음 — 발송 중단', ['nl_id' => $newsletterId]);
+            global $wpdb;
+            $wpdb->update(
+                $wpdb->prefix . 'crmbiz_newsletters',
+                ['status' => 'failed', 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+                ['id' => $newsletterId],
+                ['%s', '%s', '%s'], ['%d']
+            );
             return;
         }
 
