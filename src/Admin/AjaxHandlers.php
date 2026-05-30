@@ -390,6 +390,51 @@ class AjaxHandlers {
             : wp_send_json_error(['message' => '삭제 실패 또는 이미 삭제된 항목입니다.']);
     }
 
+    public function handleUnsubRemove(): void {
+        $this->requireAuth('crmbiz_nl_unsub_manage');
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'crmbiz_nl_unsubscribers';
+
+        // 단건 또는 일괄
+        $ids = array_filter(array_map('intval', (array) ($_POST['ids'] ?? [])));
+        if (empty($ids) && isset($_POST['id'])) {
+            $ids = [(int) $_POST['id']];
+        }
+        if (empty($ids)) {
+            wp_send_json_error(['message' => '유효하지 않은 요청입니다.']);
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $deleted = $wpdb->query(
+            $wpdb->prepare("DELETE FROM {$table} WHERE id IN ($placeholders)", ...$ids)
+        );
+
+        $deleted
+            ? wp_send_json_success(['deleted' => $deleted])
+            : wp_send_json_error(['message' => '삭제 실패 또는 이미 삭제된 항목입니다.']);
+    }
+
+    public function handleUnsubAdd(): void {
+        $this->requireAuth('crmbiz_nl_unsub_manage');
+
+        $email = sanitize_email($_POST['email'] ?? '');
+        if (!is_email($email)) {
+            wp_send_json_error(['message' => '유효하지 않은 이메일 주소입니다.']);
+        }
+
+        global $wpdb;
+        $result = $wpdb->replace(
+            $wpdb->prefix . 'crmbiz_nl_unsubscribers',
+            ['email' => $email, 'unsubscribed_at' => current_time('mysql'), 'token_used' => null],
+            ['%s', '%s', '%s']
+        );
+
+        $result !== false
+            ? wp_send_json_success(['message' => '추가되었습니다.'])
+            : wp_send_json_error(['message' => '추가 실패.']);
+    }
+
     private function buildTestEmailBody(string $to): string {
         return sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .

@@ -8,6 +8,7 @@ use CRMBizNewsletter\Admin\HistoryPage;
 use CRMBizNewsletter\Admin\MetaBox;
 use CRMBizNewsletter\Admin\SettingsPage;
 use CRMBizNewsletter\Admin\PostListColumn;
+use CRMBizNewsletter\Admin\UnsubscribePage;
 
 defined('ABSPATH') || exit;
 
@@ -58,6 +59,8 @@ class Plugin {
         add_action('wp_ajax_crmbiz_nl_test_newsletter',   [$ajax, 'handleTestNewsletter']);
         add_action('wp_ajax_crmbiz_nl_force_send',         [$ajax, 'handleForceSend']);
         add_action('wp_ajax_crmbiz_nl_delete_newsletter',   [$ajax, 'handleDeleteNewsletter']);
+        add_action('wp_ajax_crmbiz_nl_unsub_remove',        [$ajax, 'handleUnsubRemove']);
+        add_action('wp_ajax_crmbiz_nl_unsub_add',           [$ajax, 'handleUnsubAdd']);
 
         if (is_admin()) {
             add_action('admin_menu',                  [$this, 'registerAdminPages']);
@@ -103,6 +106,7 @@ class Plugin {
         );
         add_submenu_page('crmbiz-newsletter', '대시보드',  '대시보드',  'manage_options', 'crmbiz-newsletter',   [$this, 'renderDashboardPage']);
         add_submenu_page('crmbiz-newsletter', '발송 이력', '발송 이력', 'manage_options', 'crmbiz-nl-history',   [$this, 'renderHistoryPage']);
+        add_submenu_page('crmbiz-newsletter', '수신거부 관리', '수신거부',  'manage_options', 'crmbiz-nl-unsubscribers', [$this, 'renderUnsubscribePage']);
         add_submenu_page('crmbiz-newsletter', '설정',      '설정',      'manage_options', 'crmbiz-nl-settings',  [$this, 'renderSettingsPage']);
     }
 
@@ -112,6 +116,10 @@ class Plugin {
 
     public function renderHistoryPage(): void {
         (new HistoryPage())->render();
+    }
+
+    public function renderUnsubscribePage(): void {
+        (new UnsubscribePage())->render();
     }
 
     public function renderSettingsPage(): void {
@@ -278,7 +286,7 @@ class Plugin {
     public function enqueueAdminAssets(string $hookSuffix): void {
         $page = sanitize_key($_GET['page'] ?? '');
 
-        if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings'], true)) {
+        if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings', 'crmbiz-nl-unsubscribers'], true)) {
             wp_enqueue_style('crmbiz-nl-admin', CRMBIZ_NL_URL . 'assets/admin.css', [], CRMBIZ_NL_VERSION);
         }
 
