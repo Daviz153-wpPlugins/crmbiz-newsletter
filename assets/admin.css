@@ -554,8 +554,8 @@ body.crmbiz-nl-page #wpbody-content {
 }
 .crmbiz-wrap .crmbiz-btn--primary  { background: var(--cn-primary) !important; color: #fff !important; border: none !important; }
 .crmbiz-wrap .crmbiz-btn--secondary { background: #fff !important; color: var(--cn-text) !important; border: 1px solid var(--cn-border) !important; }
-.crmbiz-wrap .crmbiz-search-input  { font-size: 13px !important; padding: 8px 12px !important; border: 1px solid var(--cn-border) !important; border-radius: var(--cn-radius) !important; background: #fff !important; outline: none !important; box-shadow: none !important; }
-.crmbiz-wrap .crmbiz-search-input:focus { border-color: var(--cn-blue) !important; box-shadow: 0 0 0 2px rgba(37,99,235,.15) !important; }
+.crmbiz-wrap .crmbiz-search-input  { font-size: 13px !important; padding: 8px 0 !important; border: none !important; border-radius: 0 !important; background: transparent !important; outline: none !important; box-shadow: none !important; }
+.crmbiz-wrap .crmbiz-search-input:focus { border: none !important; box-shadow: none !important; }
 
 /* ---- 수신거부 페이지 ---- */
 .crmbiz-unsub-wrap .crmbiz-empty {
