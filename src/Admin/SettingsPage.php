@@ -229,8 +229,10 @@ class SettingsPage {
 
                     <!-- 미리보기 -->
                     <div style="padding:16px 20px;border-bottom:1px solid var(--cn-bg-muted)">
+
+                        <!-- 색상 미리보기 (레이아웃 모형) -->
                         <div id="crmbiz-preset-preview"
-                             style="display:none;max-width:560px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+                             style="display:none;max-width:560px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-bottom:12px">
                             <div id="crmbiz-preset-header" style="padding:14px 18px;border-bottom:3px solid #1a56db;background:#fff">
                                 <div id="crmbiz-preset-title" style="font-size:14px;font-weight:700;color:#111827;margin-bottom:3px">뉴스레터 제목 미리보기</div>
                                 <span id="crmbiz-preset-link" style="font-size:11px;color:#1a56db;text-decoration:underline">웹에서 보기</span>
@@ -241,6 +243,20 @@ class SettingsPage {
                                 <div style="height:7px;background:#e5e7eb;border-radius:4px;width:60%"></div>
                             </div>
                         </div>
+
+                        <!-- 실제 이메일 전체보기 -->
+                        <a id="crmbiz-settings-full-preview"
+                           href="<?php echo esc_url(add_query_arg([
+                               'action' => 'crmbiz_nl_settings_preview',
+                               'nonce'  => wp_create_nonce('crmbiz_nl_settings_preview'),
+                           ], admin_url('admin-ajax.php'))); ?>"
+                           target="_blank"
+                           class="crmbiz-btn crmbiz-btn--secondary"
+                           style="font-size:13px;padding:7px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px">
+                            <span class="dashicons dashicons-visibility" style="font-size:16px;width:16px;height:16px;margin-top:1px"></span>
+                            실제 이메일 전체보기 ↗
+                        </a>
+                        <p style="margin:8px 0 0;font-size:12px;color:var(--cn-muted)">저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요.</p>
                     </div>
 
                     <div class="crmbiz-settings-field">

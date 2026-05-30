@@ -81,6 +81,51 @@ class AjaxHandlers {
         }
     }
 
+    public function handleSettingsPreview(): void {
+        $nonce = $_GET['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'crmbiz_nl_settings_preview')) {
+            wp_die('보안 검증 실패.', '오류', ['response' => 403]);
+        }
+        if (!current_user_can('manage_options')) {
+            wp_die('권한이 없습니다.', '오류', ['response' => 403]);
+        }
+
+        // 가장 최근 발행된 포스트 사용, 없으면 더미 포스트 생성
+        $post = null;
+        $recent = get_posts(['numberposts' => 1, 'post_status' => 'publish', 'post_type' => 'post']);
+        if (!empty($recent)) {
+            $post = $recent[0];
+        } else {
+            $post = new \WP_Post((object) [
+                'ID'           => 0,
+                'post_title'   => '뉴스레터 미리보기',
+                'post_content' => '<p>이 미리보기는 실제 발행된 포스트가 없어 샘플 콘텐츠를 사용합니다.</p><p>포스트를 발행하면 실제 내용으로 미리보기할 수 있습니다.</p>',
+                'post_date'    => current_time('mysql'),
+                'post_status'  => 'publish',
+                'post_type'    => 'post',
+                'post_author'  => get_current_user_id(),
+                'post_excerpt' => '',
+                'post_name'    => 'preview',
+                'guid'         => home_url('/preview'),
+            ]);
+        }
+
+        $currentUser = wp_get_current_user();
+        $subscriber  = (object) [
+            'email'      => $currentUser->user_email,
+            'first_name' => $currentUser->display_name,
+            'last_name'  => '',
+            'full_name'  => $currentUser->display_name,
+        ];
+
+        $html = (new EmailTemplateRenderer($this->settings))->render($post, $subscriber);
+
+        header('Content-Type: text/html; charset=UTF-8');
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo $html;
+        exit;
+    }
+
     public function handlePreviewEmail(): void {
         $postId = (int) ($_GET['post_id'] ?? 0);
         $nonce  = $_GET['nonce'] ?? '';

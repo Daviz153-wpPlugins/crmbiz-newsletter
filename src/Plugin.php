@@ -49,9 +49,10 @@ class Plugin {
         }
 
         $ajax = new AjaxHandlers($this->settings, self::CRON_HOOK);
-        add_action('wp_ajax_crmbiz_nl_test_email',       [$ajax, 'handleTestEmail']);
+        add_action('wp_ajax_crmbiz_nl_test_email',        [$ajax, 'handleTestEmail']);
         add_action('wp_ajax_crmbiz_nl_count_recipients', [$ajax, 'handleCountRecipients']);
         add_action('wp_ajax_crmbiz_nl_preview_email',    [$ajax, 'handlePreviewEmail']);
+        add_action('wp_ajax_crmbiz_nl_settings_preview', [$ajax, 'handleSettingsPreview']);
         add_action('wp_ajax_crmbiz_nl_test_newsletter',  [$ajax, 'handleTestNewsletter']);
         add_action('wp_ajax_crmbiz_nl_unsub_remove',     [$ajax, 'handleUnsubRemove']);
         add_action('wp_ajax_crmbiz_nl_unsub_add',        [$ajax, 'handleUnsubAdd']);
