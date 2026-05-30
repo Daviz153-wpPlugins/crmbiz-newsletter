@@ -41,19 +41,15 @@ class SettingsPage {
 
             <h2 class="nav-tab-wrapper">
                 <a href="<?php echo esc_url($tabUrl . 'general'); ?>"
-                   class="nav-tab <?php echo $activeTab === 'general'  ? 'nav-tab-active' : ''; ?>">기본 설정</a>
-                <a href="<?php echo esc_url($tabUrl . 'style'); ?>"
-                   class="nav-tab <?php echo $activeTab === 'style'    ? 'nav-tab-active' : ''; ?>">이메일 스타일</a>
-                <a href="<?php echo esc_url($tabUrl . 'template'); ?>"
-                   class="nav-tab <?php echo $activeTab === 'template' ? 'nav-tab-active' : ''; ?>">시그니처</a>
+                   class="nav-tab <?php echo $activeTab === 'general'   ? 'nav-tab-active' : ''; ?>">기본 설정</a>
+                <a href="<?php echo esc_url($tabUrl . 'customize'); ?>"
+                   class="nav-tab <?php echo $activeTab === 'customize' ? 'nav-tab-active' : ''; ?>">이메일 커스터마이징</a>
             </h2>
 
             <?php if ($activeTab === 'general'): ?>
                 <?php $this->renderGeneralTab(); ?>
-            <?php elseif ($activeTab === 'style'): ?>
-                <?php $this->renderStyleTab(); ?>
-            <?php elseif ($activeTab === 'template'): ?>
-                <?php $this->renderTemplateTab(); ?>
+            <?php elseif ($activeTab === 'customize'): ?>
+                <?php $this->renderCustomizeTab(); ?>
             <?php endif; ?>
         </div>
         <?php
@@ -151,7 +147,171 @@ class SettingsPage {
     }
 
     // -------------------------------------------------------------------------
-    // 이메일 스타일 탭
+    // 이메일 커스터마이징 탭 (스타일 + 시그니처 통합)
+    // -------------------------------------------------------------------------
+
+    private function renderCustomizeTab(): void {
+        $s   = $this->settings->getEmailStyle();
+        $sig = $this->settings->getSignature();
+
+        $presets = [
+            'modern'  => ['label' => '모던',   'outer_bg' => '#f3f4f6', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#1a56db'],
+            'dark'    => ['label' => '다크',   'outer_bg' => '#111827', 'header_bg' => '#1e293b', 'header_color' => '#f9fafb', 'accent_color' => '#60a5fa'],
+            'minimal' => ['label' => '미니멀', 'outer_bg' => '#ffffff', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#111827'],
+        ];
+        ?>
+        <form method="post">
+            <?php wp_nonce_field('crmbiz_nl_settings_save', 'crmbiz_nl_settings_nonce'); ?>
+            <input type="hidden" name="crmbiz_tab" value="customize">
+
+            <!-- ── 섹션 1: 색상 & 레이아웃 ── -->
+            <h2 class="crmbiz-sig-section-title">색상 &amp; 레이아웃</h2>
+            <p class="description crmbiz-sig-desc">프리셋을 선택하거나 색상을 직접 조정하세요.</p>
+
+            <!-- 프리셋 -->
+            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+                <?php foreach ($presets as $key => $preset): ?>
+                <button type="button" class="crmbiz-preset-btn"
+                        data-preset="<?php echo esc_attr(wp_json_encode($preset)); ?>"
+                        style="border:2px solid #e5e7eb;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;background:none;width:110px">
+                    <div style="height:32px;background:<?php echo esc_attr($preset['header_bg']); ?>;border-bottom:3px solid <?php echo esc_attr($preset['accent_color']); ?>"></div>
+                    <div style="height:24px;background:<?php echo esc_attr($preset['outer_bg']); ?>"></div>
+                    <div style="padding:5px 0;font-size:11px;font-weight:600;color:#374151;background:#fff;text-align:center"><?php echo esc_html($preset['label']); ?></div>
+                </button>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- 프리셋 레이아웃 미리보기 -->
+            <div id="crmbiz-preset-preview"
+                 style="display:none;max-width:400px;border-radius:8px;overflow:hidden;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+                <div id="crmbiz-preset-header" style="padding:16px 20px;border-bottom:3px solid #1a56db;background:#fff">
+                    <div id="crmbiz-preset-title" style="font-size:15px;font-weight:700;color:#111827;margin-bottom:4px">뉴스레터 제목 미리보기</div>
+                    <span id="crmbiz-preset-link" style="font-size:11px;color:#1a56db;text-decoration:underline">웹에서 보기</span>
+                </div>
+                <div id="crmbiz-preset-body" style="background:#fff;padding:16px 20px">
+                    <div style="height:8px;background:#e5e7eb;border-radius:4px;margin-bottom:8px"></div>
+                    <div style="height:8px;background:#e5e7eb;border-radius:4px;width:80%;margin-bottom:8px"></div>
+                    <div style="height:8px;background:#e5e7eb;border-radius:4px;width:60%"></div>
+                </div>
+            </div>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th><label for="style_outer_bg">외부 배경</label></th>
+                    <td><input type="color" id="style_outer_bg" name="style_outer_bg" value="<?php echo esc_attr($s['outer_bg']); ?>" class="crmbiz-color-input">
+                        <span class="description" style="margin-left:8px">이메일 바깥 여백 색상</span></td>
+                </tr>
+                <tr>
+                    <th><label for="style_header_bg">헤더 배경</label></th>
+                    <td><input type="color" id="style_header_bg" name="style_header_bg" value="<?php echo esc_attr($s['header_bg']); ?>" class="crmbiz-color-input">
+                        <span class="description" style="margin-left:8px">제목 영역 배경</span></td>
+                </tr>
+                <tr>
+                    <th><label for="style_header_color">헤더 텍스트</label></th>
+                    <td><input type="color" id="style_header_color" name="style_header_color" value="<?php echo esc_attr($s['header_color']); ?>" class="crmbiz-color-input">
+                        <span class="description" style="margin-left:8px">제목/날짜 글자 색상</span></td>
+                </tr>
+                <tr>
+                    <th><label for="style_accent_color">강조 색상</label></th>
+                    <td><input type="color" id="style_accent_color" name="style_accent_color" value="<?php echo esc_attr($s['accent_color']); ?>" class="crmbiz-color-input">
+                        <span class="description" style="margin-left:8px">링크, 수신거부 버튼</span></td>
+                </tr>
+                <tr>
+                    <th><label for="style_content_width">콘텐츠 너비</label></th>
+                    <td>
+                        <div class="crmbiz-sig-range-row">
+                            <input type="range" id="style_content_width" name="style_content_width"
+                                   class="crmbiz-sig-range" min="480" max="800" step="20"
+                                   value="<?php echo esc_attr($s['content_width']); ?>">
+                            <span id="crmbiz-width-val" class="crmbiz-sig-range-val"><?php echo $s['content_width']; ?>px</span>
+                        </div>
+                        <p class="description">이메일 본문 최대 너비 (480–800px)</p>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ── 섹션 2: 섹션 표시 ── -->
+            <h2 class="crmbiz-sig-section-title">섹션 표시</h2>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th>대표 이미지</th>
+                    <td><label><input type="checkbox" name="style_show_featured" value="1" <?php checked($s['show_featured']); ?>> 포스트 대표 이미지 표시</label></td>
+                </tr>
+                <tr>
+                    <th>최근 뉴스레터</th>
+                    <td><label><input type="checkbox" name="style_show_recent" value="1" <?php checked($s['show_recent']); ?>> 본문 하단 최근 3개 링크 표시</label></td>
+                </tr>
+                <tr>
+                    <th>웹에서 보기</th>
+                    <td><label><input type="checkbox" name="style_show_web_view" value="1" <?php checked($s['show_web_view']); ?>> 헤더에 "웹에서 보기" 링크 표시</label></td>
+                </tr>
+                <tr>
+                    <th>발송 날짜</th>
+                    <td><label><input type="checkbox" name="style_show_date" value="1" <?php checked($s['show_date']); ?>> 제목 아래 날짜 표시</label></td>
+                </tr>
+            </table>
+
+            <hr class="crmbiz-settings-hr">
+
+            <!-- ── 섹션 3: 시그니처 ── -->
+            <h2 class="crmbiz-sig-section-title">시그니처</h2>
+            <p class="description crmbiz-sig-desc">이메일 본문 하단에 표시됩니다.</p>
+
+            <?php $this->renderSignatureFields($sig); ?>
+
+            <?php submit_button('커스터마이징 저장'); ?>
+        </form>
+
+        <script>
+        jQuery(function($) {
+            // 프리셋 — 색상 반영 + 이메일 레이아웃 미리보기
+            $('.crmbiz-preset-btn').on('click', function() {
+                var p = $(this).data('preset');
+                if (typeof p === 'string') p = JSON.parse(p);
+                $('#style_outer_bg').val(p.outer_bg);
+                $('#style_header_bg').val(p.header_bg);
+                $('#style_header_color').val(p.header_color);
+                $('#style_accent_color').val(p.accent_color);
+                $('.crmbiz-preset-btn').css('border-color', '#e5e7eb');
+                $(this).css('border-color', '#2563eb');
+                // 이메일 미리보기 갱신
+                $('#crmbiz-preset-preview').css({
+                    background: p.outer_bg,
+                    display: 'block'
+                });
+                $('#crmbiz-preset-header').css({
+                    background: p.header_bg,
+                    borderBottomColor: p.accent_color
+                });
+                $('#crmbiz-preset-title').css('color', p.header_color);
+                $('#crmbiz-preset-link').css('color', p.accent_color);
+            });
+            // 너비 슬라이더
+            $('#style_content_width').on('input', function() {
+                $('#crmbiz-width-val').text($(this).val() + 'px');
+            });
+
+            // 색상 피커 변경 시 미리보기 실시간 갱신
+            function syncPreview() {
+                var outerBg  = $('#style_outer_bg').val();
+                var headerBg = $('#style_header_bg').val();
+                var hColor   = $('#style_header_color').val();
+                var accent   = $('#style_accent_color').val();
+                $('#crmbiz-preset-preview').css('background', outerBg).show();
+                $('#crmbiz-preset-header').css({ background: headerBg, borderBottomColor: accent });
+                $('#crmbiz-preset-title').css('color', hColor);
+                $('#crmbiz-preset-link').css('color', accent);
+            }
+            $('#style_outer_bg, #style_header_bg, #style_header_color, #style_accent_color').on('input', syncPreview);
+        });
+        </script>
+
+        <?php $this->renderSignaturePreview($sig); ?>
+        <?php
+    }
+
+    // -------------------------------------------------------------------------
+    // 이메일 스타일 탭 (하위호환 유지 — customize 탭으로 대체됨)
     // -------------------------------------------------------------------------
 
     private function renderStyleTab(): void {
@@ -333,21 +493,10 @@ class SettingsPage {
     }
 
     // -------------------------------------------------------------------------
-    // 이메일 템플릿 탭
+    // 시그니처 헬퍼 메서드 (renderCustomizeTab에서 재사용)
     // -------------------------------------------------------------------------
 
-    private function renderTemplateTab(): void {
-        $sig = $this->settings->getSignature();
-        ?>
-        <form method="post">
-            <?php wp_nonce_field('crmbiz_nl_settings_save', 'crmbiz_nl_settings_nonce'); ?>
-            <input type="hidden" name="crmbiz_tab" value="template">
-
-            <h2 class="crmbiz-sig-section-title">시그니처</h2>
-            <p class="description crmbiz-sig-desc">
-                이메일 본문 하단, 최근 뉴스레터 목록 위에 표시됩니다.
-            </p>
-
+    private function renderSignatureFields(array $sig): void { ?>
             <table class="form-table" role="presentation">
                 <tr>
                     <th>시그니처 사용</th>
@@ -473,9 +622,9 @@ class SettingsPage {
                 </tr>
             </table>
 
-            <?php submit_button('템플릿 설정 저장'); ?>
-        </form>
+    <?php }
 
+    private function renderSignaturePreview(array $sig): void { ?>
         <!-- 미리보기 -->
         <style>
         #crmbiz-preview-viewport { transition: max-width 0.3s ease; overflow:hidden; }
