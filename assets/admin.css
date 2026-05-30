@@ -56,6 +56,58 @@
   margin: 0 !important;
   padding: 0 !important;
 }
+
+/* ====================================================================
+   Tailwind v4 Layout Override
+   Tailwind v4는 CSS 유틸리티를 @layer utilities 안에 생성합니다.
+   WP admin의 언레이어드(unlayered) CSS는 cascade 우선순위가 더 높아
+   Tailwind 유틸리티를 덮어씁니다. 핵심 레이아웃 속성에 !important 적용.
+   ==================================================================== */
+
+/* display */
+#crmbiz-dashboard-app .grid,        #crmbiz-history-app .grid        { display: grid !important; }
+#crmbiz-dashboard-app .flex,        #crmbiz-history-app .flex        { display: flex !important; }
+#crmbiz-dashboard-app .inline-flex, #crmbiz-history-app .inline-flex { display: inline-flex !important; }
+#crmbiz-dashboard-app .block,       #crmbiz-history-app .block       { display: block !important; }
+#crmbiz-dashboard-app .hidden,      #crmbiz-history-app .hidden      { display: none !important; }
+#crmbiz-dashboard-app .table,       #crmbiz-history-app .table       { display: table !important; }
+
+/* grid-template-columns */
+#crmbiz-dashboard-app .grid-cols-1, #crmbiz-history-app .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+#crmbiz-dashboard-app .grid-cols-2, #crmbiz-history-app .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#crmbiz-dashboard-app .grid-cols-3, #crmbiz-history-app .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+
+@media (min-width: 1024px) {
+  #crmbiz-dashboard-app .lg\:grid-cols-3, #crmbiz-history-app .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  #crmbiz-dashboard-app .lg\:grid-cols-4, #crmbiz-history-app .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  #crmbiz-dashboard-app .lg\:col-span-2, #crmbiz-history-app .lg\:col-span-2   { grid-column: span 2 / span 2 !important; }
+}
+
+/* gap */
+#crmbiz-dashboard-app .gap-1,   #crmbiz-history-app .gap-1   { gap: 0.25rem !important; }
+#crmbiz-dashboard-app .gap-1\.5,#crmbiz-history-app .gap-1\.5 { gap: 0.375rem !important; }
+#crmbiz-dashboard-app .gap-2,   #crmbiz-history-app .gap-2   { gap: 0.5rem !important; }
+#crmbiz-dashboard-app .gap-2\.5,#crmbiz-history-app .gap-2\.5 { gap: 0.625rem !important; }
+#crmbiz-dashboard-app .gap-3,   #crmbiz-history-app .gap-3   { gap: 0.75rem !important; }
+#crmbiz-dashboard-app .gap-4,   #crmbiz-history-app .gap-4   { gap: 1rem !important; }
+#crmbiz-dashboard-app .gap-5,   #crmbiz-history-app .gap-5   { gap: 1.25rem !important; }
+#crmbiz-dashboard-app .gap-6,   #crmbiz-history-app .gap-6   { gap: 1.5rem !important; }
+#crmbiz-dashboard-app .gap-0\.5,#crmbiz-history-app .gap-0\.5 { gap: 0.125rem !important; }
+
+/* flex 정렬 */
+#crmbiz-dashboard-app .flex-col,      #crmbiz-history-app .flex-col      { flex-direction: column !important; }
+#crmbiz-dashboard-app .flex-wrap,     #crmbiz-history-app .flex-wrap     { flex-wrap: wrap !important; }
+#crmbiz-dashboard-app .flex-1,        #crmbiz-history-app .flex-1        { flex: 1 1 0% !important; }
+#crmbiz-dashboard-app .flex-shrink-0, #crmbiz-history-app .flex-shrink-0 { flex-shrink: 0 !important; }
+#crmbiz-dashboard-app .items-center,  #crmbiz-history-app .items-center  { align-items: center !important; }
+#crmbiz-dashboard-app .items-start,   #crmbiz-history-app .items-start   { align-items: flex-start !important; }
+#crmbiz-dashboard-app .justify-between, #crmbiz-history-app .justify-between { justify-content: space-between !important; }
+#crmbiz-dashboard-app .justify-center,  #crmbiz-history-app .justify-center  { justify-content: center !important; }
+#crmbiz-dashboard-app .justify-end,     #crmbiz-history-app .justify-end     { justify-content: flex-end !important; }
+
+/* WP admin이 grid 아이템에 추가하는 margin 제거 */
+#crmbiz-dashboard-app .grid > *,
+#crmbiz-history-app .grid > * { margin: 0 !important; }
 /* WP admin ID 셀렉터를 이겨야 하므로 직접 값 지정 (inherit 금지) */
 #crmbiz-dashboard-app h1, #crmbiz-history-app h1 {
   font-size: 1.5rem !important;   /* = text-2xl */
@@ -80,6 +132,15 @@ body.crmbiz-nl-page #wpcontent,
 body.crmbiz-nl-page #wpbody,
 body.crmbiz-nl-page #wpbody-content {
   background: #f9fafb !important;
+}
+
+/* ---- Vue 앱 루트 div 패딩 강제 (WP admin이 p-6 덮어쓰기 방지) ---- */
+#crmbiz-dashboard-app > div,
+#crmbiz-history-app > div {
+  padding: 1.5rem !important; /* p-6 = 24px */
+  min-height: 100vh;
+  background: #f9fafb;
+  box-sizing: border-box;
 }
 
 /* ---- PHP 페이지 레이아웃 쉘 ---- */

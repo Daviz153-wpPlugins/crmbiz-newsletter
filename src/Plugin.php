@@ -103,7 +103,7 @@ class Plugin {
         );
         add_submenu_page('crmbiz-newsletter', '대시보드',  '대시보드',  'manage_options', 'crmbiz-newsletter',   [$this, 'renderDashboardPage']);
         add_submenu_page('crmbiz-newsletter', '발송 이력', '발송 이력', 'manage_options', 'crmbiz-nl-history',   [$this, 'renderHistoryPage']);
-        add_submenu_page('crmbiz-newsletter', '수신거부 관리', '수신거부',  'manage_options', 'crmbiz-nl-unsubscribers', [$this, 'renderUnsubscribePage']);
+        add_submenu_page('crmbiz-newsletter', '수신 거부 관리', '수신 거부', 'manage_options', 'crmbiz-nl-unsubscribers', [$this, 'renderUnsubscribePage']);
         add_submenu_page('crmbiz-newsletter', '설정',      '설정',      'manage_options', 'crmbiz-nl-settings',  [$this, 'renderSettingsPage']);
     }
 
