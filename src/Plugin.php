@@ -71,6 +71,7 @@ class Plugin {
             (new PostListColumn())->init();
             add_action('admin_enqueue_scripts',       [$this, 'enqueueAdminAssets']);
             add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']);
+            add_filter('script_loader_tag',           [$this, 'addModuleType'], 10, 2);
         }
     }
 
@@ -271,6 +272,14 @@ class Plugin {
     // 어드민 에셋 등록
     // -------------------------------------------------------------------------
 
+    public function addModuleType(string $tag, string $handle): string {
+        static $handles = ['crmbiz-nl-vue-dash', 'crmbiz-nl-vue-history'];
+        if (in_array($handle, $handles, true)) {
+            return str_replace(' src=', ' type="module" src=', $tag);
+        }
+        return $tag;
+    }
+
     public function enqueueBlockEditorAssets(): void {
         $screen = get_current_screen();
         if (!$screen || $screen->post_type !== 'post') {
@@ -293,8 +302,8 @@ class Plugin {
         }
 
         if ($page === 'crmbiz-newsletter') {
-            wp_enqueue_style('crmbiz-nl-vue-dash',  CRMBIZ_NL_URL . 'assets/vue/dashboard.css', [], CRMBIZ_NL_VERSION);
-            wp_enqueue_script('crmbiz-nl-vue-dash', CRMBIZ_NL_URL . 'assets/vue/dashboard.js',  [], CRMBIZ_NL_VERSION, true);
+            wp_enqueue_style('crmbiz-nl-vue-dash',  CRMBIZ_NL_URL . 'assets/vue/app.css', [], CRMBIZ_NL_VERSION);
+            wp_enqueue_script('crmbiz-nl-vue-dash', CRMBIZ_NL_URL . 'assets/vue/dashboard.js', [], CRMBIZ_NL_VERSION, true);
             wp_localize_script('crmbiz-nl-vue-dash', 'CrmbizNL', [
                 'restUrl'    => rest_url('crmbiz-nl/v1/'),
                 'nonce'      => wp_create_nonce('wp_rest'),
@@ -303,13 +312,11 @@ class Plugin {
         }
 
         if ($page === 'crmbiz-nl-history') {
-            wp_enqueue_script('crmbiz-nl-history', CRMBIZ_NL_URL . 'assets/admin-history.js', ['jquery'], CRMBIZ_NL_VERSION, true);
-            wp_localize_script('crmbiz-nl-history', 'crmbizNL', [
-                'ajaxUrl'           => admin_url('admin-ajax.php'),
-                'nonce'             => wp_create_nonce('crmbiz_nl_manual_send'),
-                'logNonce'          => wp_create_nonce('crmbiz_nl_get_log'),
-                'singleResendNonce' => wp_create_nonce('crmbiz_nl_resend_single'),
-                'progressNonce'     => wp_create_nonce('crmbiz_nl_progress'),
+            wp_enqueue_style('crmbiz-nl-vue-history',  CRMBIZ_NL_URL . 'assets/vue/app.css', [], CRMBIZ_NL_VERSION);
+            wp_enqueue_script('crmbiz-nl-vue-history', CRMBIZ_NL_URL . 'assets/vue/history.js', [], CRMBIZ_NL_VERSION, true);
+            wp_localize_script('crmbiz-nl-vue-history', 'CrmbizNL', [
+                'restUrl' => rest_url('crmbiz-nl/v1/'),
+                'nonce'   => wp_create_nonce('wp_rest'),
             ]);
         }
 

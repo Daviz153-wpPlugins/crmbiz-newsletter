@@ -14,6 +14,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         dashboard: resolve(__dirname, 'resources/js/dashboard/main.js'),
+        history:   resolve(__dirname, 'resources/js/history/main.js'),
       },
       output: {
         entryFileNames: '[name].js',

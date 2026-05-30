@@ -9,6 +9,16 @@ class HistoryPage {
         if (!current_user_can('manage_options')) {
             wp_die('권한이 없습니다.');
         }
+        ?>
+        <div id="crmbiz-history-app"></div>
+        <?php
+    }
+
+    /** @deprecated Used by legacy AJAX handler — kept for backwards compatibility */
+    public function renderLegacy(): void {
+        if (!current_user_can('manage_options')) {
+            wp_die('권한이 없습니다.');
+        }
 
         $allowed_per  = [20, 50, 100];
         $per_page_raw = (int) ($_GET['per_page'] ?? 20);
@@ -37,7 +47,6 @@ class HistoryPage {
                 <input type="hidden" name="page" value="crmbiz-nl-history">
                 <div class="crmbiz-search-wrap">
                     <div class="crmbiz-search-inner">
-                        <span class="crmbiz-search-icon dashicons dashicons-search"></span>
                         <input type="text"
                                name="s"
                                id="crmbiz-search"
