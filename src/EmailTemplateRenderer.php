@@ -125,7 +125,7 @@ class EmailTemplateRenderer {
         $siteUrl        = esc_url($d['site_url']);
         $postTitle      = esc_html(get_the_title($post));
         $postUrl        = esc_url(get_permalink($post) . '#crmbiz-web');
-        $postDate       = esc_html(get_the_date('Y년 m월 d일', $post));
+        $postDate       = esc_html(get_the_date('Y년 m월 d일 H:i', $post));
 
         $sig            = $d['sig'];
         $style          = $d['style'];
