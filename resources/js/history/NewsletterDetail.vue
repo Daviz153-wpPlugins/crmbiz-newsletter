@@ -279,8 +279,10 @@ function fmt(n) { return Number(n).toLocaleString('ko-KR') }
 
 function localDate(dt) {
   if (!dt) return '—'
-  try { return new Date(dt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
-  catch { return dt }
+  try {
+    const s = dt.includes('T') || dt.endsWith('Z') ? dt : dt.replace(' ', 'T') + 'Z'
+    return new Date(s).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  } catch { return dt }
 }
 
 function detailDate(nl) {

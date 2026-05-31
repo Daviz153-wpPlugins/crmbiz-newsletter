@@ -206,7 +206,8 @@ function fmtShort(n) {
 function formatDate(dt) {
   if (!dt) return '—'
   try {
-    return new Date(dt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+    const s = dt.includes('T') || dt.endsWith('Z') ? dt : dt.replace(' ', 'T') + 'Z'
+    return new Date(s).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
   } catch { return dt }
 }
 
