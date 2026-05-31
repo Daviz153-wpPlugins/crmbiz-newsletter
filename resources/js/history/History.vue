@@ -472,9 +472,7 @@ function formatDate(item) {
 function localDate(dt) {
   if (!dt) return '—'
   try {
-    // DB는 UTC로 저장 — 'Z' 추가로 UTC 파싱 강제 (없으면 브라우저가 로컬시간으로 오파싱)
-    const s = dt.includes('T') || dt.endsWith('Z') ? dt : dt.replace(' ', 'T') + 'Z'
-    return new Date(s).toLocaleDateString('ko-KR', {
+    return new Date(dt).toLocaleDateString('ko-KR', {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     })
   } catch { return dt }

@@ -343,11 +343,8 @@ class MetaBox {
             ));
             if ($record) {
                 if ($sendMode === 'scheduled' && $schedAt) {
-                    try {
-                        $dt    = new \DateTime($schedAt, wp_timezone());
-                        $utcAt = $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-                        $wpdb->update($table, ['status' => 'scheduled', 'scheduled_at' => $utcAt], ['id' => $record->id]);
-                    } catch (\Throwable $e) { /* ignore */ }
+                    // 로컬 시간(서울) 그대로 저장 — sent_at/created_at과 동일하게 current_time('mysql') 기준
+                    $wpdb->update($table, ['status' => 'scheduled', 'scheduled_at' => $schedAt], ['id' => $record->id]);
                 } elseif ($sendMode !== 'scheduled' && $record->status === 'scheduled') {
                     $wpdb->update($table, ['status' => 'queued', 'scheduled_at' => null], ['id' => $record->id]);
                 }
