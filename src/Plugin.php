@@ -299,7 +299,10 @@ class Plugin {
     public function enqueueAdminAssets(string $hookSuffix): void {
         $page = sanitize_key($_GET['page'] ?? '');
 
-        if (in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings', 'crmbiz-nl-unsubscribers'], true)) {
+        if (
+            in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings', 'crmbiz-nl-unsubscribers'], true)
+            || in_array($hookSuffix, ['post.php', 'post-new.php'], true)
+        ) {
             wp_enqueue_style('crmbiz-nl-admin', CRMBIZ_NL_URL . 'assets/admin.css', [], CRMBIZ_NL_VERSION);
         }
 
