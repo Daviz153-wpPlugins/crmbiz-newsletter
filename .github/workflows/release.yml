@@ -22,6 +22,14 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Setup Node & build Vue assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Vue assets
+        run: npm ci && npm run build
+
       - name: Build ZIP
         run: |
           VERSION=${{ steps.version.outputs.version }}
@@ -35,6 +43,7 @@ jobs:
             --exclude='tests/' \
             --exclude='/vendor/' \
             --exclude='node_modules/' \
+            --exclude='resources/' \
             --exclude='*.md' \
             --exclude='phpunit.xml' \
             --exclude='composer.json' \
