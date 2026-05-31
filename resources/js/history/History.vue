@@ -51,17 +51,41 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-gray-100 bg-gray-50/60">
-            <th class="text-left font-semibold text-gray-400 text-xs px-5 py-3 max-w-xs">제목</th>
-            <th class="text-center font-semibold text-gray-400 text-xs px-3 py-3 w-24 whitespace-nowrap">상태</th>
-            <th class="text-left font-semibold text-gray-400 text-xs px-3 py-3 w-40 whitespace-nowrap">발송 일시</th>
-            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">수신자</th>
-            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">오픈률</th>
-            <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">클릭률</th>
+            <th class="text-left px-5 py-3 w-[40%]">
+              <button @click="toggleSort('title')" class="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors">
+                제목 <component :is="sortBy==='title' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
+            <th class="text-center px-3 py-3 w-28">
+              <button @click="toggleSort('status')" class="inline-flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+                상태 <component :is="sortBy==='status' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
+            <th class="text-left px-3 py-3 w-44">
+              <button @click="toggleSort('date')" class="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+                발송 일시 <component :is="sortBy==='date' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
+            <th class="text-right px-3 py-3 w-16">
+              <button @click="toggleSort('recipients')" class="inline-flex items-center justify-end gap-1 w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+                수신자 <component :is="sortBy==='recipients' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
+            <th class="text-right px-3 py-3 w-16">
+              <button @click="toggleSort('open_rate')" class="inline-flex items-center justify-end gap-1 w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+                오픈률 <component :is="sortBy==='open_rate' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
+            <th class="text-right px-3 py-3 w-16">
+              <button @click="toggleSort('click_rate')" class="inline-flex items-center justify-end gap-1 w-full text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap">
+                클릭률 <component :is="sortBy==='click_rate' ? (sortDir==='asc' ? ChevronUp : ChevronDown) : ChevronsUpDown" class="w-3 h-3" />
+              </button>
+            </th>
             <th class="px-4 py-3 w-28"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in items" :key="item.id"
+          <tr v-for="item in sortedItems" :key="item.id"
               @click="openDetail(item.id)"
               class="border-b border-gray-50 cursor-pointer transition-colors group"
               :class="[
@@ -340,6 +364,7 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import {
   Search, Mail, ChevronRight, ChevronLeft,
   Eye, Send, PlayCircle, XCircle, RotateCw, Trash2, CheckCircle, AlertCircle,
+  ChevronUp, ChevronDown, ChevronsUpDown,
 } from 'lucide-vue-next'
 import NlStatusBadge    from '@/components/NlStatusBadge.vue'
 import SlideOver        from '@/components/SlideOver.vue'
@@ -359,6 +384,8 @@ const selectedId      = ref(null)
 const confirmDeleteId = ref(null)
 const loadingActions  = ref(new Set())
 const toast           = ref(null)
+const sortBy          = ref('date')
+const sortDir         = ref('desc')
 let toastTimer  = null
 let pollTimer   = null
 let searchTimer = null
@@ -367,6 +394,44 @@ let searchTimer = null
 
 const selectedItem = computed(() => items.value.find(i => i.id === selectedId.value) ?? null)
 const sendingIds   = computed(() => items.value.filter(i => i.status === 'sending').map(i => i.id))
+
+const STATUS_ORDER = { sending: 0, queued: 1, scheduled: 2, draft: 3, sent: 4, failed: 5, cancelled: 6 }
+
+const sortedItems = computed(() => {
+  const arr = [...items.value]
+  arr.sort((a, b) => {
+    let va, vb
+    switch (sortBy.value) {
+      case 'title':
+        va = (a.post_title ?? '').toLowerCase()
+        vb = (b.post_title ?? '').toLowerCase()
+        return sortDir.value === 'asc' ? va.localeCompare(vb, 'ko') : vb.localeCompare(va, 'ko')
+      case 'status':
+        va = STATUS_ORDER[a.status] ?? 9
+        vb = STATUS_ORDER[b.status] ?? 9
+        break
+      case 'date':
+        va = new Date(a.sent_at ?? a.scheduled_at ?? a.created_at ?? 0).getTime()
+        vb = new Date(b.sent_at ?? b.scheduled_at ?? b.created_at ?? 0).getTime()
+        break
+      case 'recipients':
+        va = a.recipient_count ?? 0
+        vb = b.recipient_count ?? 0
+        break
+      case 'open_rate':
+        va = parseFloat(a.open_rate) || 0
+        vb = parseFloat(b.open_rate) || 0
+        break
+      case 'click_rate':
+        va = parseFloat(a.click_rate) || 0
+        vb = parseFloat(b.click_rate) || 0
+        break
+      default: return 0
+    }
+    return sortDir.value === 'asc' ? va - vb : vb - va
+  })
+  return arr
+})
 
 const pageNums = computed(() => {
   const range = 2
@@ -386,6 +451,15 @@ const pageNums = computed(() => {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n) { return Number(n).toLocaleString('ko-KR') }
+
+function toggleSort(col) {
+  if (sortBy.value === col) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value  = col
+    sortDir.value = 'desc'
+  }
+}
 
 function formatDate(item) {
   if (item.status === 'scheduled' && item.scheduled_at) return '⏰ ' + localDate(item.scheduled_at)
