@@ -73,7 +73,7 @@
               </div>
               <div>
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">발송 일시</div>
-                <div class="text-sm text-gray-900 font-medium">{{ localDate(detail.newsletter.sent_at) }}</div>
+                <div class="text-sm text-gray-900 font-medium">{{ detailDate(detail.newsletter) }}</div>
               </div>
               <div>
                 <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">발송자</div>
@@ -281,6 +281,12 @@ function localDate(dt) {
   if (!dt) return '—'
   try { return new Date(dt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }
   catch { return dt }
+}
+
+function detailDate(nl) {
+  if (nl.status === 'scheduled' && nl.scheduled_at) return localDate(nl.scheduled_at)
+  if (nl.status === 'queued')  return localDate(nl.created_at)
+  return localDate(nl.sent_at)
 }
 
 function sendModeLabel(m) { return { immediate: '즉시', manual: '수동', scheduled: '예약' }[m] ?? m }

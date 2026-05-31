@@ -389,7 +389,7 @@ function fmt(n) { return Number(n).toLocaleString('ko-KR') }
 
 function formatDate(item) {
   if (item.status === 'scheduled' && item.scheduled_at) return '⏰ ' + localDate(item.scheduled_at)
-  if (item.status === 'queued') return '대기 중'
+  if (item.status === 'queued') return localDate(item.created_at)
   if (item.status === 'draft')  return '—'
   const dt = item.sent_at ?? item.created_at
   return dt ? localDate(dt) : '—'
