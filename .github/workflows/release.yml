@@ -33,7 +33,7 @@ jobs:
             --exclude='docs/' \
             --exclude='archive/' \
             --exclude='tests/' \
-            --exclude='vendor/' \
+            --exclude='/vendor/' \
             --exclude='node_modules/' \
             --exclude='*.md' \
             --exclude='phpunit.xml' \
