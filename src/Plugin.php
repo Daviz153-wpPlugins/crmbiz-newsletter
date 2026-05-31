@@ -66,6 +66,7 @@ class Plugin {
             add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']);
             add_filter('script_loader_tag',           [$this, 'addModuleType'], 10, 2);
             add_filter('admin_body_class',            [$this, 'addBodyClass']);
+            add_action('admin_notices',               [$this, 'showCronNotice']);
         }
     }
 
@@ -241,7 +242,63 @@ class Plugin {
     // WP Cron 핸들러
     // -------------------------------------------------------------------------
 
+    public function showCronNotice(): void {
+        // 뉴스레터 관련 페이지에서만 표시
+        $page = sanitize_key($_GET['page'] ?? '');
+        if (!in_array($page, ['crmbiz-newsletter', 'crmbiz-nl-history', 'crmbiz-nl-settings'], true)) {
+            return;
+        }
+
+        // 대기 중인 뉴스레터가 없으면 알림 불필요
+        global $wpdb;
+        $pending = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters WHERE status IN ('queued','sending')"
+        );
+        if ($pending === 0) {
+            return;
+        }
+
+        // Action Scheduler 사용 중이면 AS 자체 모니터링에 위임
+        if (function_exists('as_next_scheduled_action')) {
+            return;
+        }
+
+        // WP Cron 마지막 실행 시간 확인 (30분 이상 미실행 시 경고)
+        $lastRun = (int) get_option('crmbiz_nl_last_cron_run', 0);
+        $stale   = $lastRun > 0 && (time() - $lastRun) > 1800;
+        $never   = $lastRun === 0;
+
+        if (!$stale && !$never) {
+            return;
+        }
+
+        $disabledCron = defined('DISABLE_WP_CRON') && DISABLE_WP_CRON;
+
+        if ($disabledCron) {
+            $msg = sprintf(
+                '⚠️ <strong>CRMBiz Newsletter</strong>: <code>DISABLE_WP_CRON</code>이 활성화되어 있습니다. ' .
+                '발송이 실행되지 않을 수 있습니다. 서버 crontab에 <code>wp cron event run --due-now</code>를 등록하거나, ' .
+                '<a href="%s">즉시 발송</a> 버튼을 사용하세요.',
+                esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
+            );
+        } else {
+            $ago = $lastRun > 0 ? human_time_diff($lastRun) . ' 전' : '한 번도 실행되지 않음';
+            $msg = sprintf(
+                '⚠️ <strong>CRMBiz Newsletter</strong>: WP Cron이 마지막으로 실행된 시간 — %s. ' .
+                '트래픽이 없으면 예약 발송이 지연됩니다. ' .
+                '<a href="%s">즉시 발송</a> 버튼을 이용하거나 서버 cron 설정을 확인하세요.',
+                esc_html($ago),
+                esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
+            );
+        }
+
+        echo '<div class="notice notice-warning is-dismissible"><p>' . wp_kses($msg, [
+            'strong' => [], 'code' => [], 'a' => ['href' => []],
+        ]) . '</p></div>';
+    }
+
     public function handleCronSend(int $newsletterId): void {
+        update_option('crmbiz_nl_last_cron_run', time(), false);
         Logger::info('Cron 발송 시작', ['nl_id' => $newsletterId]);
         $hasMore = (new NewsletterSender($this->settings))->sendFromRecord($newsletterId);
         if ($hasMore) {

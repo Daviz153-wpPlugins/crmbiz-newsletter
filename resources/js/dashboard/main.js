@@ -3,4 +3,15 @@ import Dashboard from './Dashboard.vue'
 import '../../css/app.css'
 
 const el = document.getElementById('crmbiz-dashboard-app')
-if (el) createApp(Dashboard).mount(el)
+if (el) {
+  const app = createApp(Dashboard)
+  app.config.errorHandler = (err, _instance, info) => {
+    console.error('[CRMBiz Newsletter] Dashboard 오류:', err, info)
+    el.innerHTML = `
+      <div style="padding:48px;text-align:center;font-family:-apple-system,sans-serif">
+        <p style="font-size:14px;color:#374151;margin:0 0 6px;font-weight:600">대시보드를 불러오는 중 오류가 발생했습니다.</p>
+        <p style="font-size:12px;color:#9ca3af;margin:0">F12 콘솔에서 상세 오류를 확인하세요.</p>
+      </div>`
+  }
+  app.mount(el)
+}

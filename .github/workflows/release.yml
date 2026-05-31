@@ -30,6 +30,9 @@ jobs:
       - name: Build Vue assets
         run: npm ci && npm run build
 
+      - name: Verify bundle integrity
+        run: python3 scripts/check-bundle-imports.py assets/vue/
+
       - name: Build ZIP
         run: |
           VERSION=${{ steps.version.outputs.version }}
