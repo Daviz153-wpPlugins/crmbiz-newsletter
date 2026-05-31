@@ -274,11 +274,13 @@ async function fetchData() {
     const res  = await fetch(window.CrmbizNL.restUrl + 'dashboard', {
       headers: { 'X-WP-Nonce': window.CrmbizNL.nonce },
     })
-    data.value = await res.json()
-    await nextTick()
+    data.value    = await res.json()
+    loading.value = false      // 먼저 false → canvas가 DOM에 마운트됨
+    await nextTick()           // DOM 업데이트 대기 후 차트 초기화
     initChart()
-  } catch {}
-  loading.value = false
+  } catch {
+    loading.value = false
+  }
 }
 
 onMounted(fetchData)

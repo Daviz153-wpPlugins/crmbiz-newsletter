@@ -26,24 +26,30 @@ class UnsubscribePage {
         $paged  = max(1, (int) ($_GET['paged'] ?? 1));
         $offset = ($paged - 1) * self::PER_PAGE;
 
+        $fc = $wpdb->prefix . 'fc_subscribers';
+        $un = $wpdb->prefix . 'crmbiz_nl_unsubscribers';
+        $join = "LEFT JOIN {$fc} fc ON fc.email = u.email";
+
         if ($search) {
             $like  = '%' . $wpdb->esc_like($search) . '%';
             $total = (int) $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_unsubscribers WHERE email LIKE %s", $like)
+                $wpdb->prepare("SELECT COUNT(*) FROM {$un} WHERE email LIKE %s", $like)
             );
             $rows  = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers
-                     WHERE email LIKE %s ORDER BY unsubscribed_at DESC LIMIT %d OFFSET %d",
+                    "SELECT u.id, u.email, u.unsubscribed_at, fc.first_name, fc.last_name
+                     FROM {$un} u {$join}
+                     WHERE u.email LIKE %s ORDER BY u.unsubscribed_at DESC LIMIT %d OFFSET %d",
                     $like, self::PER_PAGE, $offset
                 )
             );
         } else {
-            $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_nl_unsubscribers");
+            $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$un}");
             $rows  = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers
-                     ORDER BY unsubscribed_at DESC LIMIT %d OFFSET %d",
+                    "SELECT u.id, u.email, u.unsubscribed_at, fc.first_name, fc.last_name
+                     FROM {$un} u {$join}
+                     ORDER BY u.unsubscribed_at DESC LIMIT %d OFFSET %d",
                     self::PER_PAGE, $offset
                 )
             );
@@ -106,6 +112,7 @@ class UnsubscribePage {
                             <th style="width:36px">
                                 <input type="checkbox" id="crmbiz-unsub-all">
                             </th>
+                            <th style="width:140px">이름</th>
                             <th>이메일</th>
                             <th style="width:180px">수신거부 일시</th>
                             <th class="cn-right" style="width:80px">액션</th>
@@ -113,8 +120,12 @@ class UnsubscribePage {
                     </thead>
                     <tbody>
                         <?php foreach ($rows as $row): ?>
+                        <?php
+                            $name = trim(($row->first_name ?? '') . ' ' . ($row->last_name ?? ''));
+                        ?>
                         <tr data-id="<?php echo esc_attr($row->id); ?>" data-email="<?php echo esc_attr($row->email); ?>">
                             <td><input type="checkbox" class="crmbiz-unsub-check" value="<?php echo esc_attr($row->id); ?>"></td>
+                            <td style="font-size:13px;color:var(--cn-text)"><?php echo $name ? esc_html($name) : '<span style="color:var(--cn-light)">—</span>'; ?></td>
                             <td style="font-size:13px;color:var(--cn-text)"><?php echo esc_html($row->email); ?></td>
                             <td style="font-size:12px;color:var(--cn-muted)"><?php echo esc_html($this->localDate($row->unsubscribed_at)); ?></td>
                             <td style="text-align:right">
@@ -270,8 +281,12 @@ class UnsubscribePage {
 
     private function exportCsv(): void {
         global $wpdb;
+        $un   = $wpdb->prefix . 'crmbiz_nl_unsubscribers';
+        $fc   = $wpdb->prefix . 'fc_subscribers';
         $rows = $wpdb->get_results(
-            "SELECT email, unsubscribed_at FROM {$wpdb->prefix}crmbiz_nl_unsubscribers ORDER BY unsubscribed_at DESC",
+            "SELECT u.email, u.unsubscribed_at, fc.first_name, fc.last_name
+             FROM {$un} u LEFT JOIN {$fc} fc ON fc.email = u.email
+             ORDER BY u.unsubscribed_at DESC",
             ARRAY_A
         );
 
@@ -282,9 +297,10 @@ class UnsubscribePage {
         $out = fopen('php://output', 'w');
         // phpcs:ignore WordPress.WP.AlternativeFunctions
         fputs($out, "\xEF\xBB\xBF"); // UTF-8 BOM (엑셀 한글 깨짐 방지)
-        fputcsv($out, ['이메일', '수신거부 일시']);
+        fputcsv($out, ['이름', '이메일', '수신거부 일시']);
         foreach ($rows as $row) {
-            fputcsv($out, [$row['email'], $row['unsubscribed_at']]);
+            $name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+            fputcsv($out, [$name, $row['email'], $row['unsubscribed_at']]);
         }
         fclose($out);
         exit;
