@@ -175,13 +175,11 @@ class MetaBox {
                            id="crmbiz-nl-test-email"
                            placeholder="test@example.com"
                            value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>"
-                           class="crmbiz-mb-input"
-                           style="display:block;width:100%;box-sizing:border-box;margin-bottom:8px">
+                           class="crmbiz-mb-input">
                     <button type="button"
                             id="crmbiz-nl-send-test"
                             data-post-id="<?php echo esc_attr($post->ID); ?>"
-                            class="crmbiz-mb-btn"
-                            style="width:100%">
+                            class="crmbiz-mb-btn">
                         테스트 발송
                     </button>
                     <div id="crmbiz-nl-test-result" class="crmbiz-mb-test-result" style="display:none"></div>
