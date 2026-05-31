@@ -48,12 +48,12 @@
 
     <!-- Table -->
     <div v-else class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-5">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm table-fixed">
         <thead>
           <tr class="border-b border-gray-100 bg-gray-50/60">
-            <th class="text-left font-semibold text-gray-400 text-xs px-5 py-3">제목</th>
+            <th class="text-left font-semibold text-gray-400 text-xs px-5 py-3 w-[38%]">제목</th>
             <th class="text-center font-semibold text-gray-400 text-xs px-3 py-3 w-28">상태</th>
-            <th class="text-left font-semibold text-gray-400 text-xs px-3 py-3 w-36">발송 일시</th>
+            <th class="text-left font-semibold text-gray-400 text-xs px-3 py-3 w-40">발송 일시</th>
             <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">수신자</th>
             <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">오픈률</th>
             <th class="text-right font-semibold text-gray-400 text-xs px-3 py-3 w-16">클릭률</th>

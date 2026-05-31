@@ -332,6 +332,27 @@ class MetaBox {
         update_post_meta($postId, '_crmbiz_nl_list_ids',     array_values($listIds));
         update_post_meta($postId, '_crmbiz_nl_send_mode',    $sendMode);
         update_post_meta($postId, '_crmbiz_nl_scheduled_at', $schedAt);
+
+        // 발행된 포스트에 대기 중인 레코드가 있으면 스케줄 변경 사항 즉시 반영
+        if (get_post_status($postId) === 'publish') {
+            global $wpdb;
+            $table  = $wpdb->prefix . 'crmbiz_newsletters';
+            $record = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, status FROM {$table} WHERE post_id = %d AND status IN ('queued','scheduled') ORDER BY created_at DESC LIMIT 1",
+                $postId
+            ));
+            if ($record) {
+                if ($sendMode === 'scheduled' && $schedAt) {
+                    try {
+                        $dt    = new \DateTime($schedAt, wp_timezone());
+                        $utcAt = $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+                        $wpdb->update($table, ['status' => 'scheduled', 'scheduled_at' => $utcAt], ['id' => $record->id]);
+                    } catch (\Throwable $e) { /* ignore */ }
+                } elseif ($sendMode !== 'scheduled' && $record->status === 'scheduled') {
+                    $wpdb->update($table, ['status' => 'queued', 'scheduled_at' => null], ['id' => $record->id]);
+                }
+            }
+        }
     }
 
     private function renderStatusCard(object $nl): string {
