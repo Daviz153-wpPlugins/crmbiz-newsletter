@@ -285,7 +285,7 @@ function localDate(dt) {
 
 function detailDate(nl) {
   if (nl.status === 'scheduled' && nl.scheduled_at) return localDate(nl.scheduled_at)
-  if (nl.status === 'queued')  return localDate(nl.created_at)
+  if (nl.status === 'queued') return '대기 중'
   return localDate(nl.sent_at)
 }
 
