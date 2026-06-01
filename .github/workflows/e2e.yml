@@ -110,27 +110,30 @@ jobs:
         run: |
           wp eval '
           global $wpdb;
-          // 테스트 포스트 생성 (최근 캠페인 클릭 테스트용)
-          $post_id = wp_insert_post([
-            "post_title"  => "CI 테스트 뉴스레터",
-            "post_status" => "publish",
-            "post_type"   => "post",
-          ]);
-          // 발송 완료 레코드 직접 삽입
-          $wpdb->insert($wpdb->prefix . "crmbiz_newsletters", [
-            "post_id"          => $post_id,
-            "status"           => "sent",
-            "send_mode"        => "immediate",
-            "sent_at"          => current_time("mysql"),
-            "success_count"    => 3,
-            "fail_count"       => 0,
-            "recipient_count"  => 3,
-            "tag_ids"          => "[]",
-            "list_ids"         => "[]",
-            "created_at"       => current_time("mysql"),
-            "updated_at"       => current_time("mysql"),
-          ]);
-          echo "Seeded: post_id={$post_id}, nl_id={$wpdb->insert_id}\n";
+          $tbl = $wpdb->prefix . "crmbiz_newsletters";
+          // 6개 시딩 — 기본 5개/페이지 초과 시 페이지네이션 select 렌더됨
+          for ($i = 1; $i <= 6; $i++) {
+            $post_id = wp_insert_post([
+              "post_title"  => "CI 테스트 뉴스레터 #{$i}",
+              "post_status" => "publish",
+              "post_type"   => "post",
+            ]);
+            $wpdb->insert($tbl, [
+              "post_id"         => $post_id,
+              "status"          => "sent",
+              "send_mode"       => "immediate",
+              "sent_at"         => current_time("mysql"),
+              "success_count"   => 3,
+              "fail_count"      => 0,
+              "recipient_count" => 3,
+              "tag_ids"         => "[]",
+              "list_ids"        => "[]",
+              "created_at"      => current_time("mysql"),
+              "updated_at"      => current_time("mysql"),
+            ]);
+          }
+          $count = $wpdb->get_var("SELECT COUNT(*) FROM {$tbl}");
+          echo "Seeded {$count} newsletter records\n";
           ' --path=/tmp/wordpress
 
       - name: Start WordPress server
