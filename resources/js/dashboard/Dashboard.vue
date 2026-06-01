@@ -224,7 +224,8 @@
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-400">페이지당</span>
             <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
-                    class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none">
+                    class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white"
+                    style="outline:none;box-shadow:none">
               <option :value="5">5개</option>
               <option :value="10">10개</option>
               <option :value="20">20개</option>
