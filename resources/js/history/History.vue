@@ -9,9 +9,10 @@
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="flex gap-2 mb-5">
-      <div class="flex items-center gap-2 flex-1 max-w-sm border border-gray-200 rounded-xl bg-white px-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+    <!-- Search + Filters -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <!-- 검색 -->
+      <div class="flex items-center gap-2 flex-1 min-w-48 max-w-sm border border-gray-200 rounded-xl bg-white px-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
         <Search class="w-4 h-4 text-gray-400 flex-shrink-0" />
         <input
           v-model="searchInput"
@@ -22,9 +23,28 @@
           @input="debouncedSearch"
         >
       </div>
-      <button v-if="search" @click="clearSearch"
+      <!-- 날짜 범위 -->
+      <input v-model="dateFrom" type="date" @change="applyFilters"
+             class="border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <span class="self-center text-xs text-gray-400">~</span>
+      <input v-model="dateTo" type="date" @change="applyFilters"
+             class="border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <!-- 필터 초기화 -->
+      <button v-if="hasFilter" @click="clearFilters"
               class="px-4 py-2 text-sm text-gray-500 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
         초기화 ✕
+      </button>
+    </div>
+
+    <!-- 상태 필터 -->
+    <div class="flex flex-wrap gap-1.5 mb-5">
+      <button v-for="s in statusOptions" :key="s.value"
+              @click="setStatus(s.value)"
+              class="px-3 py-1 rounded-full text-xs font-medium border transition-colors"
+              :class="statusFilter === s.value
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'">
+        {{ s.label }}
       </button>
     </div>
 
@@ -85,7 +105,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in sortedItems" :key="item.id"
+          <tr v-for="item in items" :key="item.id"
               @click="openDetail(item.id)"
               class="border-b border-gray-50 cursor-pointer transition-colors group"
               :class="[
@@ -386,52 +406,29 @@ const loadingActions  = ref(new Set())
 const toast           = ref(null)
 const sortBy          = ref('date')
 const sortDir         = ref('desc')
+const statusFilter    = ref('')
+const dateFrom        = ref('')
+const dateTo          = ref('')
 let toastTimer  = null
 let pollTimer   = null
 let searchTimer = null
+
+const statusOptions = [
+  { value: '',          label: '전체' },
+  { value: 'sent',      label: '완료' },
+  { value: 'sending',   label: '발송중' },
+  { value: 'queued',    label: '대기' },
+  { value: 'scheduled', label: '예약' },
+  { value: 'failed',    label: '실패' },
+  { value: 'draft',     label: '임시저장' },
+  { value: 'cancelled', label: '취소' },
+]
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
 const selectedItem = computed(() => items.value.find(i => i.id === selectedId.value) ?? null)
 const sendingIds   = computed(() => items.value.filter(i => i.status === 'sending').map(i => i.id))
-
-const STATUS_ORDER = { sending: 0, queued: 1, scheduled: 2, draft: 3, sent: 4, failed: 5, cancelled: 6 }
-
-const sortedItems = computed(() => {
-  const arr = [...items.value]
-  arr.sort((a, b) => {
-    let va, vb
-    switch (sortBy.value) {
-      case 'title':
-        va = (a.post_title ?? '').toLowerCase()
-        vb = (b.post_title ?? '').toLowerCase()
-        return sortDir.value === 'asc' ? va.localeCompare(vb, 'ko') : vb.localeCompare(va, 'ko')
-      case 'status':
-        va = STATUS_ORDER[a.status] ?? 9
-        vb = STATUS_ORDER[b.status] ?? 9
-        break
-      case 'date':
-        va = new Date(a.sent_at ?? a.scheduled_at ?? a.created_at ?? 0).getTime()
-        vb = new Date(b.sent_at ?? b.scheduled_at ?? b.created_at ?? 0).getTime()
-        break
-      case 'recipients':
-        va = a.recipient_count ?? 0
-        vb = b.recipient_count ?? 0
-        break
-      case 'open_rate':
-        va = parseFloat(a.open_rate) || 0
-        vb = parseFloat(b.open_rate) || 0
-        break
-      case 'click_rate':
-        va = parseFloat(a.click_rate) || 0
-        vb = parseFloat(b.click_rate) || 0
-        break
-      default: return 0
-    }
-    return sortDir.value === 'asc' ? va - vb : vb - va
-  })
-  return arr
-})
+const hasFilter    = computed(() => search.value || statusFilter.value || dateFrom.value || dateTo.value)
 
 const pageNums = computed(() => {
   const range = 2
@@ -459,6 +456,29 @@ function toggleSort(col) {
     sortBy.value  = col
     sortDir.value = 'desc'
   }
+  page.value = 1
+  fetchList()
+}
+
+function setStatus(val) {
+  statusFilter.value = val
+  page.value = 1
+  fetchList()
+}
+
+function applyFilters() {
+  page.value = 1
+  fetchList()
+}
+
+function clearFilters() {
+  searchInput.value  = ''
+  search.value       = ''
+  statusFilter.value = ''
+  dateFrom.value     = ''
+  dateTo.value       = ''
+  page.value         = 1
+  fetchList()
 }
 
 function formatDate(item) {
@@ -507,11 +527,13 @@ async function api(method, path, body) {
 async function fetchList() {
   loading.value = true
   try {
-    const qs = new URLSearchParams({
-      page: page.value,
-      per_page: perPage.value,
-      ...(search.value ? { search: search.value } : {}),
-    })
+    const qs = new URLSearchParams({ page: page.value, per_page: perPage.value })
+    if (search.value)        qs.set('search',    search.value)
+    if (statusFilter.value)  qs.set('status',    statusFilter.value)
+    if (dateFrom.value)      qs.set('date_from', dateFrom.value)
+    if (dateTo.value)        qs.set('date_to',   dateTo.value)
+    qs.set('sort_by',  sortBy.value)
+    qs.set('sort_dir', sortDir.value)
     const data = await api('GET', 'newsletters?' + qs)
     items.value = data.items
     total.value = data.total
@@ -529,13 +551,6 @@ function debouncedSearch() {
     page.value   = 1
     fetchList()
   }, 400)
-}
-
-function clearSearch() {
-  searchInput.value = ''
-  search.value      = ''
-  page.value        = 1
-  fetchList()
 }
 
 function changePage(p) {

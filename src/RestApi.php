@@ -149,25 +149,68 @@ class RestApi {
                    ? (int) $req->get_param('per_page') : 20;
         $offset  = ($page - 1) * $perPage;
 
+        // 상태 필터
+        $allowedStatuses = ['draft', 'queued', 'scheduled', 'sending', 'sent', 'failed', 'cancelled'];
+        $statusRaw       = sanitize_key($req->get_param('status') ?? '');
+        $statusFilter    = in_array($statusRaw, $allowedStatuses, true) ? $statusRaw : '';
+
+        // 날짜 필터 (YYYY-MM-DD)
+        $dateFrom = sanitize_text_field($req->get_param('date_from') ?? '');
+        $dateTo   = sanitize_text_field($req->get_param('date_to')   ?? '');
+        $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) ? $dateFrom : '';
+        $dateTo   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)   ? $dateTo   : '';
+
+        // 정렬
+        $sortDir = strtolower(sanitize_key($req->get_param('sort_dir') ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $sortMap = [
+            'date'       => 'COALESCE(n.sent_at, n.scheduled_at, n.created_at)',
+            'title'      => 'p.post_title',
+            'status'     => 'n.status',
+            'recipients' => 'n.recipient_count',
+            'open_rate'  => 'open_count',
+            'click_rate' => 'click_count',
+        ];
+        $sortKey = sanitize_key($req->get_param('sort_by') ?? 'date');
+        $orderBy = ($sortMap[$sortKey] ?? $sortMap['date']) . ' ' . $sortDir;
+
         $select = "SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
                           COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
                           COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count";
         $from   = "FROM {$wpdb->prefix}crmbiz_newsletters n
                    LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
                    LEFT JOIN {$wpdb->prefix}crmbiz_nl_events e ON e.newsletter_id = n.id";
-        $group  = "GROUP BY n.id ORDER BY n.created_at DESC";
 
+        // WHERE 조건 동적 조합
+        $wheres = [];
+        $params = [];
         if ($search !== '') {
-            $like  = '%' . $wpdb->esc_like($search) . '%';
+            $wheres[] = 'p.post_title LIKE %s';
+            $params[] = '%' . $wpdb->esc_like($search) . '%';
+        }
+        if ($statusFilter !== '') {
+            $wheres[] = 'n.status = %s';
+            $params[] = $statusFilter;
+        }
+        if ($dateFrom !== '') {
+            $wheres[] = 'COALESCE(n.sent_at, n.created_at) >= %s';
+            $params[] = $dateFrom . ' 00:00:00';
+        }
+        if ($dateTo !== '') {
+            $wheres[] = 'COALESCE(n.sent_at, n.created_at) <= %s';
+            $params[] = $dateTo . ' 23:59:59';
+        }
+        $where = $wheres ? 'WHERE ' . implode(' AND ', $wheres) : '';
+        $group = "GROUP BY n.id ORDER BY $orderBy";
+
+        if ($params) {
             $total = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters n
-                 LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id
-                 WHERE p.post_title LIKE %s",
-                $like
+                 LEFT JOIN {$wpdb->posts} p ON p.ID = n.post_id $where",
+                ...$params
             ));
             $rows = $wpdb->get_results($wpdb->prepare(
-                "$select $from WHERE p.post_title LIKE %s $group LIMIT %d OFFSET %d",
-                $like, $perPage, $offset
+                "$select $from $where $group LIMIT %d OFFSET %d",
+                ...[...$params, $perPage, $offset]
             ));
         } else {
             $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters");
