@@ -127,7 +127,7 @@ class RestApi {
                 'open_rate'  => (int) $c->success_count > 0 ? round((int)$c->opens  / (int)$c->success_count * 100, 1) : 0,
                 'click_rate' => (int) $c->success_count > 0 ? round((int)$c->clicks / (int)$c->success_count * 100, 1) : 0,
                 'sent_at'    => $c->sent_at,
-            ], array_reverse($campaigns)),
+            ], $campaigns),
             'system' => [
                 'version'       => CRMBIZ_NL_VERSION,
                 'db_version'    => Database::getVersion(),
