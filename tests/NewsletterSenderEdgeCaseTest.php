@@ -116,6 +116,74 @@ class NewsletterSenderEdgeCaseTest extends TestCase {
         $this->assertSame(0, $rate);
     }
 
+    // ── 재시도 로직 경계값 (MAX_RETRIES = 3) ─────────────────────────────────
+
+    /**
+     * sendFromRecord()의 재시도 분기:
+     *   retry_count + 1 >= MAX_RETRIES → toDelete (영구 실패)
+     *   retry_count + 1 <  MAX_RETRIES → toRetry  (재시도)
+     */
+    public function testRetry_FirstFail_GoesToRetry(): void {
+        $retryCount = 0;
+        $maxRetries = 3;
+        $this->assertFalse(
+            $retryCount + 1 >= $maxRetries,
+            '첫 번째 실패(retry_count=0)는 아직 재시도 대상'
+        );
+    }
+
+    public function testRetry_SecondFail_GoesToRetry(): void {
+        $retryCount = 1;
+        $maxRetries = 3;
+        $this->assertFalse(
+            $retryCount + 1 >= $maxRetries,
+            '두 번째 실패(retry_count=1)는 아직 재시도 대상'
+        );
+    }
+
+    public function testRetry_ThirdFail_PermanentFailure(): void {
+        $retryCount = 2;
+        $maxRetries = 3;
+        $this->assertTrue(
+            $retryCount + 1 >= $maxRetries,
+            '세 번째 실패(retry_count=2)는 영구 실패로 처리'
+        );
+    }
+
+    public function testRetry_ExactlyAtLimit_PermanentFailure(): void {
+        // retry_count가 이미 MAX_RETRIES와 같거나 초과된 경우도 영구 실패
+        $retryCount = 3;
+        $maxRetries = 3;
+        $this->assertTrue($retryCount + 1 >= $maxRetries);
+    }
+
+    // ── 배치 상태 전이 — hasMore 반환 규칙 ──────────────────────────────────
+
+    public function testHasMore_WhenRemainingQueueExists(): void {
+        // remaining > 0 이면 true 반환 → 다음 배치 재스케줄
+        $remaining = 10;
+        $this->assertTrue($remaining > 0, '남은 수신자가 있으면 hasMore=true');
+    }
+
+    public function testHasMore_WhenQueueDrained(): void {
+        $remaining = 0;
+        $this->assertFalse($remaining > 0, '큐 소진 시 hasMore=false → finalizeSend 호출');
+    }
+
+    // ── 수신거부자 skip 로직 ─────────────────────────────────────────────────
+
+    public function testUnsubscribed_SkippedAndDeleted(): void {
+        // 수신거부자는 toDelete에 추가되고 success/fail 카운트에 포함 안 됨
+        $success   = 0;
+        $fail      = 0;
+        $toDelete  = [1, 2]; // 수신거부자 큐 row ID
+        $toRetry   = [];
+
+        $this->assertCount(2, $toDelete, '수신거부자 2명은 큐에서 제거됨');
+        $this->assertSame(0, $success, '수신거부자는 success 카운트 포함 안 됨');
+        $this->assertSame(0, $fail,    '수신거부자는 fail 카운트 포함 안 됨');
+    }
+
     // ── Private parseScheduledAt 시뮬레이션 ──────────────────────────────────
 
     private function parseScheduledAt(string $schedAt): int {

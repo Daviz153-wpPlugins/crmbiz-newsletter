@@ -413,6 +413,8 @@ class MetaBox {
                 <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>"><?php echo esc_html($counts); ?></div>
             <?php endif; ?>
             <?php
+            // $notice는 esc_attr()로 동적 값을 처리한 정적 HTML 문자열.
+            // esc_html()로 재이스케이프하면 HTML 태그가 깨지므로 그대로 출력.
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo $notice;
             ?>

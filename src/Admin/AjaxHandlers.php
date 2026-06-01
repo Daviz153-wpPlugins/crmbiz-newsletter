@@ -121,6 +121,8 @@ class AjaxHandlers {
         $html = (new EmailTemplateRenderer($this->settings))->render($post, $subscriber);
 
         header('Content-Type: text/html; charset=UTF-8');
+        // EmailTemplateRenderer가 생성한 완전한 HTML 문서 — 이미 내부적으로 이스케이프 처리됨.
+        // echo esc_html()로 재이스케이프하면 HTML 태그가 깨져 미리보기 불가.
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo $html;
         exit;
@@ -152,6 +154,7 @@ class AjaxHandlers {
         $html = (new EmailTemplateRenderer($this->settings))->render($post, $dummy);
 
         header('Content-Type: text/html; charset=UTF-8');
+        // EmailTemplateRenderer가 생성한 완전한 HTML 문서 — 위와 동일 사유.
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo $html;
         exit;

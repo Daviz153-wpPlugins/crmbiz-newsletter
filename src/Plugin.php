@@ -308,12 +308,8 @@ class Plugin {
             return;
         }
 
-        // Action Scheduler 사용 중이면 AS 자체 모니터링에 위임
-        if (function_exists('as_next_scheduled_action')) {
-            return;
-        }
-
-        // WP Cron 마지막 실행 시간 확인 (30분 이상 미실행 시 경고)
+        // handleCronSend() 실행 시 갱신되는 타임스탬프로 마지막 처리 시각 확인
+        // AS / WP Cron 모두 이 옵션을 갱신하므로 스케줄러 종류와 무관하게 감지 가능
         $lastRun = (int) get_option('crmbiz_nl_last_cron_run', 0);
         $stale   = $lastRun > 0 && (time() - $lastRun) > 1800;
         $never   = $lastRun === 0;
@@ -322,9 +318,21 @@ class Plugin {
             return;
         }
 
-        $disabledCron = defined('DISABLE_WP_CRON') && DISABLE_WP_CRON;
+        $ago      = $lastRun > 0 ? human_time_diff($lastRun) . ' 전' : '한 번도 실행되지 않음';
+        $usingAs  = function_exists('as_next_scheduled_action');
 
-        if ($disabledCron) {
+        if ($usingAs) {
+            // AS 큐 자체가 멈춘 경우 — 서버 cron 이상, WP 충돌 등으로 AS runner가 실행 안 됨
+            $msg = sprintf(
+                '⚠️ <strong>CRMBiz Newsletter</strong>: 발송 큐가 %s 동안 처리되지 않았습니다. ' .
+                'Action Scheduler 큐가 멈췄을 수 있습니다. ' .
+                '<a href="%s">Action Scheduler 상태</a>를 확인하거나 ' .
+                '<a href="%s">즉시 발송</a> 버튼을 사용하세요.',
+                esc_html($ago),
+                esc_url(admin_url('tools.php?page=action-scheduler')),
+                esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
+            );
+        } elseif (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) {
             $msg = sprintf(
                 '⚠️ <strong>CRMBiz Newsletter</strong>: <code>DISABLE_WP_CRON</code>이 활성화되어 있습니다. ' .
                 '발송이 실행되지 않을 수 있습니다. 서버 crontab에 <code>wp cron event run --due-now</code>를 등록하거나, ' .
@@ -332,7 +340,6 @@ class Plugin {
                 esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
             );
         } else {
-            $ago = $lastRun > 0 ? human_time_diff($lastRun) . ' 전' : '한 번도 실행되지 않음';
             $msg = sprintf(
                 '⚠️ <strong>CRMBiz Newsletter</strong>: WP Cron이 마지막으로 실행된 시간 — %s. ' .
                 '트래픽이 없으면 예약 발송이 지연됩니다. ' .
