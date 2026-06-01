@@ -53,10 +53,36 @@ class DatabaseEncryptionTest extends TestCase {
     }
 
     public function test_decrypt_tampered_ciphertext_returns_empty(): void {
-        $enc      = Database::encryptEmail('legit@example.com');
-        $tampered = $enc . 'X'; // 末尾に文字を追加
-        // 복호화 결과가 원본과 달라야 함 (빈 문자열이거나 다른 값)
-        $this->assertNotSame('legit@example.com', Database::decryptEmail($tampered));
+        $enc = Database::encryptEmail('legit@example.com');
+        // base64 디코드 후 마지막 바이트(인증 태그) 변조
+        $b64 = strtr($enc, '-_', '+/');
+        $pad = strlen($b64) % 4;
+        if ($pad) $b64 .= str_repeat('=', 4 - $pad);
+        $raw    = base64_decode($b64);
+        $raw[-1] = chr(ord($raw[-1]) ^ 0xFF); // 태그 마지막 바이트 반전
+        $tampered = rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+        // GCM 인증 태그 불일치 → 반드시 빈 문자열
+        $this->assertSame('', Database::decryptEmail($tampered));
+    }
+
+    public function test_gcm_encrypts_with_version_byte(): void {
+        $enc = Database::encryptEmail('test@example.com');
+        $b64 = strtr($enc, '-_', '+/');
+        $pad = strlen($b64) % 4;
+        if ($pad) $b64 .= str_repeat('=', 4 - $pad);
+        $raw = base64_decode($b64);
+        // 첫 바이트가 GCM 버전 마커 0x01이어야 함
+        $this->assertSame(0x01, ord($raw[0]));
+    }
+
+    public function test_legacy_cbc_still_decrypts(): void {
+        // 기존 CBC 포맷으로 직접 암호화한 값이 여전히 복호화돼야 함
+        $email = 'legacy@example.com';
+        $key   = hex2bin(Database::getSecret());
+        $iv    = str_repeat("\xAB", 16);
+        $ct    = openssl_encrypt($email, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        $enc   = rtrim(strtr(base64_encode($iv . $ct), '+/', '-_'), '=');
+        $this->assertSame($email, Database::decryptEmail($enc));
     }
 
     public function test_rate_limit_allows_within_limit(): void {

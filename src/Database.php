@@ -142,17 +142,21 @@ class Database {
     }
 
     /**
-     * 이메일 주소를 AES-256-CBC로 암호화 — URL 파라미터용 URL-safe Base64 반환.
+     * 이메일 주소를 AES-256-GCM으로 암호화 — URL 파라미터용 URL-safe Base64 반환.
+     * 포맷: 0x01(버전) + IV(12) + ciphertext + tag(16)
      */
     public static function encryptEmail(string $email): string {
         $key = hex2bin(self::getSecret());
-        $iv  = random_bytes(16);
-        $ct  = openssl_encrypt($email, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
-        return rtrim(strtr(base64_encode($iv . $ct), '+/', '-_'), '=');
+        $iv  = random_bytes(12); // GCM 권장 96-bit nonce
+        $tag = '';
+        $ct  = openssl_encrypt($email, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag, '', 16);
+        return rtrim(strtr(base64_encode("\x01" . $iv . $ct . $tag), '+/', '-_'), '=');
     }
 
     /**
-     * encryptEmail() 역연산 — 복호화 실패 시 빈 문자열 반환.
+     * encryptEmail() 역연산.
+     * 버전 바이트 0x01 = GCM (인증 태그 검증 포함).
+     * 버전 바이트 없음  = 레거시 CBC — 기존 발송된 수신거부 URL 하위 호환.
      */
     public static function decryptEmail(string $encoded): string {
         if ($encoded === '') {
@@ -164,10 +168,28 @@ class Database {
             $b64 .= str_repeat('=', 4 - $pad);
         }
         $raw = base64_decode($b64, true);
-        if ($raw === false || strlen($raw) < 17) {
+        if ($raw === false || strlen($raw) < 1) {
             return '';
         }
-        $key    = hex2bin(self::getSecret());
+
+        $key = hex2bin(self::getSecret());
+
+        // GCM 경로: version(1) + IV(12) + ciphertext + tag(16), 최소 29바이트
+        if (ord($raw[0]) === 0x01) {
+            if (strlen($raw) < 29) {
+                return '';
+            }
+            $iv     = substr($raw, 1, 12);
+            $tag    = substr($raw, -16);
+            $ct     = substr($raw, 13, strlen($raw) - 29);
+            $result = openssl_decrypt($ct, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+            return $result !== false ? $result : '';
+        }
+
+        // 레거시 CBC 폴백: IV(16) + ciphertext, 최소 17바이트
+        if (strlen($raw) < 17) {
+            return '';
+        }
         $result = openssl_decrypt(substr($raw, 16), 'AES-256-CBC', $key, OPENSSL_RAW_DATA, substr($raw, 0, 16));
         return $result !== false ? $result : '';
     }
