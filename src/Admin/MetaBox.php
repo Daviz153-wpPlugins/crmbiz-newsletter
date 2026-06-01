@@ -72,19 +72,17 @@ class MetaBox {
                 <?php echo $this->renderStatusCard($nlRecord); ?>
             <?php endif; ?>
 
-            <label class="crmbiz-mb-enabled-label" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:<?php echo $enabled ? '#eff6ff' : '#f9fafb'; ?>;border:1px solid <?php echo $enabled ? '#bfdbfe' : '#e5e7eb'; ?>;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:<?php echo $enabled ? '#1d4ed8' : '#374151'; ?>;transition:all .15s">
+            <label class="crmbiz-mb-enabled-label <?php echo $enabled ? 'is-enabled' : ''; ?>">
                 <input type="checkbox"
                        id="crmbiz_nl_enabled"
                        name="crmbiz_nl_enabled"
                        value="1"
                        <?php checked($enabled); ?>>
-                <span style="display:flex;align-items:center;gap:6px">
-                    <span class="dashicons <?php echo $enabled ? 'dashicons-email-alt' : 'dashicons-email'; ?>" style="font-size:16px;width:16px;height:16px"></span>
-                    뉴스레터로 발송
-                </span>
+                <span class="dashicons <?php echo $enabled ? 'dashicons-email-alt' : 'dashicons-email'; ?> crmbiz-mb-icon"></span>
+                뉴스레터로 발송
             </label>
 
-            <div id="crmbiz-nl-options" <?php echo $enabled ? '' : 'style="display:none"'; ?> style="margin-top:12px">
+            <div id="crmbiz-nl-options" class="crmbiz-mb-options" <?php echo $enabled ? '' : 'hidden'; ?>>
 
                 <?php if (!empty($tags)): ?>
                 <div class="crmbiz-mb-section">
@@ -198,7 +196,10 @@ class MetaBox {
 
             // 옵션 토글
             document.getElementById('crmbiz_nl_enabled').addEventListener('change', function() {
-                document.getElementById('crmbiz-nl-options').style.display = this.checked ? '' : 'none';
+                var opts  = document.getElementById('crmbiz-nl-options');
+                var label = document.querySelector('.crmbiz-mb-enabled-label');
+                opts.hidden = !this.checked;
+                label.classList.toggle('is-enabled', this.checked);
             });
 
             // 발송 모드별 힌트 토글
@@ -377,6 +378,29 @@ class MetaBox {
             $dateLabel = '';
         }
 
+        $remainingLabel = '';
+        if ($status === 'scheduled' && $nl->scheduled_at) {
+            try {
+                $schedDt = new \DateTime($nl->scheduled_at, wp_timezone());
+                $nowDt   = new \DateTime('now', wp_timezone());
+                $diff    = $nowDt->diff($schedDt);
+
+                if ($schedDt > $nowDt) {
+                    if ($diff->days >= 1) {
+                        $remainingLabel = $diff->days . '일 후 발송 예정';
+                    } elseif ($diff->h >= 1) {
+                        $remainingLabel = $diff->h . '시간 후 발송 예정';
+                    } else {
+                        $remainingLabel = $diff->i . '분 후 발송 예정';
+                    }
+                } else {
+                    $remainingLabel = '발송 대기 중 (처리 예정)';
+                }
+            } catch (\Throwable $e) {
+                // 무시
+            }
+        }
+
         // 수신자 정보
         $counts = '';
         if ($status === 'sent') {
@@ -408,6 +432,11 @@ class MetaBox {
             </div>
             <?php if ($dateLabel): ?>
                 <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>"><?php echo esc_html($dateLabel); ?></div>
+            <?php endif; ?>
+            <?php if ($remainingLabel): ?>
+                <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>;font-size:11px;opacity:.8">
+                    <?php echo esc_html($remainingLabel); ?> · <?php echo esc_html(wp_timezone_string()); ?>
+                </div>
             <?php endif; ?>
             <?php if ($counts): ?>
                 <div class="crmbiz-mb-status-row" style="color:<?php echo esc_attr($cfg['color']); ?>"><?php echo esc_html($counts); ?></div>
