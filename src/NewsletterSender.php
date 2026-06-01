@@ -146,6 +146,7 @@ class NewsletterSender {
 
             if (UnsubscribeHandler::isUnsubscribed($email)) {
                 $toDelete[] = (int) $row['id']; // 수신거부 → 삭제, fail 카운트 없음
+                $this->logSend($newsletterId, $email, 'skipped');
                 continue;
             }
 
@@ -155,18 +156,22 @@ class NewsletterSender {
             if ($sent) {
                 $success++;
                 $toDelete[] = (int) $row['id'];
+                $this->logSend($newsletterId, $email, 'sent');
             } elseif ((int) $row['retry_count'] + 1 >= self::MAX_RETRIES) {
                 $fail++;
                 $toDelete[] = (int) $row['id'];
+                $this->logSend($newsletterId, $email, 'failed');
                 Logger::error('이메일 영구 실패 (재시도 초과)', ['email' => $email, 'nl_id' => $newsletterId, 'retries' => self::MAX_RETRIES]);
             } else {
                 $toRetry[] = (int) $row['id']; // 다음 배치에서 재시도
+                // 재시도 대상 — 아직 최종 결과 아니므로 logSend 호출하지 않음
             }
         }
 
         // FluentCRM에서 찾지 못한 이메일 → 구독자 삭제됨, 조용히 건너뜀
-        foreach ($emailToRow as $row) {
+        foreach ($emailToRow as $email => $row) {
             $toDelete[] = (int) $row['id'];
+            $this->logSend($newsletterId, $email, 'skipped');
         }
 
         if (!empty($toDelete)) {
@@ -423,6 +428,23 @@ class NewsletterSender {
             Logger::error('wp_mail 발송 실패', ['email' => $subscriber->email, 'nl_id' => $newsletterId]);
         }
         return $result;
+    }
+
+    /**
+     * 개별 발송 결과를 crmbiz_nl_sends에 영구 기록.
+     * INSERT IGNORE: UNIQUE KEY 충돌(재시도 중복 호출) 시 오류 없이 무시.
+     */
+    private function logSend(int $newsletterId, string $email, string $status): void {
+        global $wpdb;
+        $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$wpdb->prefix}crmbiz_nl_sends
+             (newsletter_id, email, status, sent_at)
+             VALUES (%d, %s, %s, %s)",
+            $newsletterId,
+            $email,
+            $status,
+            current_time('mysql')
+        ));
     }
 
     private function createRecord(int $postId, array $tagIds, array $listIds, int $recipientCount, string $status, string $scheduledAt = ''): int {

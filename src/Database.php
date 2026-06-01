@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.6.0';
+    const DB_VERSION = '1.7.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -91,6 +91,18 @@ class Database {
   KEY idx_expires (expires_at)
 ) $charset;");
 
+        dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_sends (
+  id            BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  newsletter_id BIGINT UNSIGNED  NOT NULL,
+  email         VARCHAR(191)     NOT NULL,
+  status        VARCHAR(10)      NOT NULL DEFAULT 'sent',
+  sent_at       DATETIME         NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_nl_email   (newsletter_id, email),
+  KEY        idx_newsletter (newsletter_id),
+  KEY        idx_email      (email)
+) $charset;");
+
         // 1.3.0 마이그레이션: 미사용 error_log 컬럼 제거
         if (version_compare(self::getVersion(), '1.3.0', '<')) {
             $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
@@ -114,6 +126,9 @@ class Database {
                 $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters DROP COLUMN subscriber_emails");
             }
         }
+
+        // 1.7.0: crmbiz_nl_sends 발송 로그 테이블 추가 (dbDelta가 처리)
+        // 기존 데이터 소급 없음 — 이 버전 이후 발송분부터 기록됨
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

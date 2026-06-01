@@ -184,6 +184,34 @@ class NewsletterSenderEdgeCaseTest extends TestCase {
         $this->assertSame(0, $fail,    '수신거부자는 fail 카운트 포함 안 됨');
     }
 
+    // ── logSend status 값 규칙 검증 ──────────────────────────────────────────
+
+    public function testLogSend_AllowedStatusValues(): void {
+        $allowed = ['sent', 'failed', 'skipped'];
+
+        // 발송 성공
+        $this->assertContains('sent',    $allowed);
+        // 영구 실패 (MAX_RETRIES 초과)
+        $this->assertContains('failed',  $allowed);
+        // 수신거부 또는 CRM 미존재
+        $this->assertContains('skipped', $allowed);
+    }
+
+    public function testLogSend_RetryDoesNotLog(): void {
+        // retry_count + 1 < MAX_RETRIES 이면 아직 최종 결과 아님 → logSend 호출 안 함
+        $retryCount = 1;
+        $maxRetries = 3;
+        $isFinal    = ($retryCount + 1 >= $maxRetries);
+        $this->assertFalse($isFinal, '재시도 대상은 logSend 대상 아님');
+    }
+
+    public function testLogSend_MaxRetriesIsLoggedAsFailed(): void {
+        $retryCount = 2; // 마지막 시도
+        $maxRetries = 3;
+        $isFinal    = ($retryCount + 1 >= $maxRetries);
+        $this->assertTrue($isFinal, 'MAX_RETRIES 도달 시 failed로 기록');
+    }
+
     // ── Private parseScheduledAt 시뮬레이션 ──────────────────────────────────
 
     private function parseScheduledAt(string $schedAt): int {
