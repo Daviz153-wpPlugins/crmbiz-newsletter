@@ -51,6 +51,9 @@
   .nl-body table.nl-sig th { border:none !important; }
   .nl-body table.nl-sig .nl-sig-photo-td,
   .nl-body table.nl-sig .nl-sig-text-td { padding:0 !important; width:auto !important; font-size:inherit !important; }
+  /* 시그니처 p — 본문 p 폰트 규칙 덮어쓰기 */
+  .nl-body table.nl-sig p { font-size:14px !important; margin:0 !important; line-height:1.75 !important; }
+  .nl-body table.nl-sig p.nl-sig-name { font-size:15px !important; font-weight:700 !important; }
 
   /* 시그니처 모바일 스택 */
   @media only screen and (max-width:480px) {
@@ -134,7 +137,7 @@
         $photoGap = (int) ($sig['photo_gap'] ?? 16);
         $textGap  = (int) ($sig['text_gap']  ?? 8);
         $textHtml = '';
-        if (!empty($sig['show_name']) && $sig['name']) $textHtml .= '<p style="margin:0 0 ' . $textGap . 'px;font-size:15px;font-weight:700;color:#111827;line-height:1.4;' . $tAlign . '">' . esc_html($sig['name']) . '</p>';
+        if (!empty($sig['show_name']) && $sig['name']) $textHtml .= '<p class="nl-sig-name" style="margin:0 0 ' . $textGap . 'px;font-size:15px;font-weight:700;color:#111827;line-height:1.4;' . $tAlign . '">' . esc_html($sig['name']) . '</p>';
         if (!empty($sig['show_bio'])  && $sig['bio'])  $textHtml .= '<p style="margin:0;font-size:14px;color:#374151;line-height:1.75;' . $tAlign . '">' . $sig['bio'] . '</p>'; // phpcs:ignore
       ?>
       <table width="100%" border="0" cellpadding="0" cellspacing="0" class="nl-sig" style="margin:32px 0 0">
