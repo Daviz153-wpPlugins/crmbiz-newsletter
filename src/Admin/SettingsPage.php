@@ -263,13 +263,10 @@ class SettingsPage {
             <?php endif; ?>
 
             <!-- 레벨 필터 -->
-            <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;padding:0 20px">
+            <div class="crmbiz-log-filters">
                 <?php foreach (['전체' => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
                 <a href="<?php echo esc_url($levelUrl . ($val ? '&log_level=' . $val : '')); ?>"
-                   style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid;
-                          <?php echo $filterLevel === $val
-                              ? 'background:#111827;color:#fff;border-color:#111827'
-                              : 'background:#fff;color:#6b7280;border-color:#e5e7eb'; ?>">
+                   class="crmbiz-nl-filter <?php echo $filterLevel === $val ? 'is-active' : ''; ?>">
                     <?php echo esc_html($label); ?>
                 </a>
                 <?php endforeach; ?>

@@ -1,11 +1,19 @@
 <?php
 namespace CRMBizNewsletter;
 
+use CRMBizNewsletter\Settings;
+
 defined('ABSPATH') || exit;
 
 class RestApi {
 
     private const NAMESPACE = 'crmbiz-nl/v1';
+
+    private Settings $settings;
+
+    public function __construct(Settings $settings) {
+        $this->settings = $settings;
+    }
 
     public function init(): void {
         add_action('rest_api_init', [$this, 'registerRoutes']);
@@ -80,20 +88,24 @@ class RestApi {
         $totalFail    = (int) ($stats->total_fail ?? 0);
         $delivered    = $totalSuccess + $totalFail;
 
+        // sent_at은 current_time('mysql')(WP 로컬)로 저장 — NOW()가 아닌 PHP 로컬 기준으로 범위 계산
+        $nowTs = current_time('timestamp');
+        $since = date('Y-m-d 00:00:00', $nowTs - ($days * DAY_IN_SECONDS));
+
         $daily = $wpdb->get_results($wpdb->prepare(
             "SELECT DATE(sent_at) AS day, SUM(success_count) AS cnt
              FROM {$wpdb->prefix}crmbiz_newsletters
-             WHERE status = 'sent' AND sent_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+             WHERE status = 'sent' AND sent_at >= %s
              GROUP BY DATE(sent_at) ORDER BY day ASC",
-            $days
+            $since
         ));
         $dailyMap = [];
         foreach ($daily as $r) $dailyMap[$r->day] = (int) $r->cnt;
 
         $labels = $counts = [];
         for ($i = $days - 1; $i >= 0; $i--) {
-            $d        = gmdate('Y-m-d', strtotime("-{$i} days"));
-            $labels[] = gmdate('m/d', strtotime($d));
+            $d        = date('Y-m-d', $nowTs - ($i * DAY_IN_SECONDS));
+            $labels[] = date('m/d', strtotime($d));
             $counts[] = $dailyMap[$d] ?? 0;
         }
 
@@ -405,8 +417,7 @@ class RestApi {
             return new \WP_REST_Response(['message' => '발송 불가 상태입니다.'], 400);
         }
 
-        $settings = new Settings();
-        $hasMore  = (new NewsletterSender($settings))->sendFromRecord($id);
+        $hasMore  = (new NewsletterSender($this->settings))->sendFromRecord($id);
         $cronHook = 'crmbiz_nl_send_newsletter';
         if ($hasMore && !Scheduler::isScheduled($cronHook, [$id])) {
             Scheduler::scheduleSingle(time() + 60, $cronHook, [$id]);
@@ -427,8 +438,7 @@ class RestApi {
     }
 
     public function resendNewsletter(\WP_REST_Request $req): \WP_REST_Response {
-        $id       = (int) $req->get_param('id');
-        $settings = new Settings();
+        $id = (int) $req->get_param('id');
         global $wpdb;
 
         $record = $wpdb->get_row($wpdb->prepare(
@@ -437,7 +447,7 @@ class RestApi {
         if (!$record) return new \WP_REST_Response(['message' => '없는 항목입니다.'], 404);
         if (!get_post((int) $record->post_id)) return new \WP_REST_Response(['message' => '포스트를 찾을 수 없습니다.'], 400);
 
-        $newId    = (new NewsletterSender($settings))->createQueuedRecord((int) $record->post_id);
+        $newId = (new NewsletterSender($this->settings))->createQueuedRecord((int) $record->post_id);
         $cronHook = 'crmbiz_nl_send_newsletter';
         Scheduler::scheduleSingle(time(), $cronHook, [$newId]);
 

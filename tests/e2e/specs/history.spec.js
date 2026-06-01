@@ -37,10 +37,9 @@ test.describe('발송 이력', () => {
     await page.fill('input[placeholder*="검색"]', '검색어')
     await page.waitForTimeout(600)
     const clearBtn = page.locator('button:has-text("초기화")')
-    if (await clearBtn.isVisible()) {
-      await clearBtn.click()
-      await expect(page.locator('input[placeholder*="검색"]')).toHaveValue('')
-    }
+    await expect(clearBtn).toBeVisible()
+    await clearBtn.click()
+    await expect(page.locator('input[placeholder*="검색"]')).toHaveValue('')
   })
 
   test('컬럼 정렬 클릭', async ({ page }) => {

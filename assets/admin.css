@@ -1213,3 +1213,5 @@ body.crmbiz-nl-page #wpbody-content {
 
 .crmbiz-toggle-row { transition: all .15s; background: none; border: none; padding: 2px; cursor: pointer; color: var(--cn-light); font-size: 11px; line-height: 1; flex-shrink: 0; }
 .crmbiz-toggle-row.is-open { transform: rotate(90deg); color: var(--cn-blue) !important; }
+
+.crmbiz-log-filters { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; padding: 0 20px; }
