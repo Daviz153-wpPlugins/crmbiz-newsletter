@@ -223,7 +223,16 @@ class SettingsPage {
     // -------------------------------------------------------------------------
 
     private function renderLogsTab(): void {
-        $filterLevel = sanitize_key($_GET['log_level'] ?? '');
+        $filterLevel = strtoupper(sanitize_key($_GET['log_level'] ?? ''));
+        if (!in_array($filterLevel, ['ERROR', 'WARN'], true)) {
+            $filterLevel = '';
+        }
+
+        // 테이블이 없으면 설치 실행 후 재시도
+        if (Database::getVersion() !== Database::DB_VERSION) {
+            Database::install();
+        }
+
         $logs        = Logger::getLogs($filterLevel, 100);
         $cleared     = isset($_GET['cleared']);
         $levelUrl    = admin_url('admin.php?page=crmbiz-nl-settings&tab=logs');
@@ -254,7 +263,7 @@ class SettingsPage {
             <?php endif; ?>
 
             <!-- 레벨 필터 -->
-            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap">
                 <?php foreach (['전체' => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
                 <a href="<?php echo esc_url($levelUrl . ($val ? '&log_level=' . $val : '')); ?>"
                    style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid;
