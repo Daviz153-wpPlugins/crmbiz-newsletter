@@ -75,7 +75,7 @@
 <body style="margin:0;padding:0;background:<?php echo $outerBg; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" class="nl-wrap" style="background:<?php echo $outerBg; ?>;padding:32px 20px">
 <tr><td align="center">
-<table cellpadding="0" cellspacing="0" class="nl-inner" style="width:100%;max-width:<?php echo $contentWidth; ?>px;background:<?php echo $headerBg; ?>;border-radius:8px;overflow:hidden">
+<table cellpadding="0" cellspacing="0" class="nl-inner" style="width:100%;max-width:<?php echo $contentWidth; ?>px;background:#ffffff;border-radius:8px;overflow:hidden">
 
   <!-- 타이틀 / 날짜 / 웹에서 보기 -->
   <tr>
@@ -102,7 +102,7 @@
 
   <!-- 본문 콘텐츠 -->
   <tr>
-    <td class="nl-body" style="padding:24px 32px 36px">
+    <td class="nl-body" style="padding:24px 32px 36px;background:#ffffff">
       <div style="font-size:16px;line-height:1.85;color:#374151">
         <?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </div>
