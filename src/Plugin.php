@@ -152,7 +152,7 @@ class Plugin {
             return;
         }
         if ($this->newsletterRecordExists($postId)) {
-            $this->syncDraftRecord($postId);
+            $this->syncPendingRecord($postId);
             return;
         }
 
@@ -169,14 +169,16 @@ class Plugin {
         );
     }
 
-
-    private function syncDraftRecord(int $postId): void {
+    private function syncPendingRecord(int $postId): void {
         global $wpdb;
-        $tagIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
-        $listIds = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
+        $sendMode = get_post_meta($postId, '_crmbiz_nl_send_mode', true) ?: 'immediate';
+        $tagIds   = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_tag_ids',  true)));
+        $listIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
+        $table    = $wpdb->prefix . 'crmbiz_newsletters';
 
+        // draft 레코드 태그/리스트 동기화 (수동 발송 모드에서 수신자 변경 반영)
         $wpdb->update(
-            $wpdb->prefix . 'crmbiz_newsletters',
+            $table,
             [
                 'tag_ids'    => wp_json_encode(array_values($tagIds)),
                 'list_ids'   => wp_json_encode(array_values($listIds)),
@@ -186,6 +188,54 @@ class Plugin {
             ['%s', '%s', '%s'],
             ['%d', '%s']
         );
+
+        // queued/scheduled 레코드의 예약 상태 재동기화
+        // ① Gutenberg 경쟁 조건: transition_post_status가 save_post보다 먼저 실행되어
+        //    이전 send_mode(immediate)로 queued 레코드가 생성된 경우 → scheduled로 교정
+        // ② 발행 후 예약 시각 변경: MetaBox가 DB는 갱신하지만 Scheduler 이벤트는 재등록 안 함
+        $record = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, status FROM {$table}
+             WHERE post_id = %d AND status IN ('queued','scheduled')
+             ORDER BY created_at DESC LIMIT 1",
+            $postId
+        ));
+        if (!$record) {
+            return;
+        }
+
+        $nlId = (int) $record->id;
+
+        if ($sendMode === 'scheduled') {
+            $schedAt   = (string) get_post_meta($postId, '_crmbiz_nl_scheduled_at', true);
+            $timestamp = $this->parseScheduledAt($schedAt);
+            if ($timestamp > 0) {
+                // 기존 Scheduler 이벤트(이전 시각 또는 즉시 발송)를 취소하고 올바른 시각에 재등록
+                Scheduler::unschedule(self::CRON_HOOK, [$nlId]);
+                $wpdb->update(
+                    $table,
+                    ['status' => 'scheduled', 'scheduled_at' => $schedAt, 'updated_at' => current_time('mysql')],
+                    ['id' => $nlId],
+                    ['%s', '%s', '%s'],
+                    ['%d']
+                );
+                Scheduler::scheduleSingle($timestamp, self::CRON_HOOK, [$nlId]);
+                Logger::info('예약 발송 동기화', ['post_id' => $postId, 'nl_id' => $nlId, 'sched_at' => $schedAt]);
+            }
+        } elseif ($record->status === 'scheduled') {
+            // scheduled → immediate/manual 전환: Scheduler 이벤트 취소
+            Scheduler::unschedule(self::CRON_HOOK, [$nlId]);
+            if ($sendMode === 'immediate') {
+                $wpdb->update(
+                    $table,
+                    ['status' => 'queued', 'scheduled_at' => null, 'updated_at' => current_time('mysql')],
+                    ['id' => $nlId],
+                    ['%s', '%s', '%s'],
+                    ['%d']
+                );
+                Scheduler::scheduleSingle(time(), self::CRON_HOOK, [$nlId]);
+                Logger::info('예약 → 즉시 발송 전환', ['post_id' => $postId, 'nl_id' => $nlId]);
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

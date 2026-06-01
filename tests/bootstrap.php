@@ -94,10 +94,72 @@ function current_time(string $type, bool $gmt = false): string {
     return date('Y-m-d H:i:s');
 }
 
+function add_action(string $hook, $callback, int $priority = 10, int $args = 1): void {}
+function add_filter(string $hook, $callback, int $priority = 10, int $args = 1): void {}
+function is_admin(): bool { return false; }
+function wp_next_scheduled(string $hook, array $args = []): false { return false; }
+function wp_schedule_event(): void {}
+function wp_schedule_single_event(): void {}
+function wp_clear_scheduled_hook(string $hook, array $args = []): void {}
+function wp_timezone_string(): string { return 'Asia/Seoul'; }
+function wp_json_encode($data, int $flags = 0): string { return (string) json_encode($data, $flags); }
+function wp_is_post_revision(int $postId): false { return false; }
+function wp_verify_nonce($nonce, $action = -1): int { return 1; }
+function current_user_can(string $capability): bool { return true; }
+function check_ajax_referer(string $action, $query_arg = false, bool $die = true): int { return 1; }
+
+function get_post(int $postId): ?object {
+    return $GLOBALS['_wp_posts'][$postId] ?? null;
+}
+function get_post_status(int $postId): string {
+    return $GLOBALS['_wp_posts'][$postId]->post_status ?? 'draft';
+}
+
+$GLOBALS['_wp_post_meta'] = [];
+function get_post_meta(int $postId, string $key, bool $single = false) {
+    $val = $GLOBALS['_wp_post_meta'][$postId][$key] ?? null;
+    if ($single) {
+        return $val ?? '';
+    }
+    return $val !== null ? [$val] : [];
+}
+function update_post_meta(int $postId, string $key, $value): void {
+    $GLOBALS['_wp_post_meta'][$postId][$key] = $value;
+}
+function delete_post_meta(int $postId, string $key): void {
+    unset($GLOBALS['_wp_post_meta'][$postId][$key]);
+}
+
+// Action Scheduler 스텁 — ScheduleDispatchTest에서 예약 흐름 검증용
+$GLOBALS['_as_actions'] = [];
+
+function as_schedule_single_action(int $ts, string $hook, array $args = [], string $group = ''): int {
+    $id = count($GLOBALS['_as_actions']) + 1;
+    $GLOBALS['_as_actions'][] = ['id' => $id, 'ts' => $ts, 'hook' => $hook, 'args' => $args, 'group' => $group];
+    return $id;
+}
+
+function as_unschedule_all_actions(string $hook, array $args = [], string $group = ''): void {
+    $GLOBALS['_as_actions'] = array_values(array_filter(
+        $GLOBALS['_as_actions'],
+        fn($a) => !($a['hook'] === $hook && $a['args'] === $args && $a['group'] === $group)
+    ));
+}
+
+function as_next_scheduled_action(string $hook, array $args = [], string $group = ''): int|false {
+    foreach ($GLOBALS['_as_actions'] as $a) {
+        if ($a['hook'] === $hook && $a['args'] === $args && $a['group'] === $group) {
+            return $a['ts'];
+        }
+    }
+    return false;
+}
+
 // -----------------------------------------------------------------------
-// $wpdb 인메모리 스텁 (rate limit 등 DB 직접 접근용)
+// $wpdb 인메모리 스텁
 // -----------------------------------------------------------------------
-$GLOBALS['_wpdb_ratelimit'] = []; // rl_key => ['count'=>int, 'expires_at'=>int]
+$GLOBALS['_wpdb_ratelimit'] = [];
+$GLOBALS['_wpdb_newsletters'] = []; // id => row array
 
 class WpdbStub {
     public string $prefix = 'wp_';
@@ -109,15 +171,67 @@ class WpdbStub {
         $i = 0;
         return preg_replace_callback('/%([sd])/', function($m) use (&$i, $args) {
             $val = (string) ($args[$i++] ?? '');
-            // %s → 'value' (문자열), %d → 숫자 (따옴표 없음)
             return $m[1] === 's' ? "'" . addslashes($val) . "'" : (int) $val;
         }, $sql);
     }
 
+    public function get_var(string $sql): ?string {
+        if (strpos($sql, 'LAST_INSERT_ID()') !== false) {
+            return (string) $this->last_insert_id;
+        }
+        // SELECT id FROM wp_crmbiz_newsletters WHERE post_id = N LIMIT 1
+        if (preg_match('/SELECT id FROM \S+crmbiz_newsletters WHERE post_id = (\d+)/i', $sql, $m)) {
+            foreach ($GLOBALS['_wpdb_newsletters'] as $row) {
+                if ((int)$row['post_id'] === (int)$m[1]) {
+                    return (string) $row['id'];
+                }
+            }
+            return null;
+        }
+        return null;
+    }
+
+    public function get_row(string $sql): ?object {
+        // SELECT id, status FROM wp_crmbiz_newsletters WHERE post_id = N AND status IN (...)
+        if (preg_match("/post_id = (\d+) AND status IN \(([^)]+)\)/i", $sql, $m)) {
+            $postId   = (int) $m[1];
+            $statuses = array_map(fn($s) => trim($s, " '\""), explode(',', $m[2]));
+            foreach (array_reverse($GLOBALS['_wpdb_newsletters']) as $row) {
+                if ((int)$row['post_id'] === $postId && in_array($row['status'], $statuses, true)) {
+                    return (object) $row;
+                }
+            }
+        }
+        return null;
+    }
+
+    public function update(string $table, array $data, array $where, array $dataFormats = [], array $whereFormats = []): int {
+        foreach ($GLOBALS['_wpdb_newsletters'] as &$row) {
+            $match = true;
+            foreach ($where as $col => $val) {
+                if (($row[$col] ?? null) != $val) { $match = false; break; }
+            }
+            if ($match) {
+                foreach ($data as $col => $val) {
+                    $row[$col] = $val;
+                }
+            }
+        }
+        unset($row);
+        return 1;
+    }
+
+    public function insert(string $table, array $data, array $formats = []): int {
+        $id = count($GLOBALS['_wpdb_newsletters']) + 1;
+        $data['id'] = $id;
+        $GLOBALS['_wpdb_newsletters'][] = $data;
+        $this->last_insert_id = $id;
+        return 1;
+    }
+
     public function query(string $sql): void {
-        // INSERT ... ON DUPLICATE KEY UPDATE 패턴 파싱 (rate limit용)
         if (preg_match('/INSERT INTO \S+crmbiz_nl_ratelimit.*VALUES \(\'([^\']+)\'/s', $sql, $m)) {
-            $key = $m[1];
+            $key   = $m[1];
             $store = &$GLOBALS['_wpdb_ratelimit'];
             $now   = time();
             if (!isset($store[$key]) || $store[$key]['expires_at'] < $now) {
@@ -127,15 +241,7 @@ class WpdbStub {
                 $store[$key]['count']++;
                 $this->last_insert_id = $store[$key]['count'];
             }
-            $this->rows_affected = 1;
         }
-    }
-
-    public function get_var(string $sql): ?string {
-        if (strpos($sql, 'LAST_INSERT_ID()') !== false) {
-            return (string) $this->last_insert_id;
-        }
-        return null;
     }
 }
 
