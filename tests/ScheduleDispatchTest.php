@@ -70,6 +70,16 @@ class ScheduleDispatchTest extends TestCase {
 
     // ── 테스트 데이터 헬퍼 ───────────────────────────────────────────────
 
+    /**
+     * Seoul 기준 미래 datetime-local 문자열 생성.
+     * parseScheduledAt()이 wp_timezone()(= Asia/Seoul)로 해석하므로,
+     * CI 서버 시간대(UTC)와 무관하게 항상 미래를 가리켜야 한다.
+     */
+    private function futureSeoul(int $secondsAhead = 7200): string {
+        $seoul = new \DateTimeZone('Asia/Seoul');
+        return (new \DateTime('+' . $secondsAhead . ' seconds', $seoul))->format('Y-m-d\TH:i');
+    }
+
     private function makePost(int $id, string $status = 'publish'): void {
         $GLOBALS['_wp_posts'][$id] = (object)[
             'ID'          => $id,
@@ -168,7 +178,7 @@ class ScheduleDispatchTest extends TestCase {
     public function testBug1_GutenbergRace_QueuesToScheduled(): void {
         $postId  = 10;
         $nlId    = 1;
-        $future  = date('Y-m-d\TH:i', time() + 7200);
+        $future  = $this->futureSeoul(7200);
 
         $this->makePost($postId);
 
@@ -200,7 +210,7 @@ class ScheduleDispatchTest extends TestCase {
      */
     public function testBug1_NoExistingRecord_SyncSkipped(): void {
         $postId = 20;
-        $future = date('Y-m-d\TH:i', time() + 7200);
+        $future = $this->futureSeoul(7200);
 
         $this->makePost($postId);
         $this->setMeta($postId, 'scheduled', $future);
@@ -228,8 +238,8 @@ class ScheduleDispatchTest extends TestCase {
     public function testBug2_ScheduleChange_ReschedulesAction(): void {
         $postId = 30;
         $nlId   = 2;
-        $t1     = date('Y-m-d\TH:i', time() + 3600);
-        $t2     = date('Y-m-d\TH:i', time() + 86400);
+        $t1     = $this->futureSeoul(3600);
+        $t2     = $this->futureSeoul(86400);
 
         $this->makePost($postId);
 
@@ -262,7 +272,7 @@ class ScheduleDispatchTest extends TestCase {
     public function testScheduledToImmediate_UnschedulesAndQueues(): void {
         $postId = 40;
         $nlId   = 3;
-        $future = date('Y-m-d\TH:i', time() + 3600);
+        $future = $this->futureSeoul(3600);
 
         $this->makePost($postId);
         $this->insertNlRecord($postId, 'scheduled', $nlId, $future);
@@ -289,7 +299,7 @@ class ScheduleDispatchTest extends TestCase {
     public function testPastScheduledAt_DoesNotReschedule(): void {
         $postId = 50;
         $nlId   = 4;
-        $past   = date('Y-m-d\TH:i', time() - 3600);
+        $past   = (new \DateTime('-1 hour', new \DateTimeZone('Asia/Seoul')))->format('Y-m-d\TH:i');
 
         $this->makePost($postId);
         $this->insertNlRecord($postId, 'queued', $nlId);
