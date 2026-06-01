@@ -163,7 +163,8 @@ trait SettingsSignatureTrait {
         jQuery(function($){
             var vpWidths = { laptop: '640px', tablet: '480px', mobile: '320px' };
 
-            $('.crmbiz-vp-btn').on('click', function(){
+            // ── 뷰포트 버튼 ───────────────────────────────────────────────────
+            $(document).on('click', '.crmbiz-vp-btn', function(){
                 var vp = $(this).data('vp');
                 $('.crmbiz-vp-btn').removeClass('active');
                 $(this).addClass('active');
@@ -173,21 +174,18 @@ trait SettingsSignatureTrait {
                     .css('max-width', vpWidths[vp]);
             });
 
-            $('#crmbiz-upload-sig-photo').on('click', function(e){
+            // ── 사진 업로드 ───────────────────────────────────────────────────
+            $(document).on('click', '#crmbiz-upload-sig-photo', function(e){
                 e.preventDefault();
                 var frame = wp.media({ title: '프로필 사진 선택', button: { text: '선택' }, multiple: false });
                 frame.on('select', function(){
                     var url = frame.state().get('selection').first().toJSON().url;
-                    $('#sig_photo_url').val(url);
-                    $('#crmbiz-sig-photo-preview').attr('src', url);
-                    $('#crmbiz-sig-photo-wrap').show();
-                    $('#crmbiz-preview-img').attr('src', url);
-                    $('#crmbiz-preview-photo-wrap').show();
+                    $('#sig_photo_url').val(url).trigger('input');
                 });
                 frame.open();
             });
 
-            $('#sig_photo_url').on('input', function(){
+            $(document).on('input', '#sig_photo_url', function(){
                 var url = $(this).val();
                 if (url) {
                     $('#crmbiz-sig-photo-preview').attr('src', url);
@@ -199,20 +197,32 @@ trait SettingsSignatureTrait {
                 }
             });
 
-            $('#sig_show_name').on('change', function(){
+            // ── 시그니처 전체 활성화 토글 ────────────────────────────────────
+            $(document).on('change', '#sig_enabled', function(){
+                $('#crmbiz-sig-preview-box').css('opacity', $(this).is(':checked') ? 1 : 0.35);
+            });
+
+            // ── 이름 표시 ─────────────────────────────────────────────────────
+            $(document).on('change', '#sig_show_name', function(){
                 var show = $(this).is(':checked');
                 $('#sig_name').css('opacity', show ? 1 : 0.4);
                 $('#crmbiz-preview-name').toggle(show);
             });
-            $('#sig_name').on('input', function(){ $('#crmbiz-preview-name').text($(this).val()); });
+            $(document).on('input', '#sig_name', function(){
+                $('#crmbiz-preview-name').text($(this).val());
+            });
 
-            $('#sig_show_bio').on('change', function(){
+            // ── 소개 문구 ─────────────────────────────────────────────────────
+            $(document).on('change', '#sig_show_bio', function(){
                 var show = $(this).is(':checked');
                 $('#sig_bio').css('opacity', show ? 1 : 0.4);
                 $('#crmbiz-preview-bio').toggle(show);
             });
-            $('#sig_bio').on('input', function(){ $('#crmbiz-preview-bio').html($(this).val()); });
+            $(document).on('input', '#sig_bio', function(){
+                $('#crmbiz-preview-bio').html($(this).val());
+            });
 
+            // ── 색상 피커 (테두리 / 배경) ─────────────────────────────────────
             function hexToRgba(hex, opacity) {
                 var r = parseInt(hex.slice(1,3), 16);
                 var g = parseInt(hex.slice(3,5), 16);
@@ -234,11 +244,13 @@ trait SettingsSignatureTrait {
                 }
             });
 
-            $('input[name="sig_photo_position"]').on('change', function(){
+            // ── 사진 위치 ─────────────────────────────────────────────────────
+            $(document).on('change', 'input[name="sig_photo_position"]', function(){
                 $('#crmbiz-sig-preview-box').removeClass('pos-left pos-top pos-right').addClass('pos-' + $(this).val());
                 updateGapPreview();
             });
 
+            // ── 간격 슬라이더 ─────────────────────────────────────────────────
             function updateGapPreview() {
                 var gap = $('#sig_photo_gap').val() + 'px';
                 var pos = $('input[name="sig_photo_position"]:checked').val() || 'top';
@@ -248,11 +260,11 @@ trait SettingsSignatureTrait {
                 else if (pos === 'left')  $wrap.css('padding-right',  gap);
                 else if (pos === 'right') $wrap.css('padding-left',   gap);
             }
-            $('#sig_photo_gap').on('input', function(){
+            $(document).on('input', '#sig_photo_gap', function(){
                 $('#crmbiz-photo-gap-val').text($(this).val() + 'px');
                 updateGapPreview();
             });
-            $('#sig_text_gap').on('input', function(){
+            $(document).on('input', '#sig_text_gap', function(){
                 $('#crmbiz-text-gap-val').text($(this).val() + 'px');
                 $('#crmbiz-preview-name').css('margin-bottom', $(this).val() + 'px');
             });
