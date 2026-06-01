@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const HISTORY = '/wp-admin/admin.php?page=crmbiz-nl-history'
+const HISTORY = 'wp-admin/admin.php?page=crmbiz-nl-history'
 
 test.describe('발송 이력', () => {
 

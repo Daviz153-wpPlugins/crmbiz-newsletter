@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const SETTINGS_CUSTOM = '/wp-admin/admin.php?page=crmbiz-nl-settings&tab=customize'
+const SETTINGS_CUSTOM = 'wp-admin/admin.php?page=crmbiz-nl-settings&tab=customize'
 
 test.describe('이메일 템플릿', () => {
 

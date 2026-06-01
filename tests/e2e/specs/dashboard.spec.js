@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const DASHBOARD = '/wp-admin/admin.php?page=crmbiz-newsletter'
+const DASHBOARD = 'wp-admin/admin.php?page=crmbiz-newsletter'
 
 test.describe('대시보드', () => {
 
