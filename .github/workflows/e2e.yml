@@ -82,6 +82,9 @@ jobs:
           wp core install --url=http://localhost:8080 --title="CI Test" \
             --admin_user=admin --admin_password=password \
             --admin_email=test@example.com --quiet
+          # REST API(/wp-json/...)가 동작하려면 퍼머링크 활성화 필요
+          wp rewrite structure '/%postname%/' --hard --path=/tmp/wordpress
+          wp rewrite flush --hard --path=/tmp/wordpress
 
       - name: Install plugins
         run: |
