@@ -379,8 +379,8 @@ class Plugin {
             "DELETE FROM {$wpdb->prefix}crmbiz_nl_events WHERE occurred_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             self::RETAIN_DAYS
         ));
-        // 만료된 rate limit 행 정리
         $wpdb->query("DELETE FROM {$wpdb->prefix}crmbiz_nl_ratelimit WHERE expires_at < NOW()");
+        Logger::cleanup(); // 시스템 로그 7일 보관
     }
 
     // -------------------------------------------------------------------------

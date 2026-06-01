@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.9.0';
+    const DB_VERSION = '2.0.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -106,6 +106,17 @@ class Database {
   KEY        idx_email      (email)
 ) $charset;");
 
+        dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_logs (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  level       VARCHAR(10)     NOT NULL,
+  message     VARCHAR(500)    NOT NULL,
+  context     TEXT            NULL,
+  occurred_at DATETIME        NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_level       (level),
+  KEY idx_occurred_at (occurred_at)
+) $charset;");
+
         // 1.3.0 마이그레이션: 미사용 error_log 컬럼 제거
         if (version_compare(self::getVersion(), '1.3.0', '<')) {
             $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
@@ -151,6 +162,8 @@ class Database {
                 $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_events ADD KEY idx_nl_type (newsletter_id, type)");
             }
         }
+
+        // 2.0.0: crmbiz_nl_logs 시스템 로그 테이블 추가 (dbDelta가 처리)
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

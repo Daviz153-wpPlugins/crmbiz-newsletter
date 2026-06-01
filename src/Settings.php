@@ -30,7 +30,8 @@ class Settings {
             $this->data['from_email']   = sanitize_email($post['from_email']       ?? '');
             $this->data['dry_run']      = isset($post['dry_run'])    ? 1 : 0;
             $this->data['debug_mode']   = isset($post['debug_mode']) ? 1 : 0;
-            $this->data['notify_email'] = sanitize_email($post['notify_email'] ?? '');
+            $this->data['notify_email']        = sanitize_email($post['notify_email'] ?? '');
+            $this->data['disable_error_email'] = isset($post['disable_error_email']) ? 1 : 0;
         } elseif ($tab === 'customize') {
             // 스타일
             $this->data['style_outer_bg']      = sanitize_hex_color($post['style_outer_bg']     ?? '') ?: '#f3f4f6';

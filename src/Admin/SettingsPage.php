@@ -4,6 +4,7 @@ namespace CRMBizNewsletter\Admin;
 use CRMBizNewsletter\Settings;
 use CRMBizNewsletter\FluentCRMBridge;
 use CRMBizNewsletter\Database;
+use CRMBizNewsletter\Logger;
 
 defined('ABSPATH') || exit;
 
@@ -20,6 +21,16 @@ class SettingsPage {
     public function render(): void {
         if (!current_user_can('manage_options')) {
             wp_die('권한이 없습니다.');
+        }
+
+        // 로그 지우기 처리
+        if (
+            isset($_POST['crmbiz_nl_clear_logs_nonce']) &&
+            wp_verify_nonce($_POST['crmbiz_nl_clear_logs_nonce'], 'crmbiz_nl_clear_logs')
+        ) {
+            Logger::clearLogs();
+            wp_redirect(admin_url('admin.php?page=crmbiz-nl-settings&tab=logs&cleared=1'));
+            exit;
         }
 
         $activeTab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
@@ -53,12 +64,16 @@ class SettingsPage {
                    class="crmbiz-settings-tab <?php echo $activeTab === 'general'   ? 'is-active' : ''; ?>">기본 설정</a>
                 <a href="<?php echo esc_url($tabUrl . 'customize'); ?>"
                    class="crmbiz-settings-tab <?php echo $activeTab === 'customize' ? 'is-active' : ''; ?>">이메일 커스터마이징</a>
+                <a href="<?php echo esc_url($tabUrl . 'logs'); ?>"
+                   class="crmbiz-settings-tab <?php echo $activeTab === 'logs'      ? 'is-active' : ''; ?>">시스템 로그</a>
             </div>
 
             <?php if ($activeTab === 'general'): ?>
                 <?php $this->renderGeneralTab(); ?>
             <?php elseif ($activeTab === 'customize'): ?>
                 <?php $this->renderCustomizeTab(); ?>
+            <?php elseif ($activeTab === 'logs'): ?>
+                <?php $this->renderLogsTab(); ?>
             <?php endif; ?>
 
         </div><!-- /crmbiz-admin-page -->
@@ -71,11 +86,12 @@ class SettingsPage {
     // -------------------------------------------------------------------------
 
     private function renderGeneralTab(): void {
-        $fromName     = esc_attr($this->settings->get('from_name', ''));
-        $fromEmail    = esc_attr($this->settings->get('from_email', ''));
-        $isDryRun     = $this->settings->isDryRun();
-        $isDebug      = $this->settings->isDebugMode();
-        $defaultEmail = esc_attr(wp_get_current_user()->user_email ?? '');
+        $fromName        = esc_attr($this->settings->get('from_name', ''));
+        $fromEmail       = esc_attr($this->settings->get('from_email', ''));
+        $isDryRun        = $this->settings->isDryRun();
+        $isDebug         = $this->settings->isDebugMode();
+        $disableErrEmail = (bool) $this->settings->get('disable_error_email', false);
+        $defaultEmail    = esc_attr(wp_get_current_user()->user_email ?? '');
         ?>
         <form method="post">
             <?php wp_nonce_field('crmbiz_nl_settings_save', 'crmbiz_nl_settings_nonce'); ?>
@@ -158,6 +174,16 @@ class SettingsPage {
                             <p class="crmbiz-settings-hint">비워두면 WordPress 관리자 이메일로 발송됩니다.</p>
                         </div>
                     </div>
+                    <div class="crmbiz-toggle-row">
+                        <div class="crmbiz-toggle-info">
+                            <h4>오류 이메일 알림 비활성화</h4>
+                            <p>ERROR 발생 시 관리자 이메일 알림을 끕니다. (기본: 알림 활성화, 동일 오류 1시간 1회)</p>
+                        </div>
+                        <label class="crmbiz-toggle-switch">
+                            <input type="checkbox" name="disable_error_email" value="1" <?php checked($disableErrEmail); ?>>
+                            <span class="crmbiz-toggle-track"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -189,6 +215,96 @@ class SettingsPage {
             </div>
         </div>
         <div id="crmbiz-test-result" class="crmbiz-test-result"></div>
+        <?php
+    }
+
+    // -------------------------------------------------------------------------
+    // 시스템 로그 탭
+    // -------------------------------------------------------------------------
+
+    private function renderLogsTab(): void {
+        $filterLevel = sanitize_key($_GET['log_level'] ?? '');
+        $logs        = Logger::getLogs($filterLevel, 100);
+        $cleared     = isset($_GET['cleared']);
+        $levelUrl    = admin_url('admin.php?page=crmbiz-nl-settings&tab=logs');
+
+        $levelColors = [
+            'ERROR' => 'color:#dc2626;background:#fef2f2',
+            'WARN'  => 'color:#d97706;background:#fffbeb',
+            'INFO'  => 'color:#2563eb;background:#eff6ff',
+        ];
+        ?>
+        <div class="crmbiz-settings-section">
+            <div class="crmbiz-settings-section-head" style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                    <h3>시스템 로그</h3>
+                    <p>최근 7일간 ERROR / WARNING 기록. 최대 100건 표시.</p>
+                </div>
+                <form method="post">
+                    <?php wp_nonce_field('crmbiz_nl_clear_logs', 'crmbiz_nl_clear_logs_nonce'); ?>
+                    <button type="submit" class="crmbiz-btn crmbiz-btn--secondary" style="font-size:12px"
+                            onclick="return confirm('모든 로그를 삭제할까요?')">
+                        로그 지우기
+                    </button>
+                </form>
+            </div>
+
+            <?php if ($cleared): ?>
+                <div class="crmbiz-settings-notice crmbiz-settings-notice--success">✓ 로그가 삭제되었습니다.</div>
+            <?php endif; ?>
+
+            <!-- 레벨 필터 -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                <?php foreach (['전체' => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
+                <a href="<?php echo esc_url($levelUrl . ($val ? '&log_level=' . $val : '')); ?>"
+                   style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid;
+                          <?php echo $filterLevel === $val
+                              ? 'background:#111827;color:#fff;border-color:#111827'
+                              : 'background:#fff;color:#6b7280;border-color:#e5e7eb'; ?>">
+                    <?php echo esc_html($label); ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if (empty($logs)): ?>
+                <div class="crmbiz-empty" style="padding:40px 0;text-align:center;color:#9ca3af">
+                    <p style="font-size:32px;margin-bottom:8px">✅</p>
+                    <p>기록된 오류/경고가 없습니다.</p>
+                </div>
+            <?php else: ?>
+            <div class="crmbiz-card" style="overflow:auto">
+                <table class="crmbiz-table" style="font-size:12px">
+                    <thead>
+                        <tr>
+                            <th style="width:70px">레벨</th>
+                            <th style="width:140px">발생 시각</th>
+                            <th>메시지</th>
+                            <th style="width:35%">컨텍스트</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($logs as $log):
+                            $lvl     = esc_html($log['level'] ?? '');
+                            $style   = $levelColors[$log['level'] ?? ''] ?? '';
+                            $ctx     = $log['context'] ? json_decode($log['context'], true) : [];
+                            $ctxStr  = $ctx ? esc_html(wp_json_encode($ctx, JSON_UNESCAPED_UNICODE)) : '—';
+                        ?>
+                        <tr>
+                            <td>
+                                <span style="<?php echo esc_attr($style); ?>;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px">
+                                    <?php echo $lvl; ?>
+                                </span>
+                            </td>
+                            <td style="color:#6b7280;white-space:nowrap"><?php echo esc_html($log['occurred_at']); ?></td>
+                            <td style="color:#111827"><?php echo esc_html($log['message']); ?></td>
+                            <td style="color:#6b7280;word-break:break-all;max-width:300px"><?php echo $ctxStr; ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
         <?php
     }
 
