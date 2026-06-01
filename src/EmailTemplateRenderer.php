@@ -26,9 +26,9 @@ class EmailTemplateRenderer {
         $content = $this->inlineStylesForEmail($content);
 
         // h2 / h3 / p 인라인 폰트 강제 (Gmail 모바일 CSS 무시 대응)
-        $content = preg_replace('/<h2(\s)/i', '<h2 style="font-size:22px;font-weight:700;color:#111827;line-height:1.4;margin:32px 0 12px"$1', $content);
-        $content = preg_replace('/<h3(\s)/i', '<h3 style="font-size:20px;font-weight:600;color:#111827;line-height:1.4;margin:24px 0 10px"$1', $content);
-        $content = preg_replace('/<p(\s)/i',  '<p style="font-size:18px;line-height:1.85;margin:0 0 20px;color:#374151"$1', $content);
+        $content = preg_replace('/<h2(\s)/i', '<h2 style="font-size:28px;font-weight:700;color:#111827;line-height:1.3;margin:36px 0 14px"$1', $content);
+        $content = preg_replace('/<h3(\s)/i', '<h3 style="font-size:22px;font-weight:600;color:#111827;line-height:1.4;margin:28px 0 10px"$1', $content);
+        $content = preg_replace('/<p(\s)/i',  '<p style="font-size:16px;line-height:1.85;margin:0 0 20px;color:#374151"$1', $content);
 
         $unsubscribeUrl = UnsubscribeHandler::buildUnsubscribeUrl($subscriber->email, $newsletterId);
         $recentPosts    = $this->getRecentNewsletters(3, $post->ID);

@@ -25,9 +25,9 @@
   .nl-body table th { background:#f3f4f6 !important; font-weight:600 !important; color:#111827 !important; }
 
   /* 단락·목록 간격 */
-  .nl-body p  { margin:0 0 20px !important; font-size:18px !important; line-height:1.85 !important; }
-  .nl-body h2 { margin:32px 0 12px !important; font-size:22px !important; font-weight:700 !important; color:#111827 !important; line-height:1.4 !important; }
-  .nl-body h3 { margin:24px 0 10px !important; font-size:20px !important; font-weight:600 !important; color:#111827 !important; line-height:1.4 !important; }
+  .nl-body p  { margin:0 0 20px !important; font-size:16px !important; line-height:1.85 !important; }
+  .nl-body h2 { margin:36px 0 14px !important; font-size:28px !important; font-weight:700 !important; color:#111827 !important; line-height:1.3 !important; }
+  .nl-body h3 { margin:28px 0 10px !important; font-size:22px !important; font-weight:600 !important; color:#111827 !important; line-height:1.4 !important; }
   .nl-body ul,
   .nl-body ol { margin:0 0 20px !important; padding-left:24px !important; }
   .nl-body li { line-height:1.8 !important; margin-bottom:8px !important; }

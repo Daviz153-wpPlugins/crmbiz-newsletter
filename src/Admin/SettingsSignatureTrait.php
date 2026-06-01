@@ -123,27 +123,20 @@ trait SettingsSignatureTrait {
         $initBorderColor = self::hexToRgba($sig['border_color'], $sig['border_opacity']);
         ?>
         <style>
-        #crmbiz-preview-viewport { transition: max-width 0.3s ease; overflow:hidden; width:100%; max-width:640px; }
+        #crmbiz-preview-viewport { overflow:hidden; width:100%; }
         #crmbiz-sig-preview-box { border-radius:12px; padding:20px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:20px; border:none !important; box-shadow:none !important; outline:none !important; }
         #crmbiz-sig-preview-box > div { border:none !important; box-shadow:none !important; outline:none !important; }
         #crmbiz-preview-img { border-radius:50% !important; }
         #crmbiz-sig-preview-box.pos-top { flex-direction:column; align-items:center; text-align:center; }
         #crmbiz-sig-preview-box.pos-right { flex-direction:row-reverse; }
-        #crmbiz-preview-viewport.vp-tablet #crmbiz-sig-preview-box,
-        #crmbiz-preview-viewport.vp-mobile #crmbiz-sig-preview-box { flex-direction:column !important; align-items:center !important; text-align:center !important; }
-        .crmbiz-vp-btn { cursor:pointer; padding:4px 12px; border-radius:4px; font-size:13px; border:1px solid #c3c4c7; background:#fff; }
-        .crmbiz-vp-btn.active { background:#2271b1; color:#fff; border-color:#2271b1; }
         </style>
 
         <hr class="crmbiz-settings-hr">
         <div class="crmbiz-preview-header">
             <h3>시그니처 미리보기</h3>
-            <button type="button" class="crmbiz-vp-btn active" data-vp="laptop">💻 랩탑</button>
-            <button type="button" class="crmbiz-vp-btn" data-vp="tablet">📱 태블릿</button>
-            <button type="button" class="crmbiz-vp-btn" data-vp="mobile">📲 모바일</button>
         </div>
 
-        <div id="crmbiz-preview-viewport" class="crmbiz-preview-viewport vp-laptop">
+        <div id="crmbiz-preview-viewport" class="crmbiz-preview-viewport">
             <div id="crmbiz-sig-preview-box"
                  class="pos-<?php echo esc_attr($sig['photo_position']); ?>"
                  style="background:<?php echo esc_attr($initBg); ?>">
@@ -161,18 +154,6 @@ trait SettingsSignatureTrait {
 
         <script>
         jQuery(function($){
-            var vpWidths = { laptop: '640px', tablet: '480px', mobile: '320px' };
-
-            // ── 뷰포트 버튼 ───────────────────────────────────────────────────
-            $(document).on('click', '.crmbiz-vp-btn', function(){
-                var vp = $(this).data('vp');
-                $('.crmbiz-vp-btn').removeClass('active');
-                $(this).addClass('active');
-                $('#crmbiz-preview-viewport')
-                    .removeClass('vp-laptop vp-tablet vp-mobile')
-                    .addClass('vp-' + vp)
-                    .css('max-width', vpWidths[vp]);
-            });
 
             // ── 사진 업로드 ───────────────────────────────────────────────────
             $(document).on('click', '#crmbiz-upload-sig-photo', function(e){
