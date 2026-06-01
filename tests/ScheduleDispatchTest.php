@@ -57,12 +57,10 @@ class ScheduleDispatchTest extends TestCase {
 
         // 싱글톤 프로퍼티도 이 인스턴스로 덮어씀 (필요시)
         $instProp = $ref->getProperty('instance');
-        $instProp->setAccessible(true);
         $instProp->setValue(null, $plugin);
 
         // settings 주입
         $settingsProp = $ref->getProperty('settings');
-        $settingsProp->setAccessible(true);
         $settingsProp->setValue($plugin, new Settings());
 
         return $plugin;

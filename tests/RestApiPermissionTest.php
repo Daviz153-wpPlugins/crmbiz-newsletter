@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use CRMBizNewsletter\RestApi;
+use CRMBizNewsletter\Settings;
 
 /**
  * RestApi 권한 검증 + 입력 파라미터 화이트리스트 테스트
@@ -13,7 +14,7 @@ class RestApiPermissionTest extends TestCase {
 
     protected function setUp(): void {
         $GLOBALS['_wp_user_can'] = true;
-        $this->api = new RestApi();
+        $this->api = new RestApi(new Settings());
     }
 
     protected function tearDown(): void {

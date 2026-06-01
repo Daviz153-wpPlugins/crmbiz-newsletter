@@ -177,6 +177,7 @@ class WpdbStub {
     public string $prefix = 'wp_';
     public string $options = 'wp_options';
     public int $rows_affected = 0;
+    public int $insert_id = 0;
     private int $last_insert_id = 0;
 
     public function prepare(string $sql, ...$args): string {
@@ -279,6 +280,7 @@ class WpdbStub {
         $data['id'] = $id;
         $GLOBALS['_wpdb_newsletters'][] = $data;
         $this->last_insert_id = $id;
+        $this->insert_id      = $id;
         return 1;
     }
 
