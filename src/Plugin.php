@@ -32,6 +32,13 @@ class Plugin {
     }
 
     private function registerHooks(): void {
+        // AS가 활성화된 경우 HTTP Loopback Async Runner 활성화
+        // — WP Cron 트리거 없이도 새 액션 예약 시 즉시 큐 처리
+        if (function_exists('as_schedule_single_action')) {
+            add_filter('action_scheduler_run_async', '__return_true');
+            add_filter('action_scheduler_queue_runner_time_limit', fn() => 30);
+        }
+
         (new UnsubscribeHandler())->init();
         (new TrackingHandler())->init();
         (new RestApi())->init();

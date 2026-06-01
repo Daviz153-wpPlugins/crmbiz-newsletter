@@ -8,6 +8,8 @@ class UnsubscribeHandler {
     public function init(): void {
         add_action('template_redirect', [$this, 'handleUnsubscribeRequest']);
         add_action('fluentcrm_subscriber_status_to_subscribed',  [$this, 'removeOnResubscribe'], 10, 2);
+        add_action('fluentcrm_subscriber_status_to_bounced',     [$this, 'handleBounce']);
+        add_action('fluentcrm_subscriber_status_to_complained',  [$this, 'handleBounce']);
     }
 
     public function handleUnsubscribeRequest(): void {
@@ -113,6 +115,25 @@ class UnsubscribeHandler {
             ],
             ['%s', '%s', '%s']
         );
+    }
+
+    // FluentCRM 바운스/스팸 신고 시 수신거부 테이블에 자동 등록
+    public function handleBounce($subscriber): void {
+        if (empty($subscriber->email)) {
+            return;
+        }
+        $reason = $subscriber->status ?? 'bounced';
+        global $wpdb;
+        $wpdb->replace(
+            $wpdb->prefix . 'crmbiz_nl_unsubscribers',
+            [
+                'email'           => $subscriber->email,
+                'unsubscribed_at' => current_time('mysql'),
+                'token_used'      => 'fc_' . $reason,
+            ],
+            ['%s', '%s', '%s']
+        );
+        Logger::info('바운스 수신거부 자동 등록', ['email' => $subscriber->email, 'reason' => $reason]);
     }
 
     // FluentCRM 재구독 시 우리 수신거부 테이블에서 제거
