@@ -375,7 +375,18 @@ class RestApi {
             Scheduler::scheduleSingle(time() + 60, $cronHook, [$id]);
         }
 
-        return rest_ensure_response(['has_more' => $hasMore, 'status' => 'sending']);
+        $nl = $wpdb->get_row($wpdb->prepare(
+            "SELECT status, success_count, fail_count, recipient_count FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d",
+            $id
+        ));
+
+        return rest_ensure_response([
+            'has_more'        => $hasMore,
+            'status'          => $nl->status ?? 'sending',
+            'success_count'   => (int) ($nl->success_count ?? 0),
+            'fail_count'      => (int) ($nl->fail_count    ?? 0),
+            'recipient_count' => (int) ($nl->recipient_count ?? 0),
+        ]);
     }
 
     public function resendNewsletter(\WP_REST_Request $req): \WP_REST_Response {

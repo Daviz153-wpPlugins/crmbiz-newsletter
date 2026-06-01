@@ -609,8 +609,16 @@ async function doAction(action, item) {
       await api('POST', `newsletters/${item.id}/cancel`)
       showToast('발송이 취소되었습니다.')
     } else if (action === 'force-send') {
-      await api('POST', `newsletters/${item.id}/force-send`)
-      showToast('즉시 발송 요청됨.')
+      const res = await api('POST', `newsletters/${item.id}/force-send`)
+      if (res.status === 'sent') {
+        showToast(`발송 완료 — 총 ${res.success_count.toLocaleString('ko-KR')}건 성공`)
+      } else if (res.has_more) {
+        const done  = res.success_count + res.fail_count
+        const total = res.recipient_count
+        showToast(`배치 발송 중 (${done.toLocaleString('ko-KR')} / ${total.toLocaleString('ko-KR')}건)`)
+      } else {
+        showToast('즉시 발송 완료.')
+      }
     } else if (action === 'resend') {
       await api('POST', `newsletters/${item.id}/resend`)
       showToast('재발송 요청됨. 새 항목으로 생성됩니다.')

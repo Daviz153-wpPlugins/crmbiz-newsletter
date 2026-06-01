@@ -33,14 +33,19 @@ class UnsubscribePage {
         if ($search) {
             $like  = '%' . $wpdb->esc_like($search) . '%';
             $total = (int) $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM {$un} WHERE email LIKE %s", $like)
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$un} u {$join}
+                     WHERE u.email LIKE %s OR fc.first_name LIKE %s OR fc.last_name LIKE %s",
+                    $like, $like, $like
+                )
             );
             $rows  = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT u.id, u.email, u.unsubscribed_at, fc.first_name, fc.last_name
                      FROM {$un} u {$join}
-                     WHERE u.email LIKE %s ORDER BY u.unsubscribed_at DESC LIMIT %d OFFSET %d",
-                    $like, self::PER_PAGE, $offset
+                     WHERE u.email LIKE %s OR fc.first_name LIKE %s OR fc.last_name LIKE %s
+                     ORDER BY u.unsubscribed_at DESC LIMIT %d OFFSET %d",
+                    $like, $like, $like, self::PER_PAGE, $offset
                 )
             );
         } else {
@@ -86,7 +91,7 @@ class UnsubscribePage {
                     <div class="crmbiz-search-inner">
                         <span class="dashicons dashicons-search"></span>
                         <input type="text" name="s" value="<?php echo esc_attr($search); ?>"
-                               placeholder="이메일로 검색..."
+                               placeholder="이름 또는 이메일로 검색..."
                                class="crmbiz-search-input" autocomplete="off">
                     </div>
                     <?php if ($search): ?>
