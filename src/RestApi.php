@@ -63,8 +63,11 @@ class RestApi {
 
     // ── Dashboard ────────────────────────────────────────────────────────────
 
-    public function getDashboard(): \WP_REST_Response {
+    public function getDashboard(\WP_REST_Request $req): \WP_REST_Response {
         global $wpdb;
+
+        $days = in_array((int) ($req->get_param('days') ?? 30), [7, 30, 90], true)
+                ? (int) $req->get_param('days') : 30;
 
         $stats = $wpdb->get_row(
             "SELECT COUNT(*) AS total_nl,
@@ -77,17 +80,18 @@ class RestApi {
         $totalFail    = (int) ($stats->total_fail ?? 0);
         $delivered    = $totalSuccess + $totalFail;
 
-        $daily = $wpdb->get_results(
+        $daily = $wpdb->get_results($wpdb->prepare(
             "SELECT DATE(sent_at) AS day, SUM(success_count) AS cnt
              FROM {$wpdb->prefix}crmbiz_newsletters
-             WHERE status = 'sent' AND sent_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-             GROUP BY DATE(sent_at) ORDER BY day ASC"
-        );
+             WHERE status = 'sent' AND sent_at >= DATE_SUB(NOW(), INTERVAL %d DAY)
+             GROUP BY DATE(sent_at) ORDER BY day ASC",
+            $days
+        ));
         $dailyMap = [];
         foreach ($daily as $r) $dailyMap[$r->day] = (int) $r->cnt;
 
         $labels = $counts = [];
-        for ($i = 29; $i >= 0; $i--) {
+        for ($i = $days - 1; $i >= 0; $i--) {
             $d        = gmdate('Y-m-d', strtotime("-{$i} days"));
             $labels[] = gmdate('m/d', strtotime($d));
             $counts[] = $dailyMap[$d] ?? 0;
@@ -115,7 +119,7 @@ class RestApi {
                 'total_fail'    => $totalFail,
                 'success_rate'  => $delivered > 0 ? round($totalSuccess / $delivered * 100, 1) : 0,
             ],
-            'chart'     => ['labels' => $labels, 'counts' => $counts],
+            'chart'     => ['labels' => $labels, 'counts' => $counts, 'days' => $days],
             'campaigns' => array_map(fn($c) => [
                 'id'         => (int) $c->id,
                 'title'      => $c->title,

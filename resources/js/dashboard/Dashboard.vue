@@ -56,11 +56,23 @@
       <!-- Chart + System status -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 
-        <!-- 30일 추이 차트 -->
+        <!-- 발송 추이 차트 -->
         <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-sm font-semibold text-gray-700">최근 30일 발송 추이</h2>
-            <span class="text-xs text-gray-400">{{ chartTotal }}건 발송</span>
+            <h2 class="text-sm font-semibold text-gray-700">최근 {{ chartDays }}일 발송 추이</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-400 mr-1">{{ chartTotal }}건 발송</span>
+              <div class="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
+                <button v-for="d in [7, 30, 90]" :key="d"
+                  @click="setChartDays(d)"
+                  :class="chartDays === d
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'"
+                  class="px-2.5 py-1 transition-colors">
+                  {{ d }}일
+                </button>
+              </div>
+            </div>
           </div>
           <div class="h-44">
             <canvas ref="dailyChart"></canvas>
@@ -182,6 +194,8 @@ import Chart from 'chart.js/auto'
 const loading    = ref(true)
 const data       = ref(null)
 const dailyChart = ref(null)
+const chartDays  = ref(30)
+let   chartInstance = null
 
 const historyUrl = window.CrmbizNL?.historyUrl ?? '#'
 
@@ -215,11 +229,16 @@ function formatDate(dt) {
 function initChart() {
   if (!dailyChart.value || !data.value?.chart) return
 
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+
   Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
   Chart.defaults.font.size   = 11
   Chart.defaults.color       = '#9ca3af'
 
-  new Chart(dailyChart.value, {
+  chartInstance = new Chart(dailyChart.value, {
     type: 'line',
     data: {
       labels: data.value.chart.labels,
@@ -269,19 +288,25 @@ function initChart() {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-async function fetchData() {
+async function fetchData(days = 30) {
   try {
-    const res  = await fetch(window.CrmbizNL.restUrl + 'dashboard', {
+    const res  = await fetch(window.CrmbizNL.restUrl + 'dashboard?days=' + days, {
       headers: { 'X-WP-Nonce': window.CrmbizNL.nonce },
     })
     data.value    = await res.json()
-    loading.value = false      // 먼저 false → canvas가 DOM에 마운트됨
-    await nextTick()           // DOM 업데이트 대기 후 차트 초기화
+    loading.value = false
+    await nextTick()
     initChart()
   } catch {
     loading.value = false
   }
 }
 
-onMounted(fetchData)
+async function setChartDays(days) {
+  if (chartDays.value === days) return
+  chartDays.value = days
+  await fetchData(days)
+}
+
+onMounted(() => fetchData(chartDays.value))
 </script>
