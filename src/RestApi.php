@@ -97,6 +97,14 @@ class RestApi {
             $counts[] = $dailyMap[$d] ?? 0;
         }
 
+        $campaignPerPage = in_array((int) ($req->get_param('per_page') ?? 5), [5, 10, 20], true)
+                           ? (int) $req->get_param('per_page') : 5;
+        $campaignPage    = max(1, (int) ($req->get_param('campaign_page') ?? 1));
+        $campaignOffset  = ($campaignPage - 1) * $campaignPerPage;
+        $campaignTotal   = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}crmbiz_newsletters WHERE status = 'sent'"
+        );
+
         $campaigns = $wpdb->get_results($wpdb->prepare(
             "SELECT n.id, COALESCE(p.post_title, '(삭제된 포스트)') AS title,
                     n.success_count, n.sent_at,
@@ -107,7 +115,8 @@ class RestApi {
              LEFT JOIN {$wpdb->prefix}crmbiz_nl_events e ON e.newsletter_id = n.id
              WHERE n.status = 'sent'
              GROUP BY n.id, p.post_title, n.success_count, n.sent_at
-             ORDER BY n.sent_at DESC LIMIT %d", 8
+             ORDER BY n.sent_at DESC LIMIT %d OFFSET %d",
+            $campaignPerPage, $campaignOffset
         ));
 
         // 현재 대기/예약 중인 캠페인 현황
@@ -144,6 +153,10 @@ class RestApi {
                 'next_scheduled_at' => $nextScheduled ?? null,
             ],
             'chart'     => ['labels' => $labels, 'counts' => $counts, 'days' => $days],
+            'campaign_total' => $campaignTotal,
+            'campaign_pages' => max(1, (int) ceil($campaignTotal / $campaignPerPage)),
+            'campaign_page'  => $campaignPage,
+            'campaign_per_page' => $campaignPerPage,
             'campaigns' => array_map(fn($c) => [
                 'id'         => (int) $c->id,
                 'title'      => $c->title,

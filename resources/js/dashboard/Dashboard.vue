@@ -183,7 +183,7 @@
 
         <!-- Campaign list -->
         <div v-else>
-          <a v-for="c in recentCampaigns" :key="c.id"
+          <a v-for="c in data.campaigns" :key="c.id"
              :href="historyUrl + '&nl=' + c.id"
              class="flex items-center gap-4 px-6 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors group cursor-pointer">
 
@@ -218,6 +218,28 @@
           </a>
         </div>
 
+        <!-- 캠페인 페이지네이션 -->
+        <div v-if="data.campaign_pages > 1 || data.campaign_total > 5"
+             class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/40">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">페이지당</span>
+            <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
+                    class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none">
+              <option :value="5">5개</option>
+              <option :value="10">10개</option>
+              <option :value="20">20개</option>
+            </select>
+            <span class="text-xs text-gray-400">· 총 {{ data.campaign_total }}개</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button @click="changeCampaignPage(campaignPage - 1)" :disabled="campaignPage <= 1"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">‹</button>
+            <span class="text-xs text-gray-500 px-2">{{ campaignPage }} / {{ data.campaign_pages }}</span>
+            <button @click="changeCampaignPage(campaignPage + 1)" :disabled="campaignPage >= data.campaign_pages"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">›</button>
+          </div>
+        </div>
+
       </div>
 
     </template>
@@ -230,17 +252,19 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { ChevronRight, Mail } from 'lucide-vue-next'
 import Chart from 'chart.js/auto'
 
-const loading    = ref(true)
-const data       = ref(null)
-const dailyChart = ref(null)
-const chartDays  = ref(30)
-let   chartInstance = null
+const loading         = ref(true)
+const data            = ref(null)
+const dailyChart      = ref(null)
+const chartDays       = ref(30)
+const campaignPage    = ref(1)
+const campaignPerPage = ref(5)
+let   chartInstance   = null
 
 const historyUrl = window.CrmbizNL?.historyUrl ?? '#'
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-const recentCampaigns = computed(() => (data.value?.campaigns ?? []).slice(0, 6))
+// recentCampaigns 제거 — 서버 페이지네이션으로 대체
 
 const chartTotal = computed(() =>
   (data.value?.chart?.counts ?? []).reduce((sum, n) => sum + n, 0)
@@ -333,9 +357,14 @@ function initChart() {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
-async function fetchData(days = 30) {
+async function fetchData(days = chartDays.value, cPage = campaignPage.value, cPerPage = campaignPerPage.value) {
   try {
-    const res  = await fetch(window.CrmbizNL.restUrl + 'dashboard?days=' + days, {
+    const qs = new URLSearchParams({
+      days,
+      campaign_page: cPage,
+      per_page: cPerPage,
+    })
+    const res = await fetch(window.CrmbizNL.restUrl + 'dashboard?' + qs, {
       headers: { 'X-WP-Nonce': window.CrmbizNL.nonce },
     })
     data.value    = await res.json()
@@ -353,5 +382,25 @@ async function setChartDays(days) {
   await fetchData(days)
 }
 
-onMounted(() => fetchData(chartDays.value))
+async function changeCampaignPage(p) {
+  if (!data.value || p < 1 || p > data.value.campaign_pages) return
+  campaignPage.value = p
+  const prev = loading.value
+  loading.value = false // 차트 재초기화 방지
+  try {
+    const qs = new URLSearchParams({
+      days: chartDays.value,
+      campaign_page: p,
+      per_page: campaignPerPage.value,
+    })
+    const res = await fetch(window.CrmbizNL.restUrl + 'dashboard?' + qs, {
+      headers: { 'X-WP-Nonce': window.CrmbizNL.nonce },
+    })
+    const json = await res.json()
+    // 캠페인 관련 데이터만 교체 (차트는 유지)
+    data.value = { ...data.value, ...json, chart: data.value.chart }
+  } catch {}
+}
+
+onMounted(() => fetchData())
 </script>

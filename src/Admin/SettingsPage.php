@@ -263,7 +263,7 @@ class SettingsPage {
             <?php endif; ?>
 
             <!-- 레벨 필터 -->
-            <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;padding:0 20px">
                 <?php foreach (['전체' => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
                 <a href="<?php echo esc_url($levelUrl . ($val ? '&log_level=' . $val : '')); ?>"
                    style="padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;border:1px solid;
@@ -276,12 +276,12 @@ class SettingsPage {
             </div>
 
             <?php if (empty($logs)): ?>
-                <div class="crmbiz-empty" style="padding:40px 0;text-align:center;color:#9ca3af">
+                <div class="crmbiz-empty" style="padding:40px 20px;text-align:center;color:#9ca3af">
                     <p style="font-size:32px;margin-bottom:8px">✅</p>
                     <p>기록된 오류/경고가 없습니다.</p>
                 </div>
             <?php else: ?>
-            <div class="crmbiz-card" style="overflow:auto">
+            <div class="crmbiz-card" style="overflow:auto;margin:0 20px 20px">
                 <table class="crmbiz-table" style="font-size:12px">
                     <thead>
                         <tr>
