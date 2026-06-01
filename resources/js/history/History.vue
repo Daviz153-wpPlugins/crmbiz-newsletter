@@ -245,12 +245,13 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="!loading && (pages > 1 || total > 20)"
+    <div v-if="!loading && total > 0"
          class="flex items-center justify-between text-sm text-gray-500 flex-wrap gap-3">
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-400">페이지당</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
-                class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white"
+                style="outline:none;box-shadow:none">
           <option :value="20">20개</option>
           <option :value="50">50개</option>
           <option :value="100">100개</option>
