@@ -65,4 +65,5 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
+          overwrite: true
           files: build/crmbiz-newsletter.zip
