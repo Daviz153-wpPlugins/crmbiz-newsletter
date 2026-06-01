@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.7.0';
+    const DB_VERSION = '1.8.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -42,6 +42,7 @@ class Database {
   recipient_count INT UNSIGNED NOT NULL DEFAULT 0,
   success_count INT UNSIGNED NOT NULL DEFAULT 0,
   fail_count INT UNSIGNED NOT NULL DEFAULT 0,
+  fail_reason VARCHAR(500) NULL,
   tag_ids TEXT,
   list_ids TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -128,7 +129,14 @@ class Database {
         }
 
         // 1.7.0: crmbiz_nl_sends 발송 로그 테이블 추가 (dbDelta가 처리)
-        // 기존 데이터 소급 없음 — 이 버전 이후 발송분부터 기록됨
+
+        // 1.8.0: fail_reason 컬럼 추가
+        if (version_compare(self::getVersion(), '1.8.0', '<')) {
+            $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
+            if (is_array($cols) && !in_array('fail_reason', $cols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters ADD COLUMN fail_reason VARCHAR(500) NULL AFTER fail_count");
+            }
+        }
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

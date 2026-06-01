@@ -40,6 +40,13 @@
           </div>
         </div>
 
+        <!-- 실패 원인 배너 -->
+        <div v-if="detail.newsletter.status === 'failed' && detail.newsletter.fail_reason"
+             class="flex items-start gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 text-sm text-red-700">
+          <span class="text-base flex-shrink-0">⚠️</span>
+          <span>{{ detail.newsletter.fail_reason }}</span>
+        </div>
+
         <!-- Tab card -->
         <div class="bg-white border border-gray-100 rounded-xl overflow-hidden">
 

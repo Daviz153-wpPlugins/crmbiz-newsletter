@@ -484,6 +484,7 @@ class RestApi {
             'click_count'     => $clickCount,
             'open_rate'       => $sent > 0 ? round($openCount  / $sent * 100, 1) : 0,
             'click_rate'      => $sent > 0 ? round($clickCount / $sent * 100, 1) : 0,
+            'fail_reason'     => $nl->fail_reason ?? null,
         ];
     }
 }

@@ -55,9 +55,9 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'updated_at' => current_time('mysql')],
+                ['status' => 'failed', 'fail_reason' => 'FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요.', 'updated_at' => current_time('mysql')],
                 ['id' => $newsletterId, 'status' => 'queued'],
-                ['%s', '%s'], ['%d', '%s']
+                ['%s', '%s', '%s'], ['%d', '%s']
             );
             return false;
         }
@@ -231,9 +231,9 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+                ['status' => 'failed', 'fail_reason' => '수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요.', 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
                 ['id' => $newsletterId],
-                ['%s', '%s', '%s'], ['%d']
+                ['%s', '%s', '%s', '%s'], ['%d']
             );
             return;
         }
@@ -274,13 +274,15 @@ class NewsletterSender {
             return;
         }
 
-        $status = ((int)$final->success_count === 0 && (int)$final->fail_count > 0) ? 'failed' : 'sent';
+        $allFailed  = (int)$final->success_count === 0 && (int)$final->fail_count > 0;
+        $status     = $allFailed ? 'failed' : 'sent';
+        $failReason = $allFailed ? '모든 이메일 발송에 실패했습니다. SMTP 설정 및 수신자 이메일 주소를 확인하세요.' : null;
 
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
-            ['status' => $status, 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+            ['status' => $status, 'fail_reason' => $failReason, 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
             ['id' => $newsletterId],
-            ['%s', '%s', '%s'], ['%d']
+            ['%s', '%s', '%s', '%s'], ['%d']
         );
 
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
