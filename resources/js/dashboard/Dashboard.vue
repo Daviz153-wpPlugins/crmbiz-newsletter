@@ -145,7 +145,7 @@
         <!-- Campaign list -->
         <div v-else>
           <a v-for="c in recentCampaigns" :key="c.id"
-             :href="historyUrl + '?nl=' + c.id"
+             :href="historyUrl + '&nl=' + c.id"
              class="flex items-center gap-4 px-6 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors group cursor-pointer">
 
             <!-- Status dot + title -->
