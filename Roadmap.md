@@ -41,7 +41,7 @@
 - [ ] **DB UTC 마이그레이션** — 현재 `current_time('mysql')` 서울 로컬 저장. 사이트 TZ 변경 시 전체 기록 틀어짐. `*_gmt` UTC 컬럼 추가 + 기존 데이터 마이그레이션 스크립트. **[L]**
 - [x] **암호화 AES-GCM 업그레이드** — AES-256-CBC → AES-256-GCM 전환. 버전 바이트(0x01)로 포맷 구분, 레거시 CBC URL 하위 호환 유지. 테스트 3개 추가(위변조 감지, 버전 바이트, CBC 폴백) _(v0.9.24)_
 - [x] **테스트 커버리지 확대** — 42개/63 assertions → 84개/166 assertions. 추가: Scheduler unscheduleAll, REST API 권한+입력검증, FluentCRM 바운스 핸들러, isUnsubscribed _(v0.9.24)_
-- [ ] **대용량 발송 최적화** — 수신자 5,000명+ 시나리오 성능 테스트. 배치 크기 동적 조정, MySQL 인덱스 최적화. **[M]**
+- [x] **대용량 발송 최적화** — 수신거부 N회 쿼리→1회 배치 조회, logSend N회 INSERT→bulk INSERT, crmbiz_nl_batch_size 필터 추가, 복합 인덱스 추가(DB 1.9.0): idx_status_sent_at, idx_nl_type _(v0.9.24)_
 
 ---
 

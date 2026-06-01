@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '1.8.0';
+    const DB_VERSION = '1.9.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -49,7 +49,8 @@ class Database {
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_post_id (post_id),
-  KEY idx_status (status)
+  KEY idx_status (status),
+  KEY idx_status_sent_at (status, sent_at)
 ) $charset;");
 
         dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_unsubscribers (
@@ -81,7 +82,8 @@ class Database {
   PRIMARY KEY (id),
   KEY idx_newsletter (newsletter_id),
   KEY idx_email (email),
-  KEY idx_type (type)
+  KEY idx_type (type),
+  KEY idx_nl_type (newsletter_id, type)
 ) $charset;");
 
         dbDelta("CREATE TABLE {$wpdb->prefix}crmbiz_nl_ratelimit (
@@ -135,6 +137,18 @@ class Database {
             $cols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
             if (is_array($cols) && !in_array('fail_reason', $cols, true)) {
                 $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters ADD COLUMN fail_reason VARCHAR(500) NULL AFTER fail_count");
+            }
+        }
+
+        // 1.9.0: 복합 인덱스 추가 — 대용량 발송 집계 쿼리 최적화
+        if (version_compare(self::getVersion(), '1.9.0', '<')) {
+            $nlIndexes = $wpdb->get_col("SHOW INDEX FROM {$wpdb->prefix}crmbiz_newsletters", 2);
+            if (is_array($nlIndexes) && !in_array('idx_status_sent_at', $nlIndexes, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters ADD KEY idx_status_sent_at (status, sent_at)");
+            }
+            $evIndexes = $wpdb->get_col("SHOW INDEX FROM {$wpdb->prefix}crmbiz_nl_events", 2);
+            if (is_array($evIndexes) && !in_array('idx_nl_type', $evIndexes, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_events ADD KEY idx_nl_type (newsletter_id, type)");
             }
         }
 

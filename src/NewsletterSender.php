@@ -5,8 +5,12 @@ defined('ABSPATH') || exit;
 
 class NewsletterSender {
 
-    private const BATCH_SIZE  = 50; // 1회 크론 실행당 최대 발송 수
-    private const MAX_RETRIES = 3;  // 영구 실패 처리 전 최대 시도 횟수
+    private const BATCH_SIZE  = 50; // 기본값. crmbiz_nl_batch_size 필터로 조정 가능
+    private const MAX_RETRIES = 3;
+
+    private static function getBatchSize(): int {
+        return max(1, (int) apply_filters('crmbiz_nl_batch_size', self::BATCH_SIZE));
+    }
 
     private Settings $settings;
     private EmailTemplateRenderer $renderer;
@@ -111,12 +115,13 @@ class NewsletterSender {
         }
 
         // 이번 배치 큐에서 꺼내기
+        $batchSize = self::getBatchSize();
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT id, email, retry_count FROM {$wpdb->prefix}crmbiz_nl_queue
              WHERE newsletter_id = %d
              ORDER BY id ASC
              LIMIT %d",
-            $newsletterId, self::BATCH_SIZE
+            $newsletterId, $batchSize
         ), ARRAY_A);
 
         if (empty($rows)) {
@@ -130,11 +135,15 @@ class NewsletterSender {
             $emailToRow[$row['email']] = $row;
         }
 
+        // 수신거부 일괄 조회 — 배치당 1회 쿼리 (개별 N회 → 1회)
+        $unsubscribedSet = $this->getBatchUnsubscribed(array_keys($emailToRow));
+
         $subscribers = $this->getSubscribersByEmails(array_keys($emailToRow));
         $success     = 0;
         $fail        = 0;
-        $toDelete    = []; // 즉시 삭제할 큐 ID (성공·영구실패·수신거부)
-        $toRetry     = []; // retry_count만 증가시킬 큐 ID (재시도 대상)
+        $toDelete    = [];
+        $toRetry     = [];
+        $sendLogs    = []; // bulk INSERT용 로그 수집
 
         foreach ($subscribers as $subscriber) {
             $email = $subscriber->email;
@@ -142,11 +151,11 @@ class NewsletterSender {
                 continue;
             }
             $row = $emailToRow[$email];
-            unset($emailToRow[$email]); // 처리됨 표시
+            unset($emailToRow[$email]);
 
-            if (UnsubscribeHandler::isUnsubscribed($email)) {
-                $toDelete[] = (int) $row['id']; // 수신거부 → 삭제, fail 카운트 없음
-                $this->logSend($newsletterId, $email, 'skipped');
+            if (isset($unsubscribedSet[$email])) {
+                $toDelete[]  = (int) $row['id'];
+                $sendLogs[]  = [$newsletterId, $email, 'skipped'];
                 continue;
             }
 
@@ -155,23 +164,22 @@ class NewsletterSender {
 
             if ($sent) {
                 $success++;
-                $toDelete[] = (int) $row['id'];
-                $this->logSend($newsletterId, $email, 'sent');
+                $toDelete[]  = (int) $row['id'];
+                $sendLogs[]  = [$newsletterId, $email, 'sent'];
             } elseif ((int) $row['retry_count'] + 1 >= self::MAX_RETRIES) {
                 $fail++;
-                $toDelete[] = (int) $row['id'];
-                $this->logSend($newsletterId, $email, 'failed');
+                $toDelete[]  = (int) $row['id'];
+                $sendLogs[]  = [$newsletterId, $email, 'failed'];
                 Logger::error('이메일 영구 실패 (재시도 초과)', ['email' => $email, 'nl_id' => $newsletterId, 'retries' => self::MAX_RETRIES]);
             } else {
-                $toRetry[] = (int) $row['id']; // 다음 배치에서 재시도
-                // 재시도 대상 — 아직 최종 결과 아니므로 logSend 호출하지 않음
+                $toRetry[] = (int) $row['id'];
             }
         }
 
-        // FluentCRM에서 찾지 못한 이메일 → 구독자 삭제됨, 조용히 건너뜀
+        // FluentCRM에서 찾지 못한 이메일 → 구독자 삭제됨
         foreach ($emailToRow as $email => $row) {
-            $toDelete[] = (int) $row['id'];
-            $this->logSend($newsletterId, $email, 'skipped');
+            $toDelete[]  = (int) $row['id'];
+            $sendLogs[]  = [$newsletterId, $email, 'skipped'];
         }
 
         if (!empty($toDelete)) {
@@ -193,6 +201,9 @@ class NewsletterSender {
                 )
             );
         }
+
+        // 배치 발송 로그 일괄 저장 (N회 INSERT → 1회 bulk INSERT)
+        $this->bulkLogSend($sendLogs);
 
         // 카운터 누적 업데이트
         $wpdb->query($wpdb->prepare(
@@ -433,20 +444,46 @@ class NewsletterSender {
     }
 
     /**
-     * 개별 발송 결과를 crmbiz_nl_sends에 영구 기록.
-     * INSERT IGNORE: UNIQUE KEY 충돌(재시도 중복 호출) 시 오류 없이 무시.
+     * 배치 발송 로그 일괄 저장 — N회 개별 INSERT → 1회 bulk INSERT IGNORE.
+     * @param array<array{int, string, string}> $logs [[newsletter_id, email, status], ...]
      */
-    private function logSend(int $newsletterId, string $email, string $status): void {
+    private function bulkLogSend(array $logs): void {
+        if (empty($logs)) {
+            return;
+        }
         global $wpdb;
+        $now         = current_time('mysql');
+        $placeholders = implode(', ', array_fill(0, count($logs), '(%d, %s, %s, %s)'));
+        $params      = [];
+        foreach ($logs as [$nlId, $email, $status]) {
+            $params[] = $nlId;
+            $params[] = $email;
+            $params[] = $status;
+            $params[] = $now;
+        }
         $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO {$wpdb->prefix}crmbiz_nl_sends
-             (newsletter_id, email, status, sent_at)
-             VALUES (%d, %s, %s, %s)",
-            $newsletterId,
-            $email,
-            $status,
-            current_time('mysql')
+            "INSERT IGNORE INTO {$wpdb->prefix}crmbiz_nl_sends (newsletter_id, email, status, sent_at) VALUES $placeholders",
+            ...$params
         ));
+    }
+
+    /**
+     * 배치 단위 수신거부 일괄 조회 — 개별 isUnsubscribed() N회 → 1회 IN 쿼리.
+     * @return array<string, true> email => true 맵
+     */
+    private function getBatchUnsubscribed(array $emails): array {
+        if (empty($emails)) {
+            return [];
+        }
+        global $wpdb;
+        $phs  = implode(',', array_fill(0, count($emails), '%s'));
+        $rows = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT email FROM {$wpdb->prefix}crmbiz_nl_unsubscribers WHERE email IN ($phs)",
+                ...$emails
+            )
+        );
+        return array_flip($rows ?? []);
     }
 
     private function createRecord(int $postId, array $tagIds, array $listIds, int $recipientCount, string $status, string $scheduledAt = ''): int {
