@@ -289,7 +289,9 @@ function fmtShort(n) {
 function formatDate(dt) {
   if (!dt) return '—'
   try {
-    return new Date(dt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+    return new Date(dt).toLocaleDateString('ko-KR', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
   } catch { return dt }
 }
 
