@@ -250,8 +250,8 @@
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-400">페이지당</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
-                class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white"
-                style="outline:none;box-shadow:none">
+                class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white h-7"
+                style="outline:none;box-shadow:none;min-height:0">
           <option :value="20">20개</option>
           <option :value="50">50개</option>
           <option :value="100">100개</option>
