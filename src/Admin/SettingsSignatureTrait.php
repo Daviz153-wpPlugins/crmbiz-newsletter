@@ -123,7 +123,7 @@ trait SettingsSignatureTrait {
         $initBorderColor = self::hexToRgba($sig['border_color'], $sig['border_opacity']);
         ?>
         <style>
-        #crmbiz-preview-viewport { transition: max-width 0.3s ease; overflow:hidden; }
+        #crmbiz-preview-viewport { transition: max-width 0.3s ease; overflow:hidden; width:100%; max-width:640px; }
         #crmbiz-sig-preview-box { border-radius:12px; padding:20px 24px; display:flex; flex-wrap:wrap; align-items:center; gap:20px; border:none !important; box-shadow:none !important; outline:none !important; }
         #crmbiz-sig-preview-box > div { border:none !important; box-shadow:none !important; outline:none !important; }
         #crmbiz-preview-img { border-radius:50% !important; }
@@ -137,7 +137,7 @@ trait SettingsSignatureTrait {
 
         <hr class="crmbiz-settings-hr">
         <div class="crmbiz-preview-header">
-            <h3>미리보기</h3>
+            <h3>시그니처 미리보기</h3>
             <button type="button" class="crmbiz-vp-btn active" data-vp="laptop">💻 랩탑</button>
             <button type="button" class="crmbiz-vp-btn" data-vp="tablet">📱 태블릿</button>
             <button type="button" class="crmbiz-vp-btn" data-vp="mobile">📲 모바일</button>
