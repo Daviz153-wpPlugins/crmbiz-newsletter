@@ -105,7 +105,10 @@ function wp_timezone_string(): string { return 'Asia/Seoul'; }
 function wp_json_encode($data, int $flags = 0): string { return (string) json_encode($data, $flags); }
 function wp_is_post_revision(int $postId): false { return false; }
 function wp_verify_nonce($nonce, $action = -1): int { return 1; }
-function current_user_can(string $capability): bool { return true; }
+function current_user_can(string $capability): bool {
+    return (bool) ($GLOBALS['_wp_user_can'] ?? true);
+}
+$GLOBALS['_wp_user_can'] = true;
 function check_ajax_referer(string $action, $query_arg = false, bool $die = true): int { return 1; }
 
 function get_post(int $postId): ?object {
@@ -139,10 +142,18 @@ function as_schedule_single_action(int $ts, string $hook, array $args = [], stri
     return $id;
 }
 
-function as_unschedule_all_actions(string $hook, array $args = [], string $group = ''): void {
+function as_unschedule_all_actions(string $hook, $args = [], string $group = ''): void {
     $GLOBALS['_as_actions'] = array_values(array_filter(
         $GLOBALS['_as_actions'],
-        fn($a) => !($a['hook'] === $hook && $a['args'] === $args && $a['group'] === $group)
+        function ($a) use ($hook, $args, $group) {
+            if ($a['hook'] !== $hook || $a['group'] !== $group) {
+                return true; // 다른 훅/그룹은 유지
+            }
+            if ($args === null) {
+                return false; // null = args 무관하게 모두 제거
+            }
+            return $a['args'] !== $args;
+        }
     ));
 }
 
@@ -158,8 +169,9 @@ function as_next_scheduled_action(string $hook, array $args = [], string $group 
 // -----------------------------------------------------------------------
 // $wpdb 인메모리 스텁
 // -----------------------------------------------------------------------
-$GLOBALS['_wpdb_ratelimit'] = [];
-$GLOBALS['_wpdb_newsletters'] = []; // id => row array
+$GLOBALS['_wpdb_ratelimit']      = [];
+$GLOBALS['_wpdb_newsletters']    = [];
+$GLOBALS['_wpdb_unsubscribers']  = [];
 
 class WpdbStub {
     public string $prefix = 'wp_';
@@ -188,7 +200,48 @@ class WpdbStub {
             }
             return null;
         }
+        // SELECT id FROM wp_crmbiz_nl_unsubscribers WHERE email = 'x' LIMIT 1
+        if (preg_match("/SELECT id FROM \S+crmbiz_nl_unsubscribers WHERE email = '([^']+)'/i", $sql, $m)) {
+            foreach ($GLOBALS['_wpdb_unsubscribers'] as $row) {
+                if ($row['email'] === $m[1]) {
+                    return '1';
+                }
+            }
+            return null;
+        }
         return null;
+    }
+
+    public function replace(string $table, array $data, array $formats = []): int {
+        if (strpos($table, 'unsubscribers') !== false) {
+            foreach ($GLOBALS['_wpdb_unsubscribers'] as $key => $row) {
+                if ($row['email'] === ($data['email'] ?? '')) {
+                    $GLOBALS['_wpdb_unsubscribers'][$key] = array_merge($row, $data);
+                    return 1;
+                }
+            }
+            $GLOBALS['_wpdb_unsubscribers'][] = $data;
+        }
+        return 1;
+    }
+
+    public function delete(string $table, array $where, array $formats = []): int {
+        if (strpos($table, 'unsubscribers') !== false) {
+            $before = count($GLOBALS['_wpdb_unsubscribers']);
+            $GLOBALS['_wpdb_unsubscribers'] = array_values(array_filter(
+                $GLOBALS['_wpdb_unsubscribers'],
+                function ($row) use ($where) {
+                    foreach ($where as $col => $val) {
+                        if (($row[$col] ?? null) == $val) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            ));
+            return $before - count($GLOBALS['_wpdb_unsubscribers']);
+        }
+        return 1;
     }
 
     public function get_row(string $sql): ?object {

@@ -155,6 +155,23 @@ class ScheduleDispatchTest extends TestCase {
         $this->assertFalse($this->asNextAt(99));
     }
 
+    public function testScheduler_UnscheduleAll_RemovesAllActionsForHook(): void {
+        Scheduler::scheduleSingle(time() + 100, self::CRON_HOOK, [1]);
+        Scheduler::scheduleSingle(time() + 200, self::CRON_HOOK, [2]);
+        Scheduler::scheduleSingle(time() + 300, self::CRON_HOOK, [3]);
+
+        Scheduler::unscheduleAll(self::CRON_HOOK);
+
+        $this->assertFalse(Scheduler::isScheduled(self::CRON_HOOK, [1]), 'id=1 제거됨');
+        $this->assertFalse(Scheduler::isScheduled(self::CRON_HOOK, [2]), 'id=2 제거됨');
+        $this->assertFalse(Scheduler::isScheduled(self::CRON_HOOK, [3]), 'id=3 제거됨');
+        $remaining = array_filter(
+            $GLOBALS['_as_actions'],
+            fn($a) => $a['hook'] === self::CRON_HOOK && $a['group'] === self::AS_GROUP
+        );
+        $this->assertEmpty($remaining, '해당 훅의 모든 액션이 제거돼야 함');
+    }
+
     public function testScheduler_IsScheduledReflectsState(): void {
         Scheduler::scheduleSingle(time() + 3600, self::CRON_HOOK, [42]);
         $this->assertTrue(Scheduler::isScheduled(self::CRON_HOOK, [42]));
