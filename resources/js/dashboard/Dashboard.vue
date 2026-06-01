@@ -24,11 +24,50 @@
 
     <template v-else-if="data">
 
+      <!-- 발송 예약/대기 현황 (최우선 표시) -->
+      <div class="rounded-2xl p-5 mb-4 border"
+           :class="pendingTotal > 0
+             ? 'bg-blue-50 border-blue-200'
+             : 'bg-white border-gray-100 shadow-sm'">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide mb-2"
+               :class="pendingTotal > 0 ? 'text-blue-500' : 'text-gray-400'">
+              발송 예약 / 대기 현황
+            </p>
+            <div v-if="pendingTotal > 0" class="flex flex-wrap gap-3">
+              <span v-if="data.pending.sending > 0"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-blue-500 text-white">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                발송 중 {{ data.pending.sending }}건
+              </span>
+              <span v-if="data.pending.queued > 0"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700">
+                발송 대기 {{ data.pending.queued }}건
+              </span>
+              <span v-if="data.pending.scheduled > 0"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-700">
+                예약됨 {{ data.pending.scheduled }}건
+              </span>
+              <span v-if="data.pending.draft > 0"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-500">
+                임시저장 {{ data.pending.draft }}건
+              </span>
+            </div>
+            <p v-else class="text-sm text-gray-400">현재 대기 중인 캠페인 없음</p>
+            <p v-if="data.pending.next_scheduled_at" class="text-xs text-indigo-500 mt-2">
+              다음 예약 발송: {{ formatDate(data.pending.next_scheduled_at) }}
+            </p>
+          </div>
+          <a :href="historyUrl" class="text-xs text-blue-500 hover:underline flex-shrink-0 mt-0.5">이력 보기 →</a>
+        </div>
+      </div>
+
       <!-- Stats -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">발송 캠페인</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">완료 캠페인</p>
           <p class="text-3xl font-bold text-gray-900">{{ fmt(data.stats.total_nl) }}<span class="text-base font-normal text-gray-400 ml-1">회</span></p>
         </div>
 
@@ -206,6 +245,12 @@ const recentCampaigns = computed(() => (data.value?.campaigns ?? []).slice(0, 6)
 const chartTotal = computed(() =>
   (data.value?.chart?.counts ?? []).reduce((sum, n) => sum + n, 0)
 )
+
+const pendingTotal = computed(() => {
+  const p = data.value?.pending
+  if (!p) return 0
+  return p.scheduled + p.queued + p.sending + p.draft
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -110,6 +110,23 @@ class RestApi {
              ORDER BY n.sent_at DESC LIMIT %d", 8
         ));
 
+        // 현재 대기/예약 중인 캠페인 현황
+        $pending = $wpdb->get_row(
+            "SELECT
+                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) AS scheduled,
+                COUNT(CASE WHEN status = 'queued'    THEN 1 END) AS queued,
+                COUNT(CASE WHEN status = 'sending'   THEN 1 END) AS sending,
+                COUNT(CASE WHEN status = 'draft'     THEN 1 END) AS draft
+             FROM {$wpdb->prefix}crmbiz_newsletters
+             WHERE status IN ('scheduled','queued','sending','draft')"
+        );
+
+        // 다음 예약 발송 시각
+        $nextScheduled = $wpdb->get_var(
+            "SELECT scheduled_at FROM {$wpdb->prefix}crmbiz_newsletters
+             WHERE status = 'scheduled' ORDER BY scheduled_at ASC LIMIT 1"
+        );
+
         $fcAvailable = FluentCRMBridge::isAvailable();
 
         return rest_ensure_response([
@@ -118,6 +135,13 @@ class RestApi {
                 'total_success' => $totalSuccess,
                 'total_fail'    => $totalFail,
                 'success_rate'  => $delivered > 0 ? round($totalSuccess / $delivered * 100, 1) : 0,
+            ],
+            'pending'   => [
+                'scheduled'     => (int) ($pending->scheduled ?? 0),
+                'queued'        => (int) ($pending->queued    ?? 0),
+                'sending'       => (int) ($pending->sending   ?? 0),
+                'draft'         => (int) ($pending->draft     ?? 0),
+                'next_scheduled_at' => $nextScheduled ?? null,
             ],
             'chart'     => ['labels' => $labels, 'counts' => $counts, 'days' => $days],
             'campaigns' => array_map(fn($c) => [
