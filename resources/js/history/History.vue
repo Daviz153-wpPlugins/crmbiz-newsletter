@@ -257,7 +257,7 @@
         <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
                 class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
-                style="-webkit-appearance:none;-moz-appearance:none;appearance:none;outline:none;box-shadow:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 8px center;background-size:12px">
+                style="-webkit-appearance:none;-moz-appearance:none;appearance:none;outline:none;box-shadow:none;border-radius:0.5rem;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 8px center;background-size:12px">
           <option :value="20">20 / page</option>
           <option :value="50">50 / page</option>
           <option :value="100">100 / page</option>
