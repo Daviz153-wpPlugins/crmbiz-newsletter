@@ -13,7 +13,7 @@
 
 defined('ABSPATH') || exit;
 
-define('CRMBIZ_NL_VERSION', '0.9.30');
+define('CRMBIZ_NL_VERSION', '0.9.31');
 define('CRMBIZ_NL_FILE',    __FILE__);
 define('CRMBIZ_NL_DIR',     plugin_dir_path(__FILE__));
 define('CRMBIZ_NL_URL',     plugin_dir_url(__FILE__));

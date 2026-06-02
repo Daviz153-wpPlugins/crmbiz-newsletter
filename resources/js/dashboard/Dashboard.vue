@@ -237,14 +237,22 @@
           </div>
           <div class="flex items-center gap-1">
             <button @click="changeCampaignPage(1)" :disabled="campaignPage <= 1"
-                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+              <ChevronsLeft class="w-3.5 h-3.5" />
+            </button>
             <button @click="changeCampaignPage(campaignPage - 1)" :disabled="campaignPage <= 1"
-                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">‹</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+              <ChevronLeft class="w-3.5 h-3.5" />
+            </button>
             <button class="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-800 text-gray-800 text-xs font-medium">{{ campaignPage }}</button>
             <button @click="changeCampaignPage(campaignPage + 1)" :disabled="campaignPage >= data.campaign_pages"
-                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">›</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+              <ChevronRight class="w-3.5 h-3.5" />
+            </button>
             <button @click="changeCampaignPage(data.campaign_pages)" :disabled="campaignPage >= data.campaign_pages"
-                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+              <ChevronsRight class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -257,7 +265,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { ChevronRight, ChevronDown, Mail } from 'lucide-vue-next'
+import { ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ChevronDown, Mail } from 'lucide-vue-next'
 import Chart from 'chart.js/auto'
 
 const loading         = ref(true)

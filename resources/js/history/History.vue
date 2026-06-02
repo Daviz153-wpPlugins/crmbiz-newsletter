@@ -269,10 +269,12 @@
       </div>
       <div class="flex items-center gap-1">
         <button @click="changePage(1)" :disabled="page <= 1"
-                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+          <ChevronsLeft class="w-3.5 h-3.5" />
+        </button>
         <button @click="changePage(page - 1)" :disabled="page <= 1"
                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
-          <ChevronLeft class="w-4 h-4" />
+          <ChevronLeft class="w-3.5 h-3.5" />
         </button>
         <template v-for="p in pageNums" :key="p">
           <span v-if="p === '...'" class="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
@@ -284,10 +286,12 @@
         </template>
         <button @click="changePage(page + 1)" :disabled="page >= pages"
                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
-          <ChevronRight class="w-4 h-4" />
+          <ChevronRight class="w-3.5 h-3.5" />
         </button>
         <button @click="changePage(pages)" :disabled="page >= pages"
-                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
+          <ChevronsRight class="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
 
@@ -399,6 +403,7 @@ import {
   Search, Mail, ChevronRight, ChevronLeft,
   Eye, Send, PlayCircle, XCircle, RotateCw, Trash2, CheckCircle, AlertCircle,
   ChevronUp, ChevronDown, ChevronsUpDown,
+  ChevronsLeft, ChevronsRight,
 } from 'lucide-vue-next'
 import NlStatusBadge    from '@/components/NlStatusBadge.vue'
 import SlideOver        from '@/components/SlideOver.vue'
