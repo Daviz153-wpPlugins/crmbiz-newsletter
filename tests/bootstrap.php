@@ -94,6 +94,15 @@ function current_time(string $type, bool $gmt = false): string {
     return date('Y-m-d H:i:s');
 }
 
+// 상수
+if (!defined('HOUR_IN_SECONDS'))   define('HOUR_IN_SECONDS',   3600);
+if (!defined('ARRAY_A'))           define('ARRAY_A',           'ARRAY_A');
+if (!defined('WP_DEBUG'))          define('WP_DEBUG',          false);
+
+function admin_url(string $path = ''): string {
+    return 'https://example.com/wp-admin/' . ltrim($path, '/');
+}
+
 function esc_html(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
 function esc_attr(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
 function esc_url(string $url): string     { return htmlspecialchars($url,  ENT_QUOTES, 'UTF-8'); }
@@ -270,6 +279,7 @@ $GLOBALS['_wpdb_ratelimit']      = [];
 $GLOBALS['_wpdb_newsletters']    = [];
 $GLOBALS['_wpdb_unsubscribers']  = [];
 $GLOBALS['_wpdb_events']         = [];
+$GLOBALS['_wpdb_logs']           = [];
 
 class WpdbStub {
     public string $prefix = 'wp_';
@@ -385,6 +395,14 @@ class WpdbStub {
     }
 
     public function insert(string $table, array $data, array $formats = []): int {
+        if (strpos($table, 'crmbiz_nl_logs') !== false) {
+            $id = count($GLOBALS['_wpdb_logs']) + 1;
+            $data['id'] = $id;
+            $GLOBALS['_wpdb_logs'][] = $data;
+            $this->last_insert_id = $id;
+            $this->insert_id      = $id;
+            return 1;
+        }
         if (strpos($table, 'crmbiz_nl_events') !== false) {
             $id = count($GLOBALS['_wpdb_events']) + 1;
             $data['id'] = $id;
@@ -401,6 +419,24 @@ class WpdbStub {
         return 1;
     }
 
+    public function get_results(string $sql, string $output = 'OBJECT'): array {
+        if (strpos($sql, 'crmbiz_nl_logs') !== false) {
+            $rows = $GLOBALS['_wpdb_logs'];
+            // WHERE level = 'X' 필터
+            if (preg_match("/WHERE level = '([^']+)'/i", $sql, $m)) {
+                $rows = array_values(array_filter($rows, fn($r) => ($r['level'] ?? '') === $m[1]));
+            }
+            // ORDER BY occurred_at DESC (최근 순)
+            $rows = array_reverse($rows);
+            // LIMIT N
+            if (preg_match('/LIMIT (\d+)/', $sql, $m)) {
+                $rows = array_slice($rows, 0, (int) $m[1]);
+            }
+            return $output === ARRAY_A ? $rows : array_map(fn($r) => (object) $r, $rows);
+        }
+        return [];
+    }
+
     public function get_col(string $sql): array {
         // SELECT post_id FROM wp_crmbiz_newsletters WHERE status = 'sent' ...
         if (preg_match("/SELECT post_id FROM \S+crmbiz_newsletters WHERE status = 'sent'/i", $sql)) {
@@ -412,6 +448,18 @@ class WpdbStub {
     }
 
     public function query(string $sql): int {
+        // TRUNCATE TABLE wp_crmbiz_nl_logs
+        if (preg_match('/TRUNCATE TABLE \S+crmbiz_nl_logs/i', $sql)) {
+            $count = count($GLOBALS['_wpdb_logs']);
+            $GLOBALS['_wpdb_logs'] = [];
+            return $count;
+        }
+        // DELETE FROM wp_crmbiz_nl_logs WHERE occurred_at < ... (cleanup)
+        if (preg_match('/DELETE FROM \S+crmbiz_nl_logs/i', $sql)) {
+            $count = count($GLOBALS['_wpdb_logs']);
+            $GLOBALS['_wpdb_logs'] = [];
+            return $count;
+        }
         // DELETE FROM wp_crmbiz_nl_unsubscribers WHERE id IN (...)
         if (preg_match('/DELETE FROM \S+crmbiz_nl_unsubscribers WHERE id IN \(([^)]+)\)/i', $sql, $m)) {
             $ids    = array_map('intval', explode(',', $m[1]));
