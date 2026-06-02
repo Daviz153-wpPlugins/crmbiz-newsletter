@@ -25,6 +25,7 @@
 11. [E2E 테스트 전략 — 이 플러그인에 필요한 것들](#11-e2e-테스트-전략--이-플러그인에-필요한-것들)
 12. [v1.0.0 실전 기록 — PHPUnit 비즈니스 로직 테스트 (2026-06-03)](#12-v100-실전-기록--phpunit-비즈니스-로직-테스트-2026-06-03)
 13. [플러그인 고도화 로드맵](#13-플러그인-고도화-로드맵)
+14. [Phase A 실전 기록 — 안정화 (2026-06-03, v1.1.0)](#14-phase-a-실전-기록--안정화-2026-06-03-v110)
 
 ---
 
@@ -1795,20 +1796,23 @@ Phase C 시작 전:
 
 ---
 
-### 기술 부채 추적 — 지금 알고 있는 것들
+### 기술 부채 추적 — 현재 상태 (v1.1.0 기준)
 
 ```markdown
 ## TODO (다음 이터레이션)
 
-### 즉시 (v1.1)
-- [ ] getDashboard stats 5분 캐시 (transient)
-- [ ] 실패 큐 자동 정리 (retry_count >= 3)
-- [ ] bootstrap.php WpdbStub 집계 쿼리 Coverage — get_var COUNT(*) 전체 패턴
+### v1.1.0에서 완료
+- [x] getDashboard stats/chart 5분 캐시 (transient)
+- [x] FluentCRM 비활성화 경로 큐 고아 수정
+- [x] handleCleanup() 고아 큐 안전망 (JOIN DELETE)
+- [x] idx_nl_email_type 커버링 인덱스 추가 (DB 2.1.0)
 
-### 단기 (v1.x)
-- [ ] FOR UPDATE SKIP LOCKED 큐 잠금 개선
-- [ ] idx_nl_email_type 복합 인덱스 추가 (DB 2.1.0)
+### v1.x 남은 것
 - [ ] JavaScript ESLint 설정 추가
+- [ ] EXPLAIN ANALYZE로 실제 느린 쿼리 프로파일링 (real MySQL with 1k+ rows)
+
+### 영구 보류
+- [~~FOR UPDATE SKIP LOCKED 큐 잠금~~] — GET_LOCK이 이미 올바름 (§14 참고)
 
 ### 중기 (v2.0)
 - [ ] 이메일 템플릿 에디터 (Custom Post Type + 블록 제한)
@@ -1819,4 +1823,200 @@ Phase C 시작 전:
 - [ ] 공개 REST API (Application Password)
 - [ ] WordPress.org 제출 준비
 - [ ] 대용량 병렬 워커
+```
+
+---
+
+## 14. Phase A 실전 기록 — 안정화 (2026-06-03, v1.1.0)
+
+> **무엇을 했나:** A-3(인덱스) → A-4(큐 정리) → A-1(캐싱) 순으로 구현.  
+> A-2(GET_LOCK 교체)는 분석 후 영구 보류.  
+> PHPUnit 319 → 322 (+3 캐시 테스트). DB 버전 2.0.0 → 2.1.0.
+
+---
+
+### 14-1. Phase 실행 순서를 바꾼 이유
+
+로드맵에 적힌 순서(A-1 → A-2 → A-3 → A-4)와 실제 구현 순서(A-3 → A-4 → A-1)가 달랐다.
+
+**규칙: 리스크가 낮고 가역성이 높은 것부터 먼저 한다.**
+
+| 항목 | 리스크 | 가역성 | 실제 순서 |
+|------|-------|-------|---------|
+| A-3 인덱스 추가 | 낮음 (읽기 쿼리만 개선) | 높음 (DROP KEY 가능) | 1번 |
+| A-4 큐 정리 | 낮음 (이미 삭제되어야 할 row) | 높음 (데이터 손실 없음) | 2번 |
+| A-1 캐싱 | 중간 (무효화 누락 시 데이터 불일치) | 높음 (transient 삭제) | 3번 |
+| A-2 잠금 교체 | **높음** (아키텍처 변경, 데이터 정합성 위험) | 낮음 | **보류** |
+
+---
+
+### 14-2. A-2 보류 — GET_LOCK이 이미 올바른 이유
+
+로드맵에 "FOR UPDATE SKIP LOCKED로 병렬 처리"라고 썼지만, 구현 전 분석에서 잘못된 전제를 발견했다.
+
+**전제 오류:**
+
+```
+로드맵 전제: "여러 워커가 같은 큐를 병렬로 처리하면 빠르다"
+실제:        락 이름이 crmbiz_nl_send_{newsletterId} — 뉴스레터 단위 잠금
+             → 서로 다른 뉴스레터는 이미 병렬 처리됨 (락이 겹치지 않음)
+             → 같은 뉴스레터의 배치를 병렬 처리하면 이중 발송 발생
+```
+
+**SKIP LOCKED를 쓸 수 없는 근본 이유:**
+
+```
+FOR UPDATE SKIP LOCKED는 트랜잭션 내에서 행을 잠근 뒤,
+처리 완료 후 COMMIT으로 잠금을 해제하는 패턴이다.
+
+문제: sendFromRecord() 배치 루프 안에서 wp_mail()을 호출한다.
+     SMTP 서버에 연결하는 외부 I/O가 수 초~수십 초 걸린다.
+     트랜잭션을 열어둔 채 SMTP I/O를 처리하면:
+     → MySQL 연결 타임아웃
+     → 락 대기 중인 다른 쿼리 블로킹
+     → 이중 발송보다 더 심각한 장애 가능
+
+결론: 외부 I/O(이메일 발송)와 DB 트랜잭션을 섞으면 안 된다.
+      GET_LOCK(세션 잠금)은 트랜잭션 없이 동작하므로 적합하다.
+```
+
+**GET_LOCK의 추가 장점:**
+
+```php
+// 세션 종료(PHP 프로세스 크래시) 시 MySQL이 자동으로 락 해제
+// → 수동 RELEASE_LOCK 없이도 장애 복구 가능 (finally 블록은 보너스)
+SELECT GET_LOCK('crmbiz_nl_send_42', 0);  // 이미 실행 중이면 즉시 0 반환
+```
+
+**향후 실제 병렬화가 필요해질 때 올바른 접근:**
+
+```
+지금: 뉴스레터 단위 GET_LOCK → 이미 여러 뉴스레터 병렬 처리 가능
+Phase C: 같은 뉴스레터를 여러 배치로 쪼개려면 →
+         queue 테이블에 claimed_at DATETIME NULL 컬럼 추가
+         UPDATE queue SET claimed_at=NOW() WHERE newsletter_id=? AND claimed_at IS NULL LIMIT 50
+         → 단일 원자적 UPDATE로 행 점유 (트랜잭션 불필요)
+         이후 claimed_at이 5분 지난 행은 재처리 가능 (크래시 복구)
+```
+
+---
+
+### 14-3. A-1 캐싱 — 무엇을 캐싱하고 무엇을 캐싱하지 않았나
+
+`getDashboard()`에는 쿼리가 5개 있다. 모두 캐싱하지 않았다.
+
+| 쿼리 | 캐싱 여부 | 이유 |
+|------|---------|------|
+| stats (COUNT+SUM on newsletters) | ✅ 5분 | 발송 완료/삭제 시에만 변함 |
+| chart (일별 집계, days별) | ✅ 5분 | 발송 완료/삭제 시에만 변함 |
+| campaigns (newsletters JOIN events) | ❌ | 오픈/클릭 추적 이벤트마다 변함 → 무효화 불가 |
+| pending (status IN 집계) | ❌ | queued/sending 실시간 표시가 UX상 중요 |
+| nextScheduled | ❌ | 실시간 필요 |
+
+**캐싱 설계 원칙:**
+
+```
+1. 언제 변하는지 먼저 파악한다.
+   "자주 바뀌는 데이터" vs "드물게 바뀌는 데이터"를 구분하지 않으면
+   캐시가 있어도 의미 없거나, 있으면 오히려 해롭다.
+
+2. 무효화 지점을 빠짐없이 열거한다.
+   finalizeSend() ✓
+   deleteNewsletter() ✓ (sent 레코드 삭제 시 total_nl 변화)
+   forceDeleteNewsletter()? → deleteNewsletter()를 공유하므로 커버됨
+
+3. 무효화 로직을 한 곳으로 모은다.
+   RestApi::clearDashboardCache() — 어디서든 호출 가능한 static 헬퍼
+```
+
+---
+
+### 14-4. transient 테스트 격리의 중요성
+
+캐싱을 구현하자마자 PHPUnit에서 테스트 실패가 발생했다.
+
+```
+Failed asserting that 80.0 is identical to 0.
+```
+
+이 테스트는 "발송 완료 없으면 success_rate=0"을 검증하는데,  
+직전 테스트가 stats transient을 채워놔서 캐시에서 80.0이 반환된 것이다.
+
+**교훈: 전역 상태(transient, options, post_meta)는 setUp/tearDown에서 반드시 초기화한다.**
+
+```php
+// RestApiBusinessLogicTest::setUp()
+$GLOBALS['_wp_transients'] = []; // ← 이 한 줄이 없으면 테스트 순서 의존성 생김
+
+// RestApiBusinessLogicTest::tearDown()
+$GLOBALS['_wp_transients'] = []; // ← tearDown도 필요 (다음 테스트 클래스로의 누출 방지)
+```
+
+**캐싱을 구현할 때마다 점검 목록:**
+
+```
+□ transient를 쓰는 코드를 추가했는가?
+□ 해당 테스트 클래스의 setUp/tearDown에 _wp_transients = [] 추가했는가?
+□ tearDown에도 추가했는가 (클래스 간 누출)?
+□ clearDashboardCache() 직접 호출 테스트를 작성했는가?
+```
+
+---
+
+### 14-5. 커버링 인덱스 설계 — idx_nl_email_type
+
+`getNewsletterDetail()`이 실행하는 쿼리:
+
+```sql
+SELECT email,
+       MAX(CASE WHEN type IN ('open','click') THEN 1 ELSE 0 END) AS opened,
+       ...
+FROM wp_crmbiz_nl_events
+WHERE newsletter_id = %d
+GROUP BY email
+```
+
+**기존 인덱스 `idx_nl_type (newsletter_id, type)`의 문제:**
+
+```
+1. newsletter_id로 범위를 좁힌다 → OK
+2. type 필터링 (WHERE type IN ...) → idx_nl_type 활용
+3. GROUP BY email → email이 인덱스에 없으므로 filesort 발생
+   수신자 수가 클수록 filesort 비용이 선형 증가
+```
+
+**새 인덱스 `idx_nl_email_type (newsletter_id, email, type)`:**
+
+```
+1. newsletter_id로 범위 좁힘
+2. email 순서로 이미 정렬 → GROUP BY email을 인덱스만으로 처리 (filesort 없음)
+3. type도 인덱스에 있음 → CASE WHEN type IN ... 평가도 index scan
+```
+
+**마이그레이션 패턴 — idempotent 체크:**
+
+```php
+// 항상 이 패턴을 쓴다: 이미 있으면 스킵, 없으면 추가
+$indexes = $wpdb->get_col("SHOW INDEX FROM {$wpdb->prefix}crmbiz_nl_events", 2);
+if (is_array($indexes) && !in_array('idx_nl_email_type', $indexes, true)) {
+    $wpdb->query("ALTER TABLE ... ADD KEY idx_nl_email_type (newsletter_id, email, type)");
+}
+```
+
+이 패턴은 install()을 여러 번 실행해도 안전하다 (중복 인덱스 오류 없음).
+
+---
+
+### 14-6. Phase A 완료 체크리스트
+
+```markdown
+## Phase A 완료 확인 (v1.1.0)
+
+✅ A-1 캐싱: stats/chart transient, clearDashboardCache(), 무효화 2곳
+✅ A-3 인덱스: idx_nl_email_type DB 2.1.0, idempotent 마이그레이션
+✅ A-4 큐 정리: FluentCRM 비활성화 경로 직접 fix, handleCleanup() 안전망
+🚫 A-2 보류: GET_LOCK 교체 불가 (SMTP I/O + 트랜잭션 충돌). §14-2 참고.
+
+PHPUnit: 322 tests / 565 assertions (0 failures)
+E2E:     724 tests (CI 통과)
 ```
