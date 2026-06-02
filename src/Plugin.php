@@ -32,6 +32,8 @@ class Plugin {
     }
 
     private function registerHooks(): void {
+        add_action('init', [self::class, 'loadTextDomain']);
+
         // AS가 활성화된 경우 HTTP Loopback Async Runner 활성화
         // — WP Cron 트리거 없이도 새 액션 예약 시 즉시 큐 처리
         if (function_exists('as_schedule_single_action')) {
@@ -165,6 +167,14 @@ class Plugin {
         }
 
         $this->dispatchNewsletter($postId);
+    }
+
+    public static function loadTextDomain(): void {
+        load_plugin_textdomain(
+            'crmbiz-newsletter',
+            false,
+            dirname(plugin_basename(CRMBIZ_NL_FILE)) . '/languages'
+        );
     }
 
     private function newsletterRecordExists(int $postId): bool {

@@ -91,7 +91,7 @@ class UnsubscribePage {
                     <div class="crmbiz-search-inner">
                         <span class="dashicons dashicons-search"></span>
                         <input type="text" name="s" value="<?php echo esc_attr($search); ?>"
-                               placeholder="이름 또는 이메일로 검색..."
+                               placeholder="<?php esc_attr_e('이름 또는 이메일로 검색...', 'crmbiz-newsletter'); ?>"
                                class="crmbiz-search-input" autocomplete="off">
                     </div>
                     <?php if ($search): ?>
@@ -104,7 +104,9 @@ class UnsubscribePage {
             <?php if (empty($rows)): ?>
                 <div class="crmbiz-empty">
                     <div class="crmbiz-empty-icon">✉</div>
-                    <p><?php echo $search ? '"' . esc_html($search) . '"에 해당하는 수신거부 이메일이 없습니다.' : '수신거부된 이메일이 없습니다.'; ?></p>
+                    <p><?php echo $search
+                        ? sprintf(esc_html__('"%s"에 해당하는 수신거부 이메일이 없습니다.', 'crmbiz-newsletter'), esc_html($search))
+                        : esc_html__('수신거부된 이메일이 없습니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
             <?php else: ?>
 
@@ -137,7 +139,7 @@ class UnsubscribePage {
                                 <button type="button"
                                         class="crmbiz-unsub-remove crmbiz-icon-btn crmbiz-icon-btn--red"
                                         data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="수신거부 해제">
+                                        title="<?php esc_attr_e('수신거부 해제', 'crmbiz-newsletter'); ?>"
                                     <span class="dashicons dashicons-undo" style="font-size:14px;line-height:28px"></span>
                                 </button>
                             </td>
@@ -175,9 +177,9 @@ class UnsubscribePage {
         <!-- 직접 추가 모달 -->
         <div id="crmbiz-unsub-modal" class="crmbiz-modal-overlay" style="display:none">
             <div class="crmbiz-modal">
-                <p class="crmbiz-modal-message" style="font-weight:600;margin-bottom:12px">수신거부 이메일 직접 추가</p>
+                <p class="crmbiz-modal-message" style="font-weight:600;margin-bottom:12px"><?php esc_html_e('수신거부 이메일 직접 추가', 'crmbiz-newsletter'); ?></p>
                 <input type="email" id="crmbiz-unsub-email-input"
-                       placeholder="추가할 이메일 주소"
+                       placeholder="<?php esc_attr_e('추가할 이메일 주소', 'crmbiz-newsletter'); ?>"
                        style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--cn-border);border-radius:var(--cn-radius);font-size:13px;margin-bottom:16px">
                 <div class="crmbiz-modal-actions">
                     <button type="button" class="crmbiz-btn crmbiz-btn--secondary" id="crmbiz-unsub-modal-cancel">취소</button>

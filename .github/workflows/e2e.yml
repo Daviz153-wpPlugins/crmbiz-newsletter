@@ -163,6 +163,7 @@ jobs:
           WP_EDITOR_PASS: editorpass
           WP_PATH: /tmp/wordpress
           ENABLE_MIGRATION_TEST: '1'
+          ENABLE_CONFLICT_TEST: '1'
         run: npx playwright test
 
       - name: Upload report on failure
