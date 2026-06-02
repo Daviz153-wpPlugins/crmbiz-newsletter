@@ -162,7 +162,52 @@ function wp_redirect(string $location, int $status = 302): bool {
 }
 $GLOBALS['_wp_redirect'] = null;
 
-// WP_Post 스텁
+// ── REST API 스텁 ────────────────────────────────────────────────────────────
+
+if (!class_exists('WP_REST_Request')) {
+    class WP_REST_Request {
+        private array $params;
+        public function __construct(string $method = 'GET', array $params = []) {
+            $this->params = $params;
+        }
+        public function get_param(string $key) { return $this->params[$key] ?? null; }
+        public function get_params(): array    { return $this->params; }
+    }
+}
+
+if (!class_exists('WP_REST_Response')) {
+    class WP_REST_Response {
+        private mixed $data;
+        private int   $status;
+        public function __construct(mixed $data = null, int $status = 200) {
+            $this->data   = $data;
+            $this->status = $status;
+        }
+        public function get_data(): mixed { return $this->data; }
+        public function get_status(): int { return $this->status; }
+    }
+}
+
+if (!class_exists('WP_Error')) {
+    class WP_Error {
+        public function __construct(
+            private string $code    = '',
+            private string $message = '',
+            private mixed  $data    = ''
+        ) {}
+        public function get_error_code(): string    { return $this->code; }
+        public function get_error_message(): string { return $this->message; }
+        public function get_error_data(): mixed     { return $this->data; }
+    }
+}
+
+function rest_ensure_response(mixed $data): \WP_REST_Response {
+    return $data instanceof \WP_REST_Response ? $data : new \WP_REST_Response($data, 200);
+}
+function register_rest_route(string $ns, string $route, array $args = [], bool $override = false): void {}
+function is_wp_error(mixed $val): bool { return $val instanceof \WP_Error; }
+
+// ── WP_Post 스텁 ────────────────────────────────────────────────────────────
 if (!class_exists('WP_Post')) {
     class WP_Post {
         public int    $ID           = 0;
@@ -303,6 +348,14 @@ class WpdbStub {
     }
 
     public function get_var(string $sql): ?string {
+        // SELECT status FROM wp_crmbiz_newsletters WHERE id = N
+        if (preg_match("/SELECT status FROM \S+crmbiz_newsletters WHERE id = (\d+)/i", $sql, $m)) {
+            $id = (int) $m[1];
+            foreach ($GLOBALS['_wpdb_newsletters'] as $row) {
+                if ((int)($row['id'] ?? 0) === $id) return $row['status'] ?? null;
+            }
+            return null;
+        }
         if (strpos($sql, 'LAST_INSERT_ID()') !== false) {
             return (string) $this->last_insert_id;
         }
@@ -364,6 +417,10 @@ class WpdbStub {
             return $before - count($store);
         };
 
+        // newsletters 테이블 — id 기반 삭제
+        if (strpos($table, 'crmbiz_newsletters') !== false && !strpos($table, 'crmbiz_nl_')) {
+            return $filter($GLOBALS['_wpdb_newsletters']);
+        }
         if (strpos($table, 'crmbiz_nl_queue') !== false) {
             return $filter($GLOBALS['_wpdb_queue']);
         }
@@ -380,6 +437,26 @@ class WpdbStub {
     }
 
     public function get_row(string $sql, string $output = 'OBJECT') {
+        // SELECT * FROM wp_crmbiz_newsletters WHERE id = N  (resendNewsletter)
+        if (preg_match("/SELECT \* FROM \S+crmbiz_newsletters WHERE id = (\d+)/i", $sql, $m)) {
+            $id = (int) $m[1];
+            foreach ($GLOBALS['_wpdb_newsletters'] as $row) {
+                if ((int)($row['id'] ?? 0) === $id) {
+                    return $output === ARRAY_A ? $row : (object) $row;
+                }
+            }
+            return null;
+        }
+        // SELECT status, success_count, fail_count, recipient_count ... WHERE id = N
+        if (preg_match("/SELECT status.*FROM \S+crmbiz_newsletters WHERE id = (\d+)/is", $sql, $m)) {
+            $id = (int) $m[1];
+            foreach ($GLOBALS['_wpdb_newsletters'] as $row) {
+                if ((int)($row['id'] ?? 0) === $id) {
+                    return $output === ARRAY_A ? $row : (object) $row;
+                }
+            }
+            return null;
+        }
         // SELECT ... FROM wp_crmbiz_nl_unsubscribers WHERE email = 'x'
         if (strpos($sql, 'crmbiz_nl_unsubscribers') !== false
             && preg_match("/WHERE email = '([^']+)'/i", $sql, $m)) {
@@ -509,6 +586,31 @@ class WpdbStub {
     }
 
     public function query(string $sql): int {
+        // UPDATE crmbiz_newsletters SET status = 'X' WHERE id = N AND status = 'Y'
+        if (preg_match("/UPDATE \S+crmbiz_newsletters\s+SET status = '([^']+)'\s+WHERE id = (\d+) AND status = '([^']+)'/is", $sql, $m)) {
+            [$newStatus, $id, $reqStatus] = [$m[1], (int)$m[2], $m[3]];
+            foreach ($GLOBALS['_wpdb_newsletters'] as &$row) {
+                if ((int)($row['id'] ?? 0) === $id && ($row['status'] ?? '') === $reqStatus) {
+                    $row['status'] = $newStatus;
+                    return 1;
+                }
+            }
+            unset($row);
+            return 0;
+        }
+        // UPDATE crmbiz_newsletters SET status = 'cancelled' WHERE id = N AND status IN (...)
+        if (preg_match("/UPDATE \S+crmbiz_newsletters\s+SET status = 'cancelled'\s+WHERE id = (\d+) AND status IN \(([^)]+)\)/is", $sql, $m)) {
+            $id      = (int) $m[1];
+            $allowed = array_map(fn($s) => trim($s, " '\""), explode(',', $m[2]));
+            foreach ($GLOBALS['_wpdb_newsletters'] as &$row) {
+                if ((int)($row['id'] ?? 0) === $id && in_array($row['status'] ?? '', $allowed, true)) {
+                    $row['status'] = 'cancelled';
+                    return 1;
+                }
+            }
+            unset($row);
+            return 0;
+        }
         // TRUNCATE TABLE wp_crmbiz_nl_logs
         if (preg_match('/TRUNCATE TABLE \S+crmbiz_nl_logs/i', $sql)) {
             $count = count($GLOBALS['_wpdb_logs']);
