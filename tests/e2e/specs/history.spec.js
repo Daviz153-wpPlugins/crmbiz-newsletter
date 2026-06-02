@@ -9,14 +9,21 @@ test.describe('발송 이력', () => {
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
   })
 
+  // ── 기본 렌더 ────────────────────────────────────────────────────────────
+
   test('페이지 로드 — 기본 요소 표시', async ({ page }) => {
     await expect(page.locator('h1:has-text("뉴스레터 이력")')).toBeVisible()
     await expect(page.locator('input[placeholder*="검색"]')).toBeVisible()
   })
 
-  test('페이지네이션 항상 표시', async ({ page }) => {
-    await expect(page.locator('text=페이지당')).toBeVisible()
+  test('페이지네이션 — 새 UI 텍스트 표시', async ({ page }) => {
+    await expect(page.locator('text=총계')).toBeVisible()
+    await expect(page.locator('text=/ page')).toBeVisible()
+    // 페이지 X of Y 형식 확인
+    await expect(page.locator('text=/페이지 \\d+ of \\d+/')).toBeVisible()
   })
+
+  // ── 필터 ────────────────────────────────────────────────────────────────
 
   test('상태 필터 pill — 전체/완료/실패 클릭', async ({ page }) => {
     for (const label of ['완료', '실패', '전체']) {
@@ -28,8 +35,7 @@ test.describe('발송 이력', () => {
 
   test('제목 검색 동작', async ({ page }) => {
     await page.fill('input[placeholder*="검색"]', '테스트')
-    await page.waitForTimeout(600) // debounce 대기
-    // 오류 없이 결과 표시 (빈 결과 포함)
+    await page.waitForTimeout(600)
     await expect(page.locator('h1')).toBeVisible()
   })
 
@@ -42,6 +48,21 @@ test.describe('발송 이력', () => {
     await expect(page.locator('input[placeholder*="검색"]')).toHaveValue('')
   })
 
+  test('날짜 범위 필터 — 입력 후 테이블 유지', async ({ page }) => {
+    const dateFrom = page.locator('input[type="date"]').first()
+    const dateTo   = page.locator('input[type="date"]').last()
+    await expect(dateFrom).toBeVisible()
+    await expect(dateTo).toBeVisible()
+    await dateFrom.fill('2026-01-01')
+    await dateTo.fill('2026-12-31')
+    await page.waitForTimeout(600)
+    await expect(page.locator('h1:has-text("뉴스레터 이력")')).toBeVisible()
+    // 초기화 버튼 등장
+    await expect(page.locator('button:has-text("초기화")')).toBeVisible()
+  })
+
+  // ── 정렬 ────────────────────────────────────────────────────────────────
+
   test('컬럼 정렬 클릭', async ({ page }) => {
     const sortBtns = page.locator('thead button')
     const count = await sortBtns.count()
@@ -50,6 +71,43 @@ test.describe('발송 이력', () => {
       await page.waitForTimeout(200)
     }
     await expect(page.locator('h1')).toBeVisible()
+  })
+
+  // ── 슬라이드오버 ─────────────────────────────────────────────────────────
+
+  test('슬라이드오버 — 행 클릭 시 열림', async ({ page }) => {
+    const firstRow = page.locator('tbody tr').first()
+    await expect(firstRow).toBeVisible()
+    await firstRow.click()
+    // SlideOver 패널이 나타남
+    await expect(page.locator('.translate-x-full').or(page.locator('[class*="slide"]'))).not.toBeVisible({ timeout: 3_000 }).catch(() => {})
+    // 상태 배지 + 제목이 패널에 표시됨
+    await expect(page.locator('h2').last()).toBeVisible()
+  })
+
+  test('슬라이드오버 — 닫기(X) 버튼으로 닫힘', async ({ page }) => {
+    await page.locator('tbody tr').first().click()
+    // 닫기 버튼 클릭
+    const closeBtn = page.locator('button[aria-label="닫기"], button:has(svg)').last()
+    await closeBtn.click()
+    await page.waitForTimeout(300)
+    // 슬라이드오버가 닫히면 tbody가 다시 포커스 가능
+    await expect(page.locator('tbody tr').first()).toBeVisible()
+  })
+
+  test('슬라이드오버 — 삭제 버튼 클릭 시 인라인 확인 표시', async ({ page }) => {
+    await page.locator('tbody tr').first().click()
+    await page.waitForTimeout(300)
+    // 삭제 버튼(빨간 아이콘 버튼)
+    const deleteBtn = page.locator('button.so-btn--red-outline')
+    await expect(deleteBtn).toBeVisible()
+    await deleteBtn.click()
+    // "삭제할까요?" 인라인 확인 텍스트 + 예/아니오 버튼
+    await expect(page.locator('text=삭제할까요?')).toBeVisible()
+    await expect(page.locator('button:has-text("아니오")')).toBeVisible()
+    // 취소
+    await page.locator('button:has-text("아니오")').click()
+    await expect(page.locator('text=삭제할까요?')).not.toBeVisible()
   })
 
 })

@@ -42,12 +42,24 @@ test.describe('대시보드', () => {
     await expect(page).toHaveURL(/crmbiz-nl-history/)
   })
 
-  test('캠페인 페이지네이션 — 페이지당 선택', async ({ page }) => {
+  test('캠페인 페이지네이션 — 새 UI 텍스트 표시', async ({ page }) => {
+    await expect(page.locator('text=총계')).toBeVisible()
+    await expect(page.locator('text=/ page')).toBeVisible()
+    await expect(page.locator('text=/페이지 \\d+ of \\d+/')).toBeVisible()
+  })
+
+  test('캠페인 페이지네이션 — per-page 선택', async ({ page }) => {
     const select = page.locator('select').last()
     await expect(select).toBeVisible()
     await select.selectOption('10')
     await page.waitForTimeout(500)
     await expect(page.locator('text=최근 캠페인')).toBeVisible()
+  })
+
+  test('캠페인 페이지네이션 — 다음/이전 버튼 렌더', async ({ page }) => {
+    // « ‹ 1 › » 버튼 5개가 모두 존재
+    const paginationSection = page.locator('.flex.items-center.gap-1').last()
+    await expect(paginationSection.locator('button')).toHaveCount(5)
   })
 
   test('발송 이력 버튼 → 이력 페이지 이동', async ({ page }) => {
