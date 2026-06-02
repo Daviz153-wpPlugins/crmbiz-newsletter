@@ -94,6 +94,103 @@ function current_time(string $type, bool $gmt = false): string {
     return date('Y-m-d H:i:s');
 }
 
+function esc_html(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
+function esc_attr(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
+function esc_url(string $url): string     { return htmlspecialchars($url,  ENT_QUOTES, 'UTF-8'); }
+function esc_html__(string $text, string $domain = 'default'): string { return esc_html($text); }
+
+function is_email(string $email): bool {
+    return (bool) filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+function wp_mail($to, string $subject, string $message, $headers = '', $attachments = []): bool {
+    $GLOBALS['_wp_mail_calls'][] = compact('to', 'subject', 'message', 'headers');
+    return $GLOBALS['_wp_mail_result'] ?? true;
+}
+$GLOBALS['_wp_mail_calls']  = [];
+$GLOBALS['_wp_mail_result'] = true;
+
+/**
+ * wp_send_json_* 스텁 — exit 대신 예외를 던져 테스트에서 캡처 가능하게 함
+ * try { $handler->handle(); } catch (WpJsonResponse $e) { $e->getPayload() }
+ */
+class WpJsonResponse extends \RuntimeException {
+    public function __construct(private bool $success, private mixed $data, private int $statusCode) {
+        parent::__construct($success ? 'success' : 'error');
+    }
+    public function isSuccess(): bool  { return $this->success; }
+    public function getData(): mixed   { return $this->data; }
+    public function getStatus(): int   { return $this->statusCode; }
+}
+
+function wp_send_json_success($data = null, int $statusCode = 200): void {
+    throw new WpJsonResponse(true, $data, $statusCode);
+}
+function wp_send_json_error($data = null, int $statusCode = 200): void {
+    throw new WpJsonResponse(false, $data, $statusCode);
+}
+function wp_send_json($data, int $statusCode = 200): void {
+    throw new WpJsonResponse(true, $data, $statusCode);
+}
+
+class WpDiedException extends \RuntimeException {
+    public function __construct(public readonly string $wpMessage, public readonly int $statusCode = 500) {
+        parent::__construct($wpMessage);
+    }
+}
+function wp_die($message = '', $title = '', $args = []): void {
+    $code = is_array($args) ? (int) ($args['response'] ?? 500) : 500;
+    throw new WpDiedException((string) $message, $code);
+}
+
+function wp_redirect(string $location, int $status = 302): bool {
+    $GLOBALS['_wp_redirect'] = ['location' => $location, 'status' => $status];
+    return true;
+}
+$GLOBALS['_wp_redirect'] = null;
+
+// WP_Post 스텁
+if (!class_exists('WP_Post')) {
+    class WP_Post {
+        public int    $ID           = 0;
+        public string $post_title   = '';
+        public string $post_content = '';
+        public string $post_date    = '';
+        public string $post_status  = 'publish';
+        public string $post_type    = 'post';
+        public int    $post_author  = 0;
+        public string $post_excerpt = '';
+        public string $post_name    = '';
+        public string $guid         = '';
+
+        public function __construct(object $data) {
+            foreach ((array) $data as $key => $value) {
+                $this->$key = $value;
+            }
+        }
+    }
+}
+
+function get_current_user_id(): int { return 1; }
+function wp_get_current_user(): object {
+    return (object)[
+        'ID'           => 1,
+        'user_email'   => 'admin@example.com',
+        'display_name' => 'Admin',
+    ];
+}
+function get_the_title($post): string {
+    if (is_object($post)) return $post->post_title ?? '';
+    return $GLOBALS['_wp_posts'][(int)$post]->post_title ?? '';
+}
+function get_permalink($post): string { return 'https://example.com/post/1'; }
+function get_the_date(string $format = '', $post = null): string { return '2026-01-01'; }
+function get_theme_mod(string $name, $default = false) { return $default; }
+function wp_get_attachment_image_src(int $attachmentId, $size = 'thumbnail'): false { return false; }
+function get_post_thumbnail_id($post = null): int { return 0; }
+function get_posts(array $args = []): array { return []; }
+function wp_kses_post(string $content): string { return $content; }
+
 function add_action(string $hook, $callback, int $priority = 10, int $args = 1): void {}
 function add_filter(string $hook, $callback, int $priority = 10, int $args = 1): void {}
 function is_admin(): bool { return false; }
@@ -172,6 +269,7 @@ function as_next_scheduled_action(string $hook, array $args = [], string $group 
 $GLOBALS['_wpdb_ratelimit']      = [];
 $GLOBALS['_wpdb_newsletters']    = [];
 $GLOBALS['_wpdb_unsubscribers']  = [];
+$GLOBALS['_wpdb_events']         = [];
 
 class WpdbStub {
     public string $prefix = 'wp_';
@@ -206,6 +304,17 @@ class WpdbStub {
             foreach ($GLOBALS['_wpdb_unsubscribers'] as $row) {
                 if ($row['email'] === $m[1]) {
                     return '1';
+                }
+            }
+            return null;
+        }
+        // SELECT id FROM wp_crmbiz_nl_events WHERE newsletter_id = N AND email = 'x' AND type = 'unsubscribe' LIMIT 1
+        if (preg_match("/SELECT id FROM \S+crmbiz_nl_events\s+WHERE newsletter_id = (\d+) AND email = '([^']+)' AND type = 'unsubscribe'/is", $sql, $m)) {
+            $nlId  = (int) $m[1];
+            $email = $m[2];
+            foreach ($GLOBALS['_wpdb_events'] as $row) {
+                if ((int)($row['newsletter_id'] ?? 0) === $nlId && ($row['email'] ?? '') === $email && ($row['type'] ?? '') === 'unsubscribe') {
+                    return (string) $row['id'];
                 }
             }
             return null;
@@ -276,6 +385,14 @@ class WpdbStub {
     }
 
     public function insert(string $table, array $data, array $formats = []): int {
+        if (strpos($table, 'crmbiz_nl_events') !== false) {
+            $id = count($GLOBALS['_wpdb_events']) + 1;
+            $data['id'] = $id;
+            $GLOBALS['_wpdb_events'][] = $data;
+            $this->last_insert_id = $id;
+            $this->insert_id      = $id;
+            return 1;
+        }
         $id = count($GLOBALS['_wpdb_newsletters']) + 1;
         $data['id'] = $id;
         $GLOBALS['_wpdb_newsletters'][] = $data;
@@ -284,7 +401,27 @@ class WpdbStub {
         return 1;
     }
 
-    public function query(string $sql): void {
+    public function get_col(string $sql): array {
+        // SELECT post_id FROM wp_crmbiz_newsletters WHERE status = 'sent' ...
+        if (preg_match("/SELECT post_id FROM \S+crmbiz_newsletters WHERE status = 'sent'/i", $sql)) {
+            return array_map(fn($r) => (string)($r['post_id'] ?? 0),
+                array_filter($GLOBALS['_wpdb_newsletters'], fn($r) => ($r['status'] ?? '') === 'sent')
+            );
+        }
+        return [];
+    }
+
+    public function query(string $sql): int {
+        // DELETE FROM wp_crmbiz_nl_unsubscribers WHERE id IN (...)
+        if (preg_match('/DELETE FROM \S+crmbiz_nl_unsubscribers WHERE id IN \(([^)]+)\)/i', $sql, $m)) {
+            $ids    = array_map('intval', explode(',', $m[1]));
+            $before = count($GLOBALS['_wpdb_unsubscribers']);
+            $GLOBALS['_wpdb_unsubscribers'] = array_values(array_filter(
+                $GLOBALS['_wpdb_unsubscribers'],
+                fn($r) => !in_array((int)($r['id'] ?? 0), $ids, true)
+            ));
+            return $before - count($GLOBALS['_wpdb_unsubscribers']);
+        }
         if (preg_match('/INSERT INTO \S+crmbiz_nl_ratelimit.*VALUES \(\'([^\']+)\'/s', $sql, $m)) {
             $key   = $m[1];
             $store = &$GLOBALS['_wpdb_ratelimit'];
@@ -296,7 +433,9 @@ class WpdbStub {
                 $store[$key]['count']++;
                 $this->last_insert_id = $store[$key]['count'];
             }
+            return (int) $this->last_insert_id;
         }
+        return 0;
     }
 }
 
