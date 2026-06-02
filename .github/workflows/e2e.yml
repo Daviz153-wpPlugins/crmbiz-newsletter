@@ -94,29 +94,51 @@ jobs:
           wp eval '
           global $wpdb;
           $tbl = $wpdb->prefix . "crmbiz_newsletters";
-          // 6개 시딩 — 기본 5개/페이지 초과 시 페이지네이션 select 렌더됨
-          for ($i = 1; $i <= 6; $i++) {
+
+          // 액션 테스트가 각 상태별 항목을 찾을 수 있도록 다양한 상태로 시딩
+          // sent×4 + draft×1 + queued×1 + failed×1 + cancelled×1 = 8개 (페이지네이션 2페이지 보장)
+          $seeds = [
+            ["CI 발송완료 #1", "sent",      3, 0],
+            ["CI 발송완료 #2", "sent",      5, 0],
+            ["CI 발송완료 #3", "sent",      2, 1],
+            ["CI 발송완료 #4", "sent",      4, 0],
+            ["CI 초안",        "draft",     0, 0],
+            ["CI 대기중",      "queued",    0, 0],
+            ["CI 실패",        "failed",    0, 2],
+            ["CI 취소됨",      "cancelled", 0, 0],
+          ];
+
+          foreach ($seeds as [$title, $status, $success, $fail]) {
             $post_id = wp_insert_post([
-              "post_title"  => "CI 테스트 뉴스레터 #{$i}",
+              "post_title"  => $title,
               "post_status" => "publish",
               "post_type"   => "post",
             ]);
             $wpdb->insert($tbl, [
               "post_id"         => $post_id,
-              "status"          => "sent",
+              "status"          => $status,
               "send_mode"       => "immediate",
-              "sent_at"         => current_time("mysql"),
-              "success_count"   => 3,
-              "fail_count"      => 0,
-              "recipient_count" => 3,
+              "sent_at"         => in_array($status, ["sent","failed"]) ? current_time("mysql") : null,
+              "success_count"   => $success,
+              "fail_count"      => $fail,
+              "recipient_count" => $success + $fail,
               "tag_ids"         => "[]",
               "list_ids"        => "[]",
               "created_at"      => current_time("mysql"),
               "updated_at"      => current_time("mysql"),
             ]);
           }
+
           $count = $wpdb->get_var("SELECT COUNT(*) FROM {$tbl}");
           echo "Seeded {$count} newsletter records\n";
+
+          // 수신거부 샘플 (수신거부 관리 페이지 테스트용)
+          $utbl = $wpdb->prefix . "crmbiz_nl_unsubscribers";
+          $wpdb->insert($utbl, [
+            "email"            => "unsub-ci@example.com",
+            "unsubscribed_at"  => current_time("mysql"),
+          ]);
+          echo "Seeded unsubscriber record\n";
           ' --path=/tmp/wordpress
 
       - name: Start WordPress server
@@ -131,6 +153,8 @@ jobs:
           WP_BASE_URL: http://localhost:8080
           WP_ADMIN_USER: admin
           WP_ADMIN_PASS: password
+          WP_PATH: /tmp/wordpress
+          ENABLE_MIGRATION_TEST: '1'
         run: npx playwright test
 
       - name: Upload report on failure

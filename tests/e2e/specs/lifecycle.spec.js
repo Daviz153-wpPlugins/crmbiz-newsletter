@@ -213,7 +213,7 @@ test.describe('DB 마이그레이션', () => {
     // sent_at이 있는 레코드가 있다면 날짜 형식 확인
     const res  = await request.get(`${API}/newsletters?per_page=50`)
     const json = await res.json()
-    const sent = json.items?.filter((i: any) => i.sent_at) ?? []
+    const sent = (json.items ?? []).filter(i => i.sent_at)
 
     for (const item of sent.slice(0, 5)) {
       // sent_at이 유효한 날짜 형식인지 확인 (ISO 8601 또는 MySQL datetime)
