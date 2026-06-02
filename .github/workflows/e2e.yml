@@ -141,6 +141,12 @@ jobs:
           echo "Seeded unsubscriber record\n";
           ' --path=/tmp/wordpress
 
+      - name: Create editor test user
+        run: |
+          wp user create editor_test editor@ci.test \
+            --role=editor --user_pass=editorpass \
+            --path=/tmp/wordpress --quiet || true
+
       - name: Start WordPress server
         run: |
           # wp server = PHP 내장 서버 + WordPress 라우팅
@@ -153,6 +159,8 @@ jobs:
           WP_BASE_URL: http://localhost:8080
           WP_ADMIN_USER: admin
           WP_ADMIN_PASS: password
+          WP_EDITOR_USER: editor_test
+          WP_EDITOR_PASS: editorpass
           WP_PATH: /tmp/wordpress
           ENABLE_MIGRATION_TEST: '1'
         run: npx playwright test

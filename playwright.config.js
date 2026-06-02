@@ -12,7 +12,8 @@ try {
   })
 } catch {}
 
-const AUTH_FILE = 'tests/e2e/.auth/admin.json'
+const AUTH_FILE        = 'tests/e2e/.auth/admin.json'
+const AUTH_FILE_EDITOR = 'tests/e2e/.auth/editor.json'
 
 const BASE_USE = {
   baseURL:    (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '') + '/',
@@ -70,6 +71,21 @@ export default defineConfig({
       use: {
         ...devices['Desktop Safari'],
         storageState: AUTH_FILE,
+      },
+    },
+
+    // ── Editor (비관리자) 접근 차단 전용 프로젝트 ─────────────────────
+    {
+      name:      'setup-editor',
+      testMatch: '**/auth.setup.editor.js',
+    },
+    {
+      name:         'editor',
+      dependencies: ['setup-editor'],
+      testMatch:    '**/access-control.spec.js',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH_FILE_EDITOR,
       },
     },
   ],

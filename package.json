@@ -9,6 +9,7 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
     "@vitejs/plugin-vue": "^6.0.7",
