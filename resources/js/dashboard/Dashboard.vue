@@ -225,8 +225,8 @@
             <span class="text-xs text-gray-400">페이지 {{ campaignPage }} of {{ data.campaign_pages }}</span>
             <div class="relative">
               <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
-                      class="appearance-none border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
-                      style="outline:none;box-shadow:none">
+                      class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
+                      style="-webkit-appearance:none;appearance:none;outline:none;box-shadow:none">
                 <option :value="5">5 / page</option>
                 <option :value="10">10 / page</option>
                 <option :value="20">20 / page</option>

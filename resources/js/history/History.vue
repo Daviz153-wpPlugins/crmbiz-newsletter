@@ -24,11 +24,17 @@
         >
       </div>
       <!-- 날짜 범위 -->
-      <input v-model="dateFrom" type="date" @change="applyFilters"
-             class="appearance-none border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <div class="overflow-hidden rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+        <input v-model="dateFrom" type="date" @change="applyFilters"
+               class="px-3 py-2 text-sm text-gray-600 bg-transparent focus:outline-none"
+               style="-webkit-appearance:none;appearance:none;border:none;box-shadow:none" />
+      </div>
       <span class="self-center text-xs text-gray-400">~</span>
-      <input v-model="dateTo" type="date" @change="applyFilters"
-             class="appearance-none border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <div class="overflow-hidden rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+        <input v-model="dateTo" type="date" @change="applyFilters"
+               class="px-3 py-2 text-sm text-gray-600 bg-transparent focus:outline-none"
+               style="-webkit-appearance:none;appearance:none;border:none;box-shadow:none" />
+      </div>
       <!-- 필터 초기화 -->
       <button v-if="hasFilter" @click="clearFilters"
               class="px-4 py-2 text-sm text-gray-500 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
@@ -251,8 +257,8 @@
         <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
         <div class="relative">
           <select v-model="perPage" @change="page = 1; fetchList()"
-                  class="appearance-none border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
-                  style="outline:none;box-shadow:none">
+                  class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
+                  style="-webkit-appearance:none;appearance:none;outline:none;box-shadow:none">
             <option :value="20">20 / page</option>
             <option :value="50">50 / page</option>
             <option :value="100">100 / page</option>
