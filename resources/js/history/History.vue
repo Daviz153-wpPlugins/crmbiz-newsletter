@@ -250,7 +250,7 @@
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
-                class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white"
+                class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
                 style="outline:none;box-shadow:none">
           <option :value="20">20 / page</option>
           <option :value="50">50 / page</option>

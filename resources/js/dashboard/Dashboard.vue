@@ -224,7 +224,7 @@
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-400">페이지 {{ campaignPage }} of {{ data.campaign_pages }}</span>
             <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
-                    class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white"
+                    class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
                     style="outline:none;box-shadow:none">
               <option :value="5">5 / page</option>
               <option :value="10">10 / page</option>
