@@ -49,6 +49,10 @@ function sanitize_text_field(string $str): string {
     return trim(wp_check_invalid_utf8($str));
 }
 
+function sanitize_key(string $key): string {
+    return preg_replace('/[^a-z0-9_-]/', '', strtolower($key));
+}
+
 function wp_check_invalid_utf8(string $str): string {
     return $str; // 테스트에서는 그대로 반환
 }
@@ -90,8 +94,23 @@ function add_query_arg($args, string $url = ''): string {
     return $url . '?' . http_build_query($args);
 }
 
-function current_time(string $type, bool $gmt = false): string {
-    return date('Y-m-d H:i:s');
+function current_time(string $type, bool $gmt = false) {
+    return $type === 'timestamp' ? time() : date('Y-m-d H:i:s');
+}
+
+function wp_create_nonce($action = -1): string {
+    return 'test_nonce_' . md5((string) $action);
+}
+
+function human_time_diff(int $from, int $to = 0): string {
+    $diff = abs(($to ?: time()) - $from);
+    if ($diff < 60) return $diff . ' 초';
+    if ($diff < 3600) return (int)($diff / 60) . ' 분';
+    return (int)($diff / 3600) . ' 시간';
+}
+
+function wp_kses(string $data, $allowed_html, array $allowed_protocols = []): string {
+    return $data; // 테스트에서는 통과
 }
 
 // 상수
@@ -335,9 +354,14 @@ $GLOBALS['_wpdb_queue']          = [];
 class WpdbStub {
     public string $prefix = 'wp_';
     public string $options = 'wp_options';
+    public string $posts   = 'wp_posts';
     public int $rows_affected = 0;
     public int $insert_id = 0;
     private int $last_insert_id = 0;
+
+    public function esc_like(string $text): string {
+        return addcslashes($text, '_%\\');
+    }
 
     public function prepare(string $sql, ...$args): string {
         $i = 0;

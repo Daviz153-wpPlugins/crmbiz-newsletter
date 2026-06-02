@@ -88,5 +88,16 @@ export default defineConfig({
         storageState: AUTH_FILE_EDITOR,
       },
     },
+
+    // ── Mobile (iPhone 14) — responsive.spec.js 전용 ─────────────────
+    {
+      name:         'mobile',
+      dependencies: ['setup'],
+      testMatch:    '**/responsive.spec.js',
+      use: {
+        ...devices['iPhone 14'],
+        storageState: AUTH_FILE,
+      },
+    },
   ],
 })

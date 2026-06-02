@@ -118,3 +118,81 @@ test.describe('메타박스 — 미리보기 링크', () => {
   })
 
 })
+
+// ── [8] Nonce 만료 → UI 에러 처리 ────────────────────────────────────────
+
+test.describe('메타박스 — nonce 만료 시 UI 에러 처리', () => {
+
+  test('[8-1] AJAX 응답을 403으로 가로채면 에러 표시, 무한 로딩 없음', async ({ page }) => {
+    await page.goto(NEW_POST)
+    await page.waitForLoadState('domcontentloaded')
+
+    const checkbox = page.locator('#crmbiz_nl_enabled')
+    await expect(checkbox).toBeVisible({ timeout: 5_000 })
+    if (!await checkbox.isChecked()) await checkbox.check()
+
+    // admin-ajax.php 요청을 가로채 nonce 만료 상태를 시뮬레이션
+    await page.route('**/admin-ajax.php', route => {
+      // 테스트 이메일 발송 요청만 가로챔
+      const body = route.request().postData() ?? ''
+      if (body.includes('crmbiz_nl_test_newsletter')) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            data: { message: '보안 토큰이 만료되었습니다. 페이지를 새로고침 해주세요.' }
+          })
+        })
+      } else {
+        route.continue()
+      }
+    })
+
+    const testEmailInput = page.locator('#crmbiz-nl-test-email')
+    const sendTestBtn    = page.locator('#crmbiz-nl-send-test')
+
+    await expect(testEmailInput).toBeVisible()
+    await testEmailInput.fill('test@example.com')
+    await sendTestBtn.click()
+
+    // 에러 메시지 표시
+    const result = page.locator('#crmbiz-nl-test-result')
+    await expect(result).toBeVisible({ timeout: 5_000 })
+    await expect(result).toContainText('만료')
+
+    // 무한 로딩 없음 — 버튼이 다시 활성화됨
+    await expect(sendTestBtn).not.toBeDisabled({ timeout: 5_000 })
+    await expect(sendTestBtn).toHaveText('테스트 발송', { timeout: 3_000 })
+  })
+
+  test('[8-2] 수신자 카운트 AJAX 실패 → 메타박스 유지, 에러로 인한 빈 화면 없음', async ({ page }) => {
+    await page.goto(NEW_POST)
+    await page.waitForLoadState('domcontentloaded')
+
+    // count_recipients 요청을 서버 오류로 가로채기
+    await page.route('**/admin-ajax.php', route => {
+      const body = route.request().postData() ?? ''
+      if (body.includes('crmbiz_nl_count_recipients')) {
+        route.fulfill({ status: 500, body: 'Internal Server Error' })
+      } else {
+        route.continue()
+      }
+    })
+
+    const checkbox = page.locator('#crmbiz_nl_enabled')
+    await expect(checkbox).toBeVisible({ timeout: 5_000 })
+    if (!await checkbox.isChecked()) await checkbox.check()
+
+    const recipientChecks = page.locator('.crmbiz-recipient-check')
+    const count = await recipientChecks.count()
+    if (count > 0) {
+      await recipientChecks.first().check()
+      await page.waitForTimeout(1_000)
+    }
+
+    // 메타박스 자체는 사라지지 않아야 함
+    await expect(page.locator('#crmbiz-nl-metabox')).toBeVisible()
+  })
+
+})

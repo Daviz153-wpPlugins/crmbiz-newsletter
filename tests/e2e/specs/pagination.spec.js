@@ -4,9 +4,19 @@
  * 렌더 확인에 그치지 않고 페이지 이동, 데이터 변경, per-page 변경을 검증
  */
 import { test, expect } from '@playwright/test'
+import { execSync } from 'child_process'
 
 const DASHBOARD = 'wp-admin/admin.php?page=crmbiz-newsletter'
 const HISTORY   = 'wp-admin/admin.php?page=crmbiz-nl-history'
+const WP_PATH   = process.env.WP_PATH || '/tmp/wordpress'
+
+function wpEval(code) {
+  const flat = code.replace(/\s+/g, ' ').trim()
+  return execSync(
+    `wp eval '${flat.replace(/'/g, "'\\''")}' --path=${WP_PATH}`,
+    { encoding: 'utf-8' }
+  ).trim()
+}
 
 test.describe('대시보드 캠페인 페이지네이션', () => {
 
@@ -173,6 +183,132 @@ test.describe('수신거부 페이지네이션 (PHP 렌더)', () => {
     await page.click('a:has-text("▶")')
     await page.waitForLoadState('domcontentloaded')
     await expect(page).toHaveURL(/paged=2/)
+  })
+
+})
+
+// ── [12] 대량 이력 성능 측정 ───────────────────────────────────────────────
+
+test.describe('대량 이력 성능 (50개 시딩)', () => {
+
+  const seededIds = []
+  const SEED_COUNT = 50
+
+  function seedBulkNewsletters(count) {
+    const ids = wpEval(`
+      global $wpdb;
+      $ids = [];
+      for ($i = 1; $i <= ${count}; $i++) {
+        $postId = wp_insert_post([
+          'post_title'  => sprintf('[E2E] 대량성능테스트 %03d', $i),
+          'post_status' => 'publish',
+          'post_type'   => 'post',
+        ]);
+        $wpdb->insert($wpdb->prefix . 'crmbiz_newsletters', [
+          'post_id'         => $postId,
+          'status'          => ($i % 3 === 0) ? 'sent' : (($i % 3 === 1) ? 'draft' : 'cancelled'),
+          'send_mode'       => 'immediate',
+          'recipient_count' => rand(10, 500),
+          'success_count'   => ($i % 3 === 0) ? rand(10, 500) : 0,
+          'fail_count'      => 0,
+          'created_at'      => current_time('mysql'),
+        ], ['%d', '%s', '%s', '%d', '%d', '%d', '%s']);
+        $ids[] = $wpdb->insert_id;
+      }
+      echo implode(',', $ids);
+    `)
+    return ids.split(',').map(Number).filter(Boolean)
+  }
+
+  function deleteSeededBulk(ids) {
+    if (!ids.length) return
+    wpEval(`
+      global $wpdb;
+      $ids = [${ids.join(',')}];
+      foreach ($ids as $id) {
+        $nl = $wpdb->get_row($wpdb->prepare(
+          "SELECT post_id FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d", $id
+        ));
+        $wpdb->delete($wpdb->prefix . 'crmbiz_newsletters', ['id' => $id], ['%d']);
+        if ($nl && $nl->post_id) wp_delete_post($nl->post_id, true);
+      }
+    `)
+  }
+
+  test.beforeAll(() => {
+    const ids = seedBulkNewsletters(SEED_COUNT)
+    seededIds.push(...ids)
+  })
+
+  test.afterAll(() => {
+    deleteSeededBulk(seededIds)
+  })
+
+  test('[12-1] 50개 이력 — 페이지 로드 시간 < 2000ms', async ({ page }) => {
+    const start = Date.now()
+    await page.goto(HISTORY)
+    await page.waitForSelector('.min-h-screen', { timeout: 15_000 })
+    // 첫 번째 데이터 행 렌더까지 측정
+    await page.waitForSelector('tbody tr', { timeout: 10_000 })
+    const elapsed = Date.now() - start
+
+    expect(elapsed).toBeLessThan(2000)
+  })
+
+  test('[12-2] 50개 이력 — 총계 50개 이상 표시', async ({ page }) => {
+    await page.goto(HISTORY)
+    await page.waitForSelector('.min-h-screen', { timeout: 15_000 })
+
+    const totalText = await page.locator('text=/총계 \\d+/').textContent()
+    const match = totalText?.match(/총계 (\d+)/)
+    const total = match ? parseInt(match[1]) : 0
+    expect(total).toBeGreaterThanOrEqual(SEED_COUNT)
+  })
+
+  test('[12-3] 5페이지 이동 후 슬라이드오버 정상 동작', async ({ page }) => {
+    await page.goto(HISTORY)
+    await page.waitForSelector('.min-h-screen', { timeout: 15_000 })
+
+    const pageText  = await page.locator('text=/페이지 \\d+ of \\d+/').textContent()
+    const match     = pageText?.match(/of (\d+)/)
+    const totalPages = match ? parseInt(match[1]) : 1
+
+    // 5페이지까지 이동 (없으면 마지막 페이지까지)
+    const targetPage = Math.min(5, totalPages)
+    const paginationBtns = page.locator('.flex.items-center.gap-1').locator('button')
+
+    for (let p = 1; p < targetPage; p++) {
+      const nextBtn = paginationBtns.nth(3) // › 버튼
+      const isDisabled = await nextBtn.isDisabled()
+      if (isDisabled) break
+      await nextBtn.click()
+      await page.waitForTimeout(400)
+    }
+
+    // 현재 페이지에서 첫 행 클릭 → 슬라이드오버 열림
+    const firstRow = page.locator('tbody tr').first()
+    await expect(firstRow).toBeVisible()
+    await firstRow.click()
+    await page.waitForTimeout(400)
+    await expect(page.locator('h2').last()).toBeVisible({ timeout: 3_000 })
+  })
+
+  test('[12-4] 검색 응답 시간 < 1000ms', async ({ page }) => {
+    await page.goto(HISTORY)
+    await page.waitForSelector('.min-h-screen', { timeout: 15_000 })
+
+    const searchInput = page.locator('input[placeholder*="검색"]')
+    await expect(searchInput).toBeVisible()
+
+    const start = Date.now()
+    await searchInput.fill('대량성능테스트')
+    // Vue debounce 500ms 포함 대기 후 결과 확인
+    await page.waitForTimeout(600)
+    await page.waitForSelector('tbody tr', { timeout: 3_000 }).catch(() => {})
+    const elapsed = Date.now() - start
+
+    // debounce(~500ms) + 렌더 시간 포함하여 1000ms 내
+    expect(elapsed).toBeLessThan(1000)
   })
 
 })

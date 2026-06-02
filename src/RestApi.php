@@ -110,7 +110,7 @@ class RestApi {
         }
 
         $campaignPerPage = in_array((int) ($req->get_param('per_page') ?? 5), [5, 10, 20], true)
-                           ? (int) $req->get_param('per_page') : 5;
+                           ? (int) ($req->get_param('per_page') ?? 5) : 5;
         $campaignPage    = max(1, (int) ($req->get_param('campaign_page') ?? 1));
         $campaignOffset  = ($campaignPage - 1) * $campaignPerPage;
         $campaignTotal   = (int) $wpdb->get_var(

@@ -5,6 +5,56 @@
 
 ---
 
+## [1.0.0] — 2026-06-03
+
+### Fixed
+- **수신거부 해제 버튼 아이콘 누락** — `UnsubscribePage.php`의 `<button>` 닫는 `>` 누락으로 dashicons-undo 아이콘이 렌더되지 않던 문제 수정
+- **대시보드 `getDashboard()` DivisionByZeroError** — `per_page` 파라미터 미지정 시 `$campaignPerPage = 0`이 되어 발생하던 0 나누기 오류 수정 (`?? 5` 누락)
+
+### Tests — PHPUnit (251 → 319, +68)
+- **`DatabaseTest`** 17개 — `getSecret()` 생성·재사용, `getVersion()`/`isInstalled()`, `checkRateLimit()` 추가 케이스, `getClientIp()` IP 헤더 우선순위 (CF → XFF → REMOTE_ADDR, 위조 방지 로직)
+- **`RestApiBusinessLogicTest`** 22개 — `formatNewsletter()` open_rate/click_rate 계산 및 0 나누기 방어, `getProgress()` percent 공식·100% 캡, `getNewsletterDetail()` 통계 6종(open/click/fail/unsub/ctr rate), `getDashboard()` success_rate 계산·차트 길이·폴백
+- **`PluginTest`** 29개 — `onPostPublished()` 조기 반환 4건·발송모드 3종, `showCronNotice()` 조기 반환·배너 표시·메시지 3분기, `savePostMeta()` Gutenberg 경쟁 조건, `parseScheduledAt()` 미래/과거/빈값/유효하지않은값
+
+### Tests — E2E (561 → 724, +163)
+- **P1** — 수신거부 완전 흐름(WP-CLI 토큰 생성·DB 확인·멱등성·관리자 해제), 오픈/클릭 트래킹 DB 카운트 반영, 발송 진행률 폴링 UI
+- **P2** — 이력 필터 실제 DOM 결과 검증, resend-single 완전 흐름(WP-CLI 시딩·수신자탭·토스트), 설정 저장 → 재로드 값 유지
+- **P3** — 수신거부 rate limit 429, Nonce 만료 UI 에러 처리(`page.route` 가로채기)
+- **P4** — 모바일 반응형(iPhone 14): 가로스크롤·슬라이드오버·폼·모달
+- **P5** — WP Cron 경고 배너(조기반환 3건·표시·dismiss), 대량 이력 성능(50개 시딩·로드 <2s·검색 <1s)
+- **웹뷰 완전 흐름** — 유효 HMAC → post permalink 302 리다이렉트, 삭제된 post → 홈 리다이렉트
+- **CSV 내보내기 파일 검증** — Content-Type, UTF-8 BOM, 헤더행, 데이터 행, nonce 없는 접근 보안
+
+### Infrastructure — `tests/bootstrap.php`
+- `sanitize_key()`, `human_time_diff()`, `wp_kses()`, `wp_create_nonce()` 전역 함수 스텁 추가
+- `WpdbStub::$posts = 'wp_posts'`, `WpdbStub::esc_like()` 추가
+- `current_time('timestamp')` → `time()` 반환 수정 (날짜 연산 정상화)
+
+---
+
+## [0.9.26–0.9.34] — 2026-06-02~03
+
+### Added
+- **시스템 로그 테이블** (`crmbiz_nl_logs`, DB 2.0.0) — 레벨별 로그 저장, 7일 자동 정리
+- **GDPR 개인정보 내보내기/삭제 훅** — `wp_privacy_personal_data_exporters/erasers` 연동
+
+### Fixed
+- **페이지네이션 UI** — select 높이 틀어짐, 드롭다운 텍스트 잘림, 화살표 SVG background-image 방식으로 교체, border-radius inline style 강제 적용 (v0.9.26~v0.9.33)
+- **uninstall.php 누락 테이블** — `crmbiz_nl_sends`, `crmbiz_nl_events`, `crmbiz_nl_ratelimit`, `crmbiz_nl_logs` 삭제 추가
+
+### Tests
+- Gate 2: 접근 제어·에러 복구·접근성 E2E (507개)
+- Gate 3: i18n, 플러그인 충돌, 멀티사이트 PHPUnit+E2E
+- Gate 4: `StatusTransitionTest` 38개, `EmailHeaderSecurityTest` 17개 — 총 251 PHPUnit / 561 E2E
+
+### CI
+- PHP 버전 매트릭스 8.1 / 8.2 / 8.3
+- Firefox + WebKit(Safari) E2E 브라우저 추가
+- Node.js 24 강제 적용 (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`)
+- 마이그레이션 E2E 통합 테스트 및 시드 데이터 개선
+
+---
+
 ## [0.9.25] — 2026-06-01
 
 ### Fixed

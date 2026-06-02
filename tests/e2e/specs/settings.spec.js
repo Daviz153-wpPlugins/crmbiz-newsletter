@@ -97,4 +97,46 @@ test.describe('설정 페이지', () => {
     await page.click('button:has-text("설정 저장")')
   })
 
+  // ── [6] 설정 저장 → 재로드 후 값 유지 검증 ────────────────────────────
+
+  test('[6-1] from_name 변경 저장 → 재로드 후 입력 필드 값 일치', async ({ page }) => {
+    await page.goto(SETTINGS)
+    const fromNameInput = page.locator('#from_name')
+    await expect(fromNameInput).toBeVisible()
+
+    const originalValue = await fromNameInput.inputValue()
+    const testValue = 'E2E테스트발신자' + Date.now().toString().slice(-4)
+
+    await fromNameInput.fill(testValue)
+    await page.click('button:has-text("설정 저장")')
+    await expect(page.locator('text=설정이 저장되었습니다')).toBeVisible()
+
+    await page.reload()
+    await expect(page.locator('#from_name')).toHaveValue(testValue)
+
+    // 원상복구
+    await page.locator('#from_name').fill(originalValue)
+    await page.click('button:has-text("설정 저장")')
+  })
+
+  test('[6-2] from_email 변경 저장 → 재로드 후 입력 필드 값 일치', async ({ page }) => {
+    await page.goto(SETTINGS)
+    const fromEmailInput = page.locator('#from_email')
+    await expect(fromEmailInput).toBeVisible()
+
+    const originalValue = await fromEmailInput.inputValue()
+    const testValue = 'e2e-test-sender@example.com'
+
+    await fromEmailInput.fill(testValue)
+    await page.click('button:has-text("설정 저장")')
+    await expect(page.locator('text=설정이 저장되었습니다')).toBeVisible()
+
+    await page.reload()
+    await expect(page.locator('#from_email')).toHaveValue(testValue)
+
+    // 원상복구
+    await page.locator('#from_email').fill(originalValue)
+    await page.click('button:has-text("설정 저장")')
+  })
+
 })

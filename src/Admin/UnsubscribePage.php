@@ -139,7 +139,7 @@ class UnsubscribePage {
                                 <button type="button"
                                         class="crmbiz-unsub-remove crmbiz-icon-btn crmbiz-icon-btn--red"
                                         data-id="<?php echo esc_attr($row->id); ?>"
-                                        title="<?php esc_attr_e('수신거부 해제', 'crmbiz-newsletter'); ?>"
+                                        title="<?php esc_attr_e('수신거부 해제', 'crmbiz-newsletter'); ?>">
                                     <span class="dashicons dashicons-undo" style="font-size:14px;line-height:28px"></span>
                                 </button>
                             </td>

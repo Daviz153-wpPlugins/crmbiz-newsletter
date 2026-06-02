@@ -1,6 +1,16 @@
 import { test, expect } from '@playwright/test'
+import { execSync } from 'child_process'
 
-const UNSUB = 'wp-admin/admin.php?page=crmbiz-nl-unsubscribers'
+const UNSUB     = 'wp-admin/admin.php?page=crmbiz-nl-unsubscribers'
+const WP_PATH   = process.env.WP_PATH || '/tmp/wordpress'
+
+function wpEval(code) {
+  const flat = code.replace(/\s+/g, ' ').trim()
+  return execSync(
+    `wp eval '${flat.replace(/'/g, "'\\''")}' --path=${WP_PATH}`,
+    { encoding: 'utf-8' }
+  ).trim()
+}
 
 test.describe('수신거부 관리', () => {
 
@@ -117,6 +127,110 @@ test.describe('수신거부 관리', () => {
     expect(allChecked).toBe(total)
     // 일괄 해제 버튼 활성화
     await expect(page.locator('#crmbiz-unsub-bulk-remove')).not.toBeDisabled()
+  })
+
+})
+
+// ── CSV 내보내기 — 실제 파일 내용 검증 ────────────────────────────────────────
+
+test.describe('CSV 내보내기 — 파일 내용', () => {
+
+  const CSV_EMAIL_1 = 'e2e-csv-first@test.example'
+  const CSV_EMAIL_2 = 'e2e-csv-second@test.example'
+
+  function seedUnsubscribers() {
+    wpEval(`
+      global $wpdb;
+      $tbl = $wpdb->prefix . 'crmbiz_nl_unsubscribers';
+      $wpdb->replace($tbl, ['email' => '${CSV_EMAIL_1}', 'unsubscribed_at' => '2026-01-15 09:00:00'], ['%s', '%s']);
+      $wpdb->replace($tbl, ['email' => '${CSV_EMAIL_2}', 'unsubscribed_at' => '2026-02-20 14:30:00'], ['%s', '%s']);
+    `)
+  }
+
+  function cleanupUnsubscribers() {
+    wpEval(`
+      global $wpdb;
+      $tbl = $wpdb->prefix . 'crmbiz_nl_unsubscribers';
+      $wpdb->delete($tbl, ['email' => '${CSV_EMAIL_1}'], ['%s']);
+      $wpdb->delete($tbl, ['email' => '${CSV_EMAIL_2}'], ['%s']);
+    `)
+  }
+
+  test.beforeAll(() => {
+    seedUnsubscribers()
+  })
+
+  test.afterAll(() => {
+    cleanupUnsubscribers()
+  })
+
+  // nonce가 있는 export URL을 페이지에서 가져오는 헬퍼
+  async function getExportUrl(page) {
+    await page.goto(UNSUB)
+    await page.waitForLoadState('domcontentloaded')
+    const exportLink = page.locator('a:has-text("CSV 내보내기")')
+    await expect(exportLink).toBeVisible()
+    return exportLink.getAttribute('href')
+  }
+
+  test('[CSV-1] Content-Type: text/csv + Content-Disposition: attachment', async ({ page }) => {
+    const exportUrl = await getExportUrl(page)
+
+    // page.request는 브라우저 쿠키(auth) 포함
+    const res = await page.request.get(exportUrl)
+    expect(res.status()).toBe(200)
+
+    const contentType = res.headers()['content-type'] ?? ''
+    expect(contentType).toContain('text/csv')
+
+    const disposition = res.headers()['content-disposition'] ?? ''
+    expect(disposition).toContain('attachment')
+    expect(disposition).toMatch(/unsubscribers-\d{4}-\d{2}-\d{2}\.csv/)
+  })
+
+  test('[CSV-2] UTF-8 BOM 포함 (엑셀 한글 깨짐 방지)', async ({ page }) => {
+    const exportUrl = await getExportUrl(page)
+    const res  = await page.request.get(exportUrl)
+    const body = await res.body()
+
+    // 파일 첫 3바이트가 UTF-8 BOM (EF BB BF)
+    expect(body[0]).toBe(0xEF)
+    expect(body[1]).toBe(0xBB)
+    expect(body[2]).toBe(0xBF)
+  })
+
+  test('[CSV-3] 헤더행 — 이름, 이메일, 수신거부 일시 컬럼', async ({ page }) => {
+    const exportUrl = await getExportUrl(page)
+    const res  = await page.request.get(exportUrl)
+    const text = await res.text()
+
+    // BOM 제거 후 첫 줄 확인
+    const lines = text.replace(/^﻿/, '').split('\n')
+    const header = lines[0]
+    expect(header).toContain('이름')
+    expect(header).toContain('이메일')
+    expect(header).toContain('수신거부 일시')
+  })
+
+  test('[CSV-4] 시딩한 이메일 주소가 CSV에 포함됨', async ({ page }) => {
+    const exportUrl = await getExportUrl(page)
+    const res  = await page.request.get(exportUrl)
+    const text = await res.text()
+
+    expect(text).toContain(CSV_EMAIL_1)
+    expect(text).toContain(CSV_EMAIL_2)
+  })
+
+  test('[CSV-5] nonce 없이 접근 → 보안 오류 (wp_die)', async ({ page }) => {
+    const BASE_URL = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
+    // nonce 없이 직접 export 파라미터 접근
+    const badUrl = BASE_URL + '/wp-admin/admin.php?page=crmbiz-nl-unsubscribers&crmbiz_export=unsub'
+
+    await page.goto(badUrl)
+    await page.waitForLoadState('domcontentloaded')
+
+    const body = await page.locator('body').textContent()
+    expect(body?.includes('보안 검증 실패') || body?.includes('nonce')).toBeTruthy()
   })
 
 })
