@@ -42,6 +42,7 @@ class Plugin {
         (new UnsubscribeHandler())->init();
         (new TrackingHandler())->init();
         (new RestApi($this->settings))->init();
+        Privacy::register();
 
         if (Database::getVersion() !== Database::DB_VERSION) {
             Database::install();

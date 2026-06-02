@@ -280,6 +280,8 @@ $GLOBALS['_wpdb_newsletters']    = [];
 $GLOBALS['_wpdb_unsubscribers']  = [];
 $GLOBALS['_wpdb_events']         = [];
 $GLOBALS['_wpdb_logs']           = [];
+$GLOBALS['_wpdb_sends']          = [];
+$GLOBALS['_wpdb_queue']          = [];
 
 class WpdbStub {
     public string $prefix = 'wp_';
@@ -346,25 +348,44 @@ class WpdbStub {
     }
 
     public function delete(string $table, array $where, array $formats = []): int {
-        if (strpos($table, 'unsubscribers') !== false) {
-            $before = count($GLOBALS['_wpdb_unsubscribers']);
-            $GLOBALS['_wpdb_unsubscribers'] = array_values(array_filter(
-                $GLOBALS['_wpdb_unsubscribers'],
-                function ($row) use ($where) {
-                    foreach ($where as $col => $val) {
-                        if (($row[$col] ?? null) == $val) {
-                            return false;
-                        }
-                    }
-                    return true;
+        // 공통 필터 함수: where 조건과 일치하는 행 제거
+        $filter = function(array &$store) use ($where): int {
+            $before = count($store);
+            $store  = array_values(array_filter($store, function($row) use ($where) {
+                foreach ($where as $col => $val) {
+                    if (($row[$col] ?? null) == $val) return false;
                 }
-            ));
-            return $before - count($GLOBALS['_wpdb_unsubscribers']);
+                return true;
+            }));
+            return $before - count($store);
+        };
+
+        if (strpos($table, 'crmbiz_nl_queue') !== false) {
+            return $filter($GLOBALS['_wpdb_queue']);
+        }
+        if (strpos($table, 'crmbiz_nl_events') !== false) {
+            return $filter($GLOBALS['_wpdb_events']);
+        }
+        if (strpos($table, 'crmbiz_nl_sends') !== false) {
+            return $filter($GLOBALS['_wpdb_sends']);
+        }
+        if (strpos($table, 'unsubscribers') !== false) {
+            return $filter($GLOBALS['_wpdb_unsubscribers']);
         }
         return 1;
     }
 
-    public function get_row(string $sql): ?object {
+    public function get_row(string $sql, string $output = 'OBJECT') {
+        // SELECT ... FROM wp_crmbiz_nl_unsubscribers WHERE email = 'x'
+        if (strpos($sql, 'crmbiz_nl_unsubscribers') !== false
+            && preg_match("/WHERE email = '([^']+)'/i", $sql, $m)) {
+            foreach ($GLOBALS['_wpdb_unsubscribers'] as $row) {
+                if (($row['email'] ?? '') === $m[1]) {
+                    return $output === ARRAY_A ? $row : (object) $row;
+                }
+            }
+            return null;
+        }
         // SELECT id, status FROM wp_crmbiz_newsletters WHERE post_id = N AND status IN (...)
         if (preg_match("/post_id = (\d+) AND status IN \(([^)]+)\)/i", $sql, $m)) {
             $postId   = (int) $m[1];
@@ -395,6 +416,22 @@ class WpdbStub {
     }
 
     public function insert(string $table, array $data, array $formats = []): int {
+        if (strpos($table, 'crmbiz_nl_sends') !== false) {
+            $id = count($GLOBALS['_wpdb_sends']) + 1;
+            $data['id'] = $id;
+            $GLOBALS['_wpdb_sends'][] = $data;
+            $this->last_insert_id = $id;
+            $this->insert_id      = $id;
+            return 1;
+        }
+        if (strpos($table, 'crmbiz_nl_queue') !== false) {
+            $id = count($GLOBALS['_wpdb_queue']) + 1;
+            $data['id'] = $id;
+            $GLOBALS['_wpdb_queue'][] = $data;
+            $this->last_insert_id = $id;
+            $this->insert_id      = $id;
+            return 1;
+        }
         if (strpos($table, 'crmbiz_nl_logs') !== false) {
             $id = count($GLOBALS['_wpdb_logs']) + 1;
             $data['id'] = $id;
@@ -420,15 +457,35 @@ class WpdbStub {
     }
 
     public function get_results(string $sql, string $output = 'OBJECT'): array {
+        // logs 테이블
         if (strpos($sql, 'crmbiz_nl_logs') !== false) {
             $rows = $GLOBALS['_wpdb_logs'];
-            // WHERE level = 'X' 필터
             if (preg_match("/WHERE level = '([^']+)'/i", $sql, $m)) {
                 $rows = array_values(array_filter($rows, fn($r) => ($r['level'] ?? '') === $m[1]));
             }
-            // ORDER BY occurred_at DESC (최근 순)
             $rows = array_reverse($rows);
-            // LIMIT N
+            if (preg_match('/LIMIT (\d+)/', $sql, $m)) {
+                $rows = array_slice($rows, 0, (int) $m[1]);
+            }
+            return $output === ARRAY_A ? $rows : array_map(fn($r) => (object) $r, $rows);
+        }
+        // sends 테이블 — email 기반 조회
+        if (strpos($sql, 'crmbiz_nl_sends') !== false) {
+            $rows = $GLOBALS['_wpdb_sends'];
+            if (preg_match("/WHERE email = '([^']+)'/i", $sql, $m)) {
+                $rows = array_values(array_filter($rows, fn($r) => ($r['email'] ?? '') === $m[1]));
+            }
+            if (preg_match('/LIMIT (\d+)/', $sql, $m)) {
+                $rows = array_slice($rows, 0, (int) $m[1]);
+            }
+            return $output === ARRAY_A ? $rows : array_map(fn($r) => (object) $r, $rows);
+        }
+        // events 테이블 — email 기반 조회
+        if (strpos($sql, 'crmbiz_nl_events') !== false) {
+            $rows = $GLOBALS['_wpdb_events'];
+            if (preg_match("/WHERE email = '([^']+)'/i", $sql, $m)) {
+                $rows = array_values(array_filter($rows, fn($r) => ($r['email'] ?? '') === $m[1]));
+            }
             if (preg_match('/LIMIT (\d+)/', $sql, $m)) {
                 $rows = array_slice($rows, 0, (int) $m[1]);
             }
