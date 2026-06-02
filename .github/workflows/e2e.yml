@@ -1,4 +1,4 @@
-name: CI
+name: E2E Tests
 
 on:
   push:
@@ -9,29 +9,9 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# ── Job 1: PHP 단위 테스트 ──────────────────────────────────────────────────
 jobs:
-  unit:
-    name: PHP Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: openssl, mbstring
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Run PHPUnit
-        run: ./vendor/bin/phpunit --testdox
-
-# ── Job 2: E2E 테스트 ───────────────────────────────────────────────────────
   e2e:
-    name: E2E Tests
+    name: E2E Tests (PHP 8.2)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
