@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '2.0.0';
+    const DB_VERSION = '2.1.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -164,6 +164,17 @@ class Database {
         }
 
         // 2.0.0: crmbiz_nl_logs 시스템 로그 테이블 추가 (dbDelta가 처리)
+
+        // 2.1.0: crmbiz_nl_events 커버링 인덱스 추가
+        // getNewsletterDetail()의 WHERE newsletter_id=? GROUP BY email 쿼리에서
+        // 기존 idx_nl_type(newsletter_id, type)은 email 컬럼 미포함 → filesort 발생.
+        // (newsletter_id, email, type)으로 확장하면 GROUP BY email을 인덱스만으로 처리.
+        if (version_compare(self::getVersion(), '2.1.0', '<')) {
+            $evIndexes = $wpdb->get_col("SHOW INDEX FROM {$wpdb->prefix}crmbiz_nl_events", 2);
+            if (is_array($evIndexes) && !in_array('idx_nl_email_type', $evIndexes, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_events ADD KEY idx_nl_email_type (newsletter_id, email, type)");
+            }
+        }
 
         update_option(self::DB_VERSION_OPTION, self::DB_VERSION);
     }

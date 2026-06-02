@@ -63,6 +63,8 @@ class NewsletterSender {
                 ['id' => $newsletterId, 'status' => 'queued'],
                 ['%s', '%s', '%s'], ['%d', '%s']
             );
+            // 큐 고아 방지: failed로 전환 시 잔여 큐 즉시 정리
+            $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
             return false;
         }
 
@@ -297,6 +299,9 @@ class NewsletterSender {
         );
 
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $newsletterId], ['%d']);
+
+        // 발송 완료(sent/failed)로 대시보드 stats/chart 변경 → 캐시 무효화
+        RestApi::clearDashboardCache();
 
         $this->notifyAdmin($newsletterId, (int) $final->post_id, (int) $final->success_count, (int) $final->fail_count, $status);
     }

@@ -386,11 +386,24 @@ class Plugin {
 
     public function handleCleanup(): void {
         global $wpdb;
+
+        // 이벤트 로그 90일 초과분 제거
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$wpdb->prefix}crmbiz_nl_events WHERE occurred_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             self::RETAIN_DAYS
         ));
+
+        // 만료된 Rate Limit 레코드 제거
         $wpdb->query("DELETE FROM {$wpdb->prefix}crmbiz_nl_ratelimit WHERE expires_at < NOW()");
+
+        // 고아 큐 안전망: failed/cancelled 뉴스레터에 잔여 큐 행이 남아있으면 정리
+        // 정상 경로(finalizeSend, cancelNewsletter)에서 이미 삭제하므로 극히 드물게 실행됨
+        $wpdb->query(
+            "DELETE q FROM {$wpdb->prefix}crmbiz_nl_queue q
+             JOIN {$wpdb->prefix}crmbiz_newsletters n ON n.id = q.newsletter_id
+             WHERE n.status IN ('failed','cancelled')"
+        );
+
         Logger::cleanup(); // 시스템 로그 7일 보관
     }
 

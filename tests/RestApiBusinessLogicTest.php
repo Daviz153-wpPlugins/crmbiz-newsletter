@@ -151,15 +151,17 @@ class RestApiBusinessLogicTest extends TestCase {
         $GLOBALS['_wpdb_events']        = [];
         $GLOBALS['_wp_options']         = [];
         $GLOBALS['_wp_posts']           = [];
+        $GLOBALS['_wp_transients']      = []; // 캐시 격리
         $this->api = new RestApi(new Settings());
     }
 
     protected function tearDown(): void {
-        $GLOBALS['wpdb'] = new WpdbStub();
+        $GLOBALS['wpdb']              = new WpdbStub();
         $GLOBALS['_wpdb_newsletters'] = [];
         $GLOBALS['_wpdb_events']      = [];
         $GLOBALS['_wp_options']       = [];
         $GLOBALS['_wp_posts']         = [];
+        $GLOBALS['_wp_transients']    = [];
     }
 
     // ── formatNewsletter() — open_rate · click_rate 계산 ─────────────────────
@@ -472,5 +474,66 @@ class RestApiBusinessLogicTest extends TestCase {
         $data = $this->api->getDashboard($req)->get_data();
 
         $this->assertGreaterThanOrEqual(1, $data['campaign_pages']);
+    }
+
+    // ── getDashboard() 캐시 동작 ─────────────────────────────────────────────
+
+    public function test_getDashboard_stats_cached_on_second_call(): void {
+        $this->seedForDashboard(80, 20);
+
+        // 첫 번째 호출 → DB 조회 후 transient 저장
+        $req = new \WP_REST_Request('GET', []);
+        $first = $this->api->getDashboard($req)->get_data();
+
+        // 트랜지언트가 저장됐는지 확인
+        $cached = get_transient('crmbiz_nl_dash_stats');
+        $this->assertNotFalse($cached, 'stats transient이 저장되어야 함');
+
+        // DB에서 데이터를 바꿔도 캐시에서 응답
+        $GLOBALS['_wpdb_newsletters'] = [];
+        $second = $this->api->getDashboard($req)->get_data();
+
+        $this->assertSame($first['stats']['total_success'], $second['stats']['total_success'],
+            '두 번째 호출은 캐시에서 반환');
+    }
+
+    public function test_clearDashboardCache_removes_all_transients(): void {
+        $this->seedForDashboard(10, 5);
+
+        // 캐시 채우기
+        $this->api->getDashboard(new \WP_REST_Request('GET', ['days' => 7]));
+        $this->api->getDashboard(new \WP_REST_Request('GET', ['days' => 30]));
+
+        $this->assertNotFalse(get_transient('crmbiz_nl_dash_stats'));
+        $this->assertNotFalse(get_transient('crmbiz_nl_dash_chart_7'));
+        $this->assertNotFalse(get_transient('crmbiz_nl_dash_chart_30'));
+
+        // 무효화
+        RestApi::clearDashboardCache();
+
+        $this->assertFalse(get_transient('crmbiz_nl_dash_stats'), 'stats 캐시 삭제됨');
+        $this->assertFalse(get_transient('crmbiz_nl_dash_chart_7'), 'chart_7 캐시 삭제됨');
+        $this->assertFalse(get_transient('crmbiz_nl_dash_chart_30'), 'chart_30 캐시 삭제됨');
+        $this->assertFalse(get_transient('crmbiz_nl_dash_chart_90'), 'chart_90 캐시 삭제됨');
+    }
+
+    public function test_getDashboard_cache_key_differs_by_days(): void {
+        $this->seedForDashboard(50, 10);
+
+        $this->api->getDashboard(new \WP_REST_Request('GET', ['days' => 7]));
+        $this->api->getDashboard(new \WP_REST_Request('GET', ['days' => 90]));
+
+        $this->assertNotFalse(get_transient('crmbiz_nl_dash_chart_7'));
+        $this->assertNotFalse(get_transient('crmbiz_nl_dash_chart_90'));
+        // 30일은 아직 조회 안 했으므로 캐시 없음
+        $this->assertFalse(get_transient('crmbiz_nl_dash_chart_30'));
+    }
+
+    private function seedForDashboard(int $success, int $fail): void {
+        $GLOBALS['_wpdb_newsletters'][] = [
+            'id' => 1, 'status' => 'sent',
+            'success_count' => $success, 'fail_count' => $fail,
+            'recipient_count' => $success + $fail,
+        ];
     }
 }

@@ -71,43 +71,67 @@ class RestApi {
 
     // ── Dashboard ────────────────────────────────────────────────────────────
 
+    // 대시보드 캐시 무효화 — 발송 완료/삭제 시 호출
+    public static function clearDashboardCache(): void {
+        delete_transient('crmbiz_nl_dash_stats');
+        foreach ([7, 30, 90] as $d) {
+            delete_transient('crmbiz_nl_dash_chart_' . $d);
+        }
+    }
+
     public function getDashboard(\WP_REST_Request $req): \WP_REST_Response {
         global $wpdb;
 
         $days = in_array((int) ($req->get_param('days') ?? 30), [7, 30, 90], true)
                 ? (int) $req->get_param('days') : 30;
 
-        $stats = $wpdb->get_row(
-            "SELECT COUNT(*) AS total_nl,
-                    COALESCE(SUM(success_count), 0) AS total_success,
-                    COALESCE(SUM(fail_count), 0)    AS total_fail
-             FROM {$wpdb->prefix}crmbiz_newsletters WHERE status = 'sent'"
-        );
+        // ── 통계 캐시 (5분) ─────────────────────────────────────────────────
+        // campaigns/events JOIN은 추적 이벤트마다 변하므로 캐싱 제외.
+        // stats(COUNT+SUM)와 chart(일별 집계)는 발송 완료/삭제 시에만 변함.
+        $stats = get_transient('crmbiz_nl_dash_stats');
+        if ($stats === false) {
+            $stats = $wpdb->get_row(
+                "SELECT COUNT(*) AS total_nl,
+                        COALESCE(SUM(success_count), 0) AS total_success,
+                        COALESCE(SUM(fail_count), 0)    AS total_fail
+                 FROM {$wpdb->prefix}crmbiz_newsletters WHERE status = 'sent'"
+            );
+            set_transient('crmbiz_nl_dash_stats', $stats, 5 * MINUTE_IN_SECONDS);
+        }
 
         $totalSuccess = (int) ($stats->total_success ?? 0);
         $totalFail    = (int) ($stats->total_fail ?? 0);
         $delivered    = $totalSuccess + $totalFail;
 
+        // ── 차트 캐시 (days별 5분) ───────────────────────────────────────────
         // sent_at은 current_time('mysql')(WP 로컬)로 저장 — NOW()가 아닌 PHP 로컬 기준으로 범위 계산
-        $nowTs = current_time('timestamp');
-        $since = date('Y-m-d 00:00:00', $nowTs - ($days * DAY_IN_SECONDS));
+        $chartKey = 'crmbiz_nl_dash_chart_' . $days;
+        $chart    = get_transient($chartKey);
+        if ($chart === false) {
+            $nowTs = current_time('timestamp');
+            $since = date('Y-m-d 00:00:00', $nowTs - ($days * DAY_IN_SECONDS));
 
-        $daily = $wpdb->get_results($wpdb->prepare(
-            "SELECT DATE(sent_at) AS day, SUM(success_count) AS cnt
-             FROM {$wpdb->prefix}crmbiz_newsletters
-             WHERE status = 'sent' AND sent_at >= %s
-             GROUP BY DATE(sent_at) ORDER BY day ASC",
-            $since
-        ));
-        $dailyMap = [];
-        foreach ($daily as $r) $dailyMap[$r->day] = (int) $r->cnt;
+            $daily = $wpdb->get_results($wpdb->prepare(
+                "SELECT DATE(sent_at) AS day, SUM(success_count) AS cnt
+                 FROM {$wpdb->prefix}crmbiz_newsletters
+                 WHERE status = 'sent' AND sent_at >= %s
+                 GROUP BY DATE(sent_at) ORDER BY day ASC",
+                $since
+            ));
+            $dailyMap = [];
+            foreach ($daily as $r) $dailyMap[$r->day] = (int) $r->cnt;
 
-        $labels = $counts = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $d        = date('Y-m-d', $nowTs - ($i * DAY_IN_SECONDS));
-            $labels[] = date('m/d', strtotime($d));
-            $counts[] = $dailyMap[$d] ?? 0;
+            $labels = $counts = [];
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $d        = date('Y-m-d', $nowTs - ($i * DAY_IN_SECONDS));
+                $labels[] = date('m/d', strtotime($d));
+                $counts[] = $dailyMap[$d] ?? 0;
+            }
+            $chart = ['labels' => $labels, 'counts' => $counts];
+            set_transient($chartKey, $chart, 5 * MINUTE_IN_SECONDS);
         }
+
+        $nowTs  = current_time('timestamp'); // pending/nextScheduled용
 
         $campaignPerPage = in_array((int) ($req->get_param('per_page') ?? 5), [5, 10, 20], true)
                            ? (int) ($req->get_param('per_page') ?? 5) : 5;
@@ -164,7 +188,7 @@ class RestApi {
                 'draft'         => (int) ($pending->draft     ?? 0),
                 'next_scheduled_at' => $nextScheduled ?? null,
             ],
-            'chart'     => ['labels' => $labels, 'counts' => $counts, 'days' => $days],
+            'chart'     => array_merge($chart, ['days' => $days]),
             'campaign_total' => $campaignTotal,
             'campaign_pages' => max(1, (int) ceil($campaignTotal / $campaignPerPage)),
             'campaign_page'  => $campaignPage,
@@ -471,9 +495,12 @@ class RestApi {
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_events', ['newsletter_id' => $id], ['%d']);
         $deleted = (bool) $wpdb->delete($wpdb->prefix . 'crmbiz_newsletters', ['id' => $id], ['%d']);
 
-        return $deleted
-            ? rest_ensure_response(['deleted' => true])
-            : new \WP_REST_Response(['message' => '삭제 실패.'], 500);
+        if ($deleted) {
+            // sent 뉴스레터 삭제는 total_nl/total_success/total_fail에 영향
+            self::clearDashboardCache();
+            return rest_ensure_response(['deleted' => true]);
+        }
+        return new \WP_REST_Response(['message' => '삭제 실패.'], 500);
     }
 
     public function resendSingle(\WP_REST_Request $req): \WP_REST_Response {

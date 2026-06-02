@@ -114,6 +114,7 @@ function wp_kses(string $data, $allowed_html, array $allowed_protocols = []): st
 }
 
 // 상수
+if (!defined('MINUTE_IN_SECONDS')) define('MINUTE_IN_SECONDS',   60);
 if (!defined('HOUR_IN_SECONDS'))   define('HOUR_IN_SECONDS',   3600);
 if (!defined('ARRAY_A'))           define('ARRAY_A',           'ARRAY_A');
 if (!defined('WP_DEBUG'))          define('WP_DEBUG',          false);

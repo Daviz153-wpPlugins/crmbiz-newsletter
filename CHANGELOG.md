@@ -5,6 +5,28 @@
 
 ---
 
+## [1.1.0] — 2026-06-03
+
+### Performance
+- **`getDashboard()` 통계·차트 캐싱** — stats(COUNT+SUM)와 차트(일별 집계)를 5분 transient으로 캐싱. campaigns/events JOIN은 추적 이벤트마다 변하므로 캐싱 제외. 무효화 지점: 발송 완료(`finalizeSend`) · 뉴스레터 삭제(`deleteNewsletter`). `RestApi::clearDashboardCache()` 헬퍼 추가.
+
+### Fixed
+- **FluentCRM 비활성화 경로 큐 고아** — `sendFromRecord()`에서 FluentCRM 미활성화로 `failed` 처리 시 큐를 정리하지 않던 문제 수정. `delete` 즉시 실행 추가.
+- **`handleCleanup()` 고아 큐 안전망** — 정상 경로 외에 `failed`/`cancelled` 상태의 잔여 큐 행을 일 1회 정리하는 JOIN DELETE 추가.
+
+### Database — 2.1.0
+- **`crmbiz_nl_events` 커버링 인덱스 추가** — `idx_nl_email_type (newsletter_id, email, type)`. `getNewsletterDetail()`의 `WHERE newsletter_id=? GROUP BY email`에서 기존 `idx_nl_type(newsletter_id, type)`의 filesort를 제거. 마이그레이션 idempotent (SHOW INDEX 확인 후 조건부 추가).
+
+### Tests
+- 캐시 PHPUnit 3개 추가: 캐시 히트, `clearDashboardCache` 전체 삭제, days별 키 독립성
+- `_wp_transients` 격리를 `RestApiBusinessLogicTest` setUp/tearDown에 추가
+- `MINUTE_IN_SECONDS` 상수를 bootstrap.php에 추가
+
+### Dropped (Phase A-2)
+- GET_LOCK → FOR UPDATE SKIP LOCKED 전환 **보류**. 분석 결과: `wp_mail()` 호출이 배치 루프 내부에서 발생하므로 트랜잭션을 열어둔 채 SMTP I/O를 처리하면 오히려 락 타임아웃 위험이 증가함. GET_LOCK은 뉴스레터 단위 직렬화(이중 발송 방지)로 이미 올바름. 세션 종료 시 자동 해제되어 프로세스 크래시에도 안전. DEV_PLAYBOOK §13에 이유 기록.
+
+---
+
 ## [1.0.0] — 2026-06-03
 
 ### Fixed
