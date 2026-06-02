@@ -25,10 +25,10 @@
       </div>
       <!-- 날짜 범위 -->
       <input v-model="dateFrom" type="date" @change="applyFilters"
-             class="border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="appearance-none border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
       <span class="self-center text-xs text-gray-400">~</span>
       <input v-model="dateTo" type="date" @change="applyFilters"
-             class="border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             class="appearance-none border border-gray-200 rounded-xl bg-white px-3 py-2 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" />
       <!-- 필터 초기화 -->
       <button v-if="hasFilter" @click="clearFilters"
               class="px-4 py-2 text-sm text-gray-500 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
@@ -249,13 +249,16 @@
          class="flex items-center justify-between text-sm text-gray-500 flex-wrap gap-3">
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
-        <select v-model="perPage" @change="page = 1; fetchList()"
-                class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
-                style="outline:none;box-shadow:none">
-          <option :value="20">20 / page</option>
-          <option :value="50">50 / page</option>
-          <option :value="100">100 / page</option>
-        </select>
+        <div class="relative">
+          <select v-model="perPage" @change="page = 1; fetchList()"
+                  class="appearance-none border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
+                  style="outline:none;box-shadow:none">
+            <option :value="20">20 / page</option>
+            <option :value="50">50 / page</option>
+            <option :value="100">100 / page</option>
+          </select>
+          <ChevronDown class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+        </div>
         <span class="text-xs text-gray-400">총계 {{ fmt(total) }}</span>
       </div>
       <div class="flex items-center gap-1">

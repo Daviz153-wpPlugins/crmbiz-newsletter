@@ -223,13 +223,16 @@
              class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/40">
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-400">페이지 {{ campaignPage }} of {{ data.campaign_pages }}</span>
-            <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
-                    class="border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
-                    style="outline:none;box-shadow:none">
-              <option :value="5">5 / page</option>
-              <option :value="10">10 / page</option>
-              <option :value="20">20 / page</option>
-            </select>
+            <div class="relative">
+              <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
+                      class="appearance-none border border-gray-200 rounded-lg pl-3 pr-7 py-1.5 text-xs bg-white"
+                      style="outline:none;box-shadow:none">
+                <option :value="5">5 / page</option>
+                <option :value="10">10 / page</option>
+                <option :value="20">20 / page</option>
+              </select>
+              <ChevronDown class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+            </div>
             <span class="text-xs text-gray-400">총계 {{ data.campaign_total }}</span>
           </div>
           <div class="flex items-center gap-1">
@@ -254,7 +257,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { ChevronRight, Mail } from 'lucide-vue-next'
+import { ChevronRight, ChevronDown, Mail } from 'lucide-vue-next'
 import Chart from 'chart.js/auto'
 
 const loading         = ref(true)
