@@ -222,22 +222,26 @@
         <div v-if="data.campaign_pages > 1 || data.campaign_total > 5"
              class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/40">
           <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">페이지당</span>
+            <span class="text-xs text-gray-400">페이지 {{ campaignPage }} of {{ data.campaign_pages }}</span>
             <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
                     class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white h-7"
                     style="outline:none;box-shadow:none;min-height:0">
-              <option :value="5">5개</option>
-              <option :value="10">10개</option>
-              <option :value="20">20개</option>
+              <option :value="5">5 / page</option>
+              <option :value="10">10 / page</option>
+              <option :value="20">20 / page</option>
             </select>
-            <span class="text-xs text-gray-400">· 총 {{ data.campaign_total }}개</span>
+            <span class="text-xs text-gray-400">총계 {{ data.campaign_total }}</span>
           </div>
           <div class="flex items-center gap-1">
+            <button @click="changeCampaignPage(1)" :disabled="campaignPage <= 1"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
             <button @click="changeCampaignPage(campaignPage - 1)" :disabled="campaignPage <= 1"
                     class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">‹</button>
-            <span class="text-xs text-gray-500 px-2">{{ campaignPage }} / {{ data.campaign_pages }}</span>
+            <button class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-800 text-gray-800 text-xs font-medium">{{ campaignPage }}</button>
             <button @click="changeCampaignPage(campaignPage + 1)" :disabled="campaignPage >= data.campaign_pages"
                     class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">›</button>
+            <button @click="changeCampaignPage(data.campaign_pages)" :disabled="campaignPage >= data.campaign_pages"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
           </div>
         </div>
 

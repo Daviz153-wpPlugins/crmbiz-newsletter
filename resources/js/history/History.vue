@@ -248,17 +248,19 @@
     <div v-if="!loading && total > 0"
          class="flex items-center justify-between text-sm text-gray-500 flex-wrap gap-3">
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-400">페이지당</span>
+        <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
                 class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white h-7"
                 style="outline:none;box-shadow:none;min-height:0">
-          <option :value="20">20개</option>
-          <option :value="50">50개</option>
-          <option :value="100">100개</option>
+          <option :value="20">20 / page</option>
+          <option :value="50">50 / page</option>
+          <option :value="100">100 / page</option>
         </select>
-        <span class="text-xs text-gray-400">· 총 {{ fmt(total) }}개</span>
+        <span class="text-xs text-gray-400">총계 {{ fmt(total) }}</span>
       </div>
       <div class="flex items-center gap-1">
+        <button @click="changePage(1)" :disabled="page <= 1"
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
         <button @click="changePage(page - 1)" :disabled="page <= 1"
                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
           <ChevronLeft class="w-4 h-4" />
@@ -267,7 +269,7 @@
           <span v-if="p === '...'" class="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
           <button v-else @click="changePage(p)"
                   class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-medium transition-colors"
-                  :class="p === page ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
+                  :class="p === page ? 'border-gray-800 text-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
             {{ p }}
           </button>
         </template>
@@ -275,6 +277,8 @@
                 class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors">
           <ChevronRight class="w-4 h-4" />
         </button>
+        <button @click="changePage(pages)" :disabled="page >= pages"
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
       </div>
     </div>
 
