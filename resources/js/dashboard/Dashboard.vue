@@ -224,8 +224,8 @@
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-400">페이지 {{ campaignPage }} of {{ data.campaign_pages }}</span>
             <select v-model="campaignPerPage" @change="changeCampaignPage(1)"
-                    class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white h-7"
-                    style="outline:none;box-shadow:none;min-height:0">
+                    class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white"
+                    style="outline:none;box-shadow:none">
               <option :value="5">5 / page</option>
               <option :value="10">10 / page</option>
               <option :value="20">20 / page</option>
@@ -234,14 +234,14 @@
           </div>
           <div class="flex items-center gap-1">
             <button @click="changeCampaignPage(1)" :disabled="campaignPage <= 1"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">«</button>
             <button @click="changeCampaignPage(campaignPage - 1)" :disabled="campaignPage <= 1"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">‹</button>
-            <button class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-800 text-gray-800 text-xs font-medium">{{ campaignPage }}</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">‹</button>
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-gray-800 text-gray-800 text-xs font-medium">{{ campaignPage }}</button>
             <button @click="changeCampaignPage(campaignPage + 1)" :disabled="campaignPage >= data.campaign_pages"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">›</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">›</button>
             <button @click="changeCampaignPage(data.campaign_pages)" :disabled="campaignPage >= data.campaign_pages"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:bg-gray-50 transition-colors text-xs">»</button>
           </div>
         </div>
 

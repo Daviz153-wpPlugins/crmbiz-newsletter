@@ -250,8 +250,8 @@
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-400">페이지 {{ page }} of {{ pages }}</span>
         <select v-model="perPage" @change="page = 1; fetchList()"
-                class="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white h-7"
-                style="outline:none;box-shadow:none;min-height:0">
+                class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs bg-white"
+                style="outline:none;box-shadow:none">
           <option :value="20">20 / page</option>
           <option :value="50">50 / page</option>
           <option :value="100">100 / page</option>
@@ -269,7 +269,7 @@
           <span v-if="p === '...'" class="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
           <button v-else @click="changePage(p)"
                   class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-medium transition-colors"
-                  :class="p === page ? 'border-gray-800 text-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
+                  :class="p === page ? 'border-2 border-gray-800 text-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'">
             {{ p }}
           </button>
         </template>
