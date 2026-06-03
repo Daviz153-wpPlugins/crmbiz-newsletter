@@ -5,6 +5,13 @@
 
 ---
 
+## [1.3.0] — 2026-06-04
+
+### Added
+- **DB UTC 컬럼 추가 (DB 2.2.0)** — 사이트 timezone 변경·서버 이전 시 데이터 무결성 보호. 기존 로컬 컬럼 유지, 신규 레코드부터 `*_gmt` UTC 컬럼 이중 저장. 5개 테이블(`newsletters`, `unsubscribers`, `events`, `sends`, `logs`) 적용.
+
+---
+
 ## [1.2.1] — 2026-06-03
 
 ### Changed
