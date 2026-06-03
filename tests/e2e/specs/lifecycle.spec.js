@@ -203,7 +203,7 @@ test.describe('DB 마이그레이션', () => {
     // 이전 비활성화/삭제 테스트 후 플러그인이 비활성화 상태일 수 있으므로 재활성화
     try {
       execSync(`wp plugin activate crmbiz-newsletter --path=${WP_PATH}`, { encoding: 'utf-8' })
-    } catch (_) { /* 이미 활성화된 경우 무시 */ }
+    } catch { /* 이미 활성화된 경우 무시 */ }
   })
 
   test('현재 DB 버전이 코드 버전과 일치 (마이그레이션 완료 상태)', async ({ request }) => {
