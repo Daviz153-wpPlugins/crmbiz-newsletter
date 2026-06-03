@@ -85,12 +85,13 @@ class Logger {
             $wpdb->insert(
                 $wpdb->prefix . 'crmbiz_nl_logs',
                 [
-                    'level'       => $level,
-                    'message'     => mb_substr($message, 0, 500),
-                    'context'     => empty($context) ? null : wp_json_encode($context, JSON_UNESCAPED_UNICODE),
-                    'occurred_at' => current_time('mysql'),
+                    'level'           => $level,
+                    'message'         => mb_substr($message, 0, 500),
+                    'context'         => empty($context) ? null : wp_json_encode($context, JSON_UNESCAPED_UNICODE),
+                    'occurred_at'     => current_time('mysql'),
+                    'occurred_at_gmt' => current_time('mysql', true),
                 ],
-                ['%s', '%s', '%s', '%s']
+                ['%s', '%s', '%s', '%s', '%s']
             );
         } catch (\Throwable $e) {
             // DB 쓰기 실패 — 메인 발송 흐름에 영향 없도록 무시

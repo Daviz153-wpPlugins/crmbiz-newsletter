@@ -59,7 +59,7 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'fail_reason' => 'FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요.', 'updated_at' => current_time('mysql')],
+                ['status' => 'failed', 'fail_reason' => 'FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요.', 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                 ['id' => $newsletterId, 'status' => 'queued'],
                 ['%s', '%s', '%s'], ['%d', '%s']
             );
@@ -212,9 +212,10 @@ class NewsletterSender {
             "UPDATE {$wpdb->prefix}crmbiz_newsletters
              SET success_count = success_count + %d,
                  fail_count    = fail_count    + %d,
-                 updated_at    = %s
+                 updated_at    = %s,
+                 updated_at_gmt = %s
              WHERE id = %d",
-            $success, $fail, current_time('mysql'), $newsletterId
+            $success, $fail, current_time('mysql'), current_time('mysql', true), $newsletterId
         ));
 
         // 남은 큐 확인
@@ -244,7 +245,7 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'fail_reason' => '수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요.', 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+                ['status' => 'failed', 'fail_reason' => '수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요.', 'sent_at' => current_time('mysql'), 'sent_at_gmt' => current_time('mysql', true), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                 ['id' => $newsletterId],
                 ['%s', '%s', '%s', '%s'], ['%d']
             );
@@ -293,7 +294,7 @@ class NewsletterSender {
 
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
-            ['status' => $status, 'fail_reason' => $failReason, 'sent_at' => current_time('mysql'), 'updated_at' => current_time('mysql')],
+            ['status' => $status, 'fail_reason' => $failReason, 'sent_at' => current_time('mysql'), 'sent_at_gmt' => current_time('mysql', true), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
             ['id' => $newsletterId],
             ['%s', '%s', '%s', '%s'], ['%d']
         );
@@ -457,17 +458,19 @@ class NewsletterSender {
             return;
         }
         global $wpdb;
-        $now         = current_time('mysql');
-        $placeholders = implode(', ', array_fill(0, count($logs), '(%d, %s, %s, %s)'));
+        $now        = current_time('mysql');
+        $nowGmt     = current_time('mysql', true);
+        $placeholders = implode(', ', array_fill(0, count($logs), '(%d, %s, %s, %s, %s)'));
         $params      = [];
         foreach ($logs as [$nlId, $email, $status]) {
             $params[] = $nlId;
             $params[] = $email;
             $params[] = $status;
             $params[] = $now;
+            $params[] = $nowGmt;
         }
         $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO {$wpdb->prefix}crmbiz_nl_sends (newsletter_id, email, status, sent_at) VALUES $placeholders",
+            "INSERT IGNORE INTO {$wpdb->prefix}crmbiz_nl_sends (newsletter_id, email, status, sent_at, sent_at_gmt) VALUES $placeholders",
             ...$params
         ));
     }
@@ -499,14 +502,17 @@ class NewsletterSender {
                 'post_id'         => $postId,
                 'status'          => $status,
                 'send_mode'       => (string) get_post_meta($postId, '_crmbiz_nl_send_mode', true) ?: 'immediate',
-                'scheduled_at'    => $scheduledAt ?: null,
-                'recipient_count' => $recipientCount,
-                'tag_ids'         => wp_json_encode(array_values($tagIds)),
-                'list_ids'        => wp_json_encode(array_values($listIds)),
-                'created_at'      => current_time('mysql'),
-                'updated_at'      => current_time('mysql'),
+                'scheduled_at'     => $scheduledAt ?: null,
+                'scheduled_at_gmt' => $scheduledAt ? get_gmt_from_date($scheduledAt) : null,
+                'recipient_count'  => $recipientCount,
+                'tag_ids'          => wp_json_encode(array_values($tagIds)),
+                'list_ids'         => wp_json_encode(array_values($listIds)),
+                'created_at'       => current_time('mysql'),
+                'created_at_gmt'   => current_time('mysql', true),
+                'updated_at'       => current_time('mysql'),
+                'updated_at_gmt'   => current_time('mysql', true),
             ],
-            ['%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s']
         );
 
         return (int) $wpdb->insert_id;

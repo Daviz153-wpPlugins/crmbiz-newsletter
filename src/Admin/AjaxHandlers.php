@@ -239,8 +239,8 @@ class AjaxHandlers {
         global $wpdb;
         $result = $wpdb->replace(
             $wpdb->prefix . 'crmbiz_nl_unsubscribers',
-            ['email' => $email, 'unsubscribed_at' => current_time('mysql'), 'token_used' => null],
-            ['%s', '%s', '%s']
+            ['email' => $email, 'unsubscribed_at' => current_time('mysql'), 'unsubscribed_at_gmt' => current_time('mysql', true), 'token_used' => null],
+            ['%s', '%s', '%s', '%s']
         );
 
         $result !== false

@@ -198,12 +198,13 @@ class Plugin {
         $wpdb->update(
             $table,
             [
-                'tag_ids'    => wp_json_encode(array_values($tagIds)),
-                'list_ids'   => wp_json_encode(array_values($listIds)),
-                'updated_at' => current_time('mysql'),
+                'tag_ids'        => wp_json_encode(array_values($tagIds)),
+                'list_ids'       => wp_json_encode(array_values($listIds)),
+                'updated_at'     => current_time('mysql'),
+                'updated_at_gmt' => current_time('mysql', true),
             ],
             ['post_id' => $postId, 'status' => 'draft'],
-            ['%s', '%s', '%s'],
+            ['%s', '%s', '%s', '%s'],
             ['%d', '%s']
         );
 
@@ -231,7 +232,7 @@ class Plugin {
                 Scheduler::unschedule(self::CRON_HOOK, [$nlId]);
                 $wpdb->update(
                     $table,
-                    ['status' => 'scheduled', 'scheduled_at' => $schedAt, 'updated_at' => current_time('mysql')],
+                    ['status' => 'scheduled', 'scheduled_at' => $schedAt, 'scheduled_at_gmt' => get_gmt_from_date($schedAt), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                     ['id' => $nlId],
                     ['%s', '%s', '%s'],
                     ['%d']
@@ -245,7 +246,7 @@ class Plugin {
             if ($sendMode === 'immediate') {
                 $wpdb->update(
                     $table,
-                    ['status' => 'queued', 'scheduled_at' => null, 'updated_at' => current_time('mysql')],
+                    ['status' => 'queued', 'scheduled_at' => null, 'scheduled_at_gmt' => null, 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                     ['id' => $nlId],
                     ['%s', '%s', '%s'],
                     ['%d']

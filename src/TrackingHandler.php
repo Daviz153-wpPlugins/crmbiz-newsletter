@@ -126,9 +126,10 @@ class TrackingHandler {
                 'email'         => $email,
                 'type'          => $type,
                 'url'           => $url ? substr($url, 0, 2083) : null,
-                'occurred_at'   => current_time('mysql'),
+                'occurred_at'     => current_time('mysql'),
+                'occurred_at_gmt' => current_time('mysql', true),
             ],
-            ['%d', '%s', '%s', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s']
         );
     }
 
@@ -137,13 +138,14 @@ class TrackingHandler {
         $wpdb->insert(
             $wpdb->prefix . 'crmbiz_nl_events',
             [
-                'newsletter_id' => $newsletterId,
-                'email'         => $email,
-                'type'          => $success ? 'send' : 'fail',
-                'url'           => null,
-                'occurred_at'   => current_time('mysql'),
+                'newsletter_id'   => $newsletterId,
+                'email'           => $email,
+                'type'            => $success ? 'send' : 'fail',
+                'url'             => null,
+                'occurred_at'     => current_time('mysql'),
+                'occurred_at_gmt' => current_time('mysql', true),
             ],
-            ['%d', '%s', '%s', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s']
         );
     }
 
@@ -161,13 +163,14 @@ class TrackingHandler {
         $wpdb->insert(
             $wpdb->prefix . 'crmbiz_nl_events',
             [
-                'newsletter_id' => $newsletterId,
-                'email'         => $email,
-                'type'          => 'unsubscribe',
-                'url'           => null,
-                'occurred_at'   => current_time('mysql'),
+                'newsletter_id'   => $newsletterId,
+                'email'           => $email,
+                'type'            => 'unsubscribe',
+                'url'             => null,
+                'occurred_at'     => current_time('mysql'),
+                'occurred_at_gmt' => current_time('mysql', true),
             ],
-            ['%d', '%s', '%s', '%s', '%s']
+            ['%d', '%s', '%s', '%s', '%s', '%s']
         );
     }
 
