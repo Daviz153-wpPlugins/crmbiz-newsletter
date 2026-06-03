@@ -32,6 +32,7 @@
 18. [v1.2.0 실전 기록 — ESLint 설정 + 데드코드 정리 (2026-06-03)](#18-v120-실전-기록--eslint-설정--데드코드-정리-2026-06-03)
 19. [1001명 부하 테스트 실전 기록 (2026-06-03)](#19-1001명-부하-테스트-실전-기록-2026-06-03)
 20. [호스팅 호환성 테스트 실전 기록 (2026-06-03, v1.2.0)](#20-호스팅-호환성-테스트-실전-기록-2026-06-03-v120)
+21. [업그레이드 경로 테스트 실전 기록 (2026-06-03)](#21-업그레이드-경로-테스트-실전-기록-2026-06-03)
 
 ---
 
@@ -1821,6 +1822,7 @@ Phase C 시작 전:
 - [x] 배치 크기 50 → 30 (공유 호스팅 30초 한도 안전 마진 확보)
 
 ### v1.x 남은 것
+- [x] 업그레이드 경로 테스트 (migration.spec.js 14개, §21 참고)
 - [ ] EXPLAIN ANALYZE로 실제 느린 쿼리 프로파일링 (real MySQL with 1k+ rows)
 - [ ] 실 SMTP(SendGrid/SES) 환경에서 배치 시간 측정 (§19 참고)
 
@@ -2722,4 +2724,176 @@ function triggerSend(nlId) {
 ✅ 배치 크기: 50 → 30 (SMTP 예산 0.59초 → 0.99초/건)
 
 PHPUnit: 329 tests / 601 assertions (0 failures)
+```
+
+---
+
+## 21. 업그레이드 경로 테스트 실전 기록 (2026-06-03)
+
+> **무엇을 했나:** `migration.spec.js` 전면 재작성. 4개 실패 → 14개 전부 통과.  
+> 신규: 2.0.0→2.1.0 자동 업그레이드, idempotent, 발송 중 업그레이드 안전성 3종.
+
+---
+
+### 21-1. 기존 테스트 4개가 실패했던 원인
+
+#### 원인 1: wpEval 함수가 PHP Deprecated 경고를 걸러내지 않음
+
+migration.spec.js의 `wpEval`은 초기 버전으로, 다른 스펙 파일들이 갖고 있는 경고 필터가 없었다.
+
+```js
+// 나쁜 예 (migration.spec.js 초기 버전)
+return execSync(`wp eval '...' --path=${WP_PATH}`, { encoding: 'utf-8' }).trim()
+
+// 올바른 예 — Deprecated 경고 제거
+return execSync(`wp eval '...' --path=${WP_PATH}`, { encoding: 'utf-8' })
+  .trim()
+  .replace(/^(PHP Deprecated|Deprecated):.*\n?/gm, '')
+  .trim()
+```
+
+경고가 걸러지지 않으면 암호화 라운드트립 테스트에서:
+```
+const encrypted = wpEval(`echo Database::encryptEmail('test@x.com');`)
+// encrypted = "PHP Deprecated: Case statements...\nAT0wavjq..."  ← 오염됨
+
+const decrypted = wpEval(`echo Database::decryptEmail('${encrypted}');`)
+// PHP가 오염된 값을 복호화 시도 → 실패
+```
+
+**규칙:** `wpEval` 함수를 새로 작성할 때는 항상 Deprecated 경고 필터를 포함한다.
+
+#### 원인 2: 버전 참조 스테일 (2.0.0 → 2.1.0)
+
+DB_VERSION이 2.1.0으로 올라갔는데 테스트에 하드코딩된 `'2.0.0'`이 남아있었다.
+
+```js
+// 나쁜 예
+expect(version).toBe('2.0.0')
+
+// 올바른 예 — 상수로 관리
+const CURRENT_DB_VERSION = '2.1.0'
+expect(version).toBe(CURRENT_DB_VERSION)
+```
+
+**규칙:** 버전 번호는 상수로 선언하고 한 곳에서만 관리한다.
+
+#### 원인 3: 큐 테이블에 없는 컬럼 INSERT
+
+```js
+// 나쁜 예 — crmbiz_nl_queue에는 created_at, updated_at 컬럼이 없음
+$wpdb->query("INSERT INTO {$wpdb->prefix}crmbiz_nl_queue
+  (newsletter_id, email, retry_count, created_at, updated_at) VALUES ...")
+
+// 올바른 예 — 실제 컬럼만 사용
+$wpdb->query("INSERT INTO {$wpdb->prefix}crmbiz_nl_queue
+  (newsletter_id, email, retry_count) VALUES ...")
+```
+
+테스트 데이터를 직접 삽입할 때는 반드시 `SHOW COLUMNS FROM {table}` 으로 실제 스키마를 먼저 확인한다.
+
+---
+
+### 21-2. wp eval마다 Plugin::init()이 실행된다 — 핵심 설계 이해
+
+이번 테스트에서 발견한 가장 중요한 동작:
+
+```
+wp eval 'CODE' 호출
+  → WordPress 전체 로드
+    → crmbiz-newsletter.php 실행
+      → CRMBizNewsletter\Plugin::getInstance() 호출
+        → Plugin::init()
+          → if (Database::getVersion() !== Database::DB_VERSION)
+              → Database::install() 자동 실행
+```
+
+**의도:** 각 WordPress 요청마다 DB 버전을 체크해 자동 마이그레이션한다.  
+**부작용:** 테스트에서 버전을 '2.0.0'으로 낮춰두면, 다음 `wp eval` 호출 즉시 자동으로 복구된다.
+
+이 동작을 막으려 하면 복잡해진다. 대신 **이 동작을 테스트 설계에 활용**한다:
+
+```js
+// 나쁜 접근: 버전 낮추기 → 바로 확인 (이미 복구됨)
+wpEval(`update_option('crmbiz_nl_db_version', '2.0.0');`)
+const v = wpEval(`echo get_option('crmbiz_nl_db_version');`) // '2.1.0' 반환 (이미 복구)
+
+// 올바른 접근: 버전 낮추기 + 상태 준비를 같은 wp eval에서
+// → 다음 wp eval이 "다음 WP 로드" = 자동 업그레이드 시뮬레이션
+wpEval(`
+  $indexes = $wpdb->get_col("SHOW INDEX FROM ...");
+  if (in_array('idx_nl_email_type', $indexes)) {
+    $wpdb->query("ALTER TABLE ... DROP KEY idx_nl_email_type");
+  }
+  update_option('crmbiz_nl_db_version', '2.0.0');
+  // ← 이 wp eval 시작 시 Plugin::init()이 이미 실행됐으므로 재실행 없음
+`)
+// 다음 wp eval에서 Plugin::init() → 버전 불일치 → install() 자동 실행
+const versionAfter = wpEval(`echo get_option('crmbiz_nl_db_version');`) // '2.1.0'
+```
+
+**이 패턴이 실제 업그레이드 경로와 동일하다:**
+```
+관리자가 플러그인 파일 업데이트
+  → PHP 코드의 DB_VERSION이 '2.1.0'으로 변경됨
+  → 다음 WordPress 페이지 로드
+    → Plugin::init() → 버전 불일치 → install() 자동 실행
+    → 마이그레이션 완료
+```
+
+---
+
+### 21-3. 발송 중 업그레이드 안전성 — 확인된 동작
+
+| 시나리오 | 결과 |
+|---------|------|
+| `sending` 상태 뉴스레터 업그레이드 | status 그대로 유지 ✅ |
+| 큐 아이템 (7건) 업그레이드 | 전량 보존 ✅ |
+| 업그레이드 후 `do_action` 재실행 | sending/sent/failed 중 하나 ✅ |
+
+**왜 안전한가:**
+1. `Database::install()`은 `dbDelta` + 인덱스 추가만 한다. 큐·뉴스레터 데이터를 건드리지 않는다.
+2. GET_LOCK은 PHP 프로세스 종료 시 MySQL이 자동 해제한다. 업그레이드 도중 프로세스가 죽어도 다음 cron이 lock을 획득해 발송을 재개한다.
+3. 큐는 INSERT IGNORE로 구성돼 재실행 시 중복 삽입이 없다.
+
+**남은 위험:** 배치 루프 도중 프로세스가 죽으면, 그 배치의 이미 발송된 이메일이 재발송될 수 있다 (§14-2 GET_LOCK 절 참고). 업그레이드 자체보다는 SMTP 타임아웃·서버 재시작과 관련된 문제다.
+
+---
+
+### 21-4. SHOW INDEX 복합 인덱스 행 수 주의
+
+`SHOW INDEX FROM table`은 복합 인덱스의 **컬럼마다 한 행**을 반환한다.
+
+```sql
+-- idx_nl_email_type (newsletter_id, email, type) → 3컬럼 = 3행
+SHOW INDEX FROM wp_crmbiz_nl_events;
+-- Key_name         | Seq_in_index
+-- idx_nl_email_type | 1  (newsletter_id)
+-- idx_nl_email_type | 2  (email)
+-- idx_nl_email_type | 3  (type)
+```
+
+`get_col(... SHOW INDEX ..., 2)`로 Key_name 컬럼만 추출하면 같은 이름이 3개 나온다.  
+idempotent 검증 시 `filter(i => i === 'idx_nl_email_type').length === 3`을 기대값으로 쓰면 된다.
+
+```js
+// 잘못된 예 — 중복처럼 보여서 혼동
+expect(indexCount).toBe(1)  // ← 복합 인덱스 3컬럼 = 실제 3
+
+// 올바른 예
+expect(indexCount).toBe(3)  // newsletter_id + email + type
+```
+
+---
+
+### 21-5. 완료 체크리스트
+
+```markdown
+✅ migration.spec.js 4개 실패 수정 (wpEval 경고 필터, 버전 상수, 큐 스키마)
+✅ 2.0.0 → 2.1.0 자동 업그레이드 테스트 (Plugin::init() 경로 활용)
+✅ idempotent 검증 (WP 로드 반복 시 인덱스 중복 없음)
+✅ 발송 중 업그레이드 3종 (상태 보존, 큐 보존, 재개 가능)
+✅ DB 현재 상태 무결성 6종 (버전, 테이블, 타임존, HMAC, 암호화, 인덱스)
+
+결과: 4 passed → 14 passed (0 failed)
 ```
