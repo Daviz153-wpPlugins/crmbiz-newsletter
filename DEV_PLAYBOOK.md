@@ -33,6 +33,7 @@
 19. [1001명 부하 테스트 실전 기록 (2026-06-03)](#19-1001명-부하-테스트-실전-기록-2026-06-03)
 20. [호스팅 호환성 테스트 실전 기록 (2026-06-03, v1.2.0)](#20-호스팅-호환성-테스트-실전-기록-2026-06-03-v120)
 21. [업그레이드 경로 테스트 실전 기록 (2026-06-03)](#21-업그레이드-경로-테스트-실전-기록-2026-06-03)
+22. [EXPLAIN ANALYZE 쿼리 프로파일링 (2026-06-03)](#22-explain-analyze-쿼리-프로파일링-2026-06-03)
 
 ---
 
@@ -1823,7 +1824,7 @@ Phase C 시작 전:
 
 ### v1.x 남은 것
 - [x] 업그레이드 경로 테스트 (migration.spec.js 14개, §21 참고)
-- [ ] EXPLAIN ANALYZE로 실제 느린 쿼리 프로파일링 (real MySQL with 1k+ rows)
+- [x] EXPLAIN ANALYZE 쿼리 프로파일링 (§22 참고) — 문제 없음, 50만건 시점에 대비책 메모
 - [ ] 실 SMTP(SendGrid/SES) 환경에서 배치 시간 측정 (§19 참고)
 
 ### 영구 보류
@@ -2896,4 +2897,143 @@ expect(indexCount).toBe(3)  // newsletter_id + email + type
 ✅ DB 현재 상태 무결성 6종 (버전, 테이블, 타임존, HMAC, 암호화, 인덱스)
 
 결과: 4 passed → 14 passed (0 failed)
+```
+
+---
+
+## 22. EXPLAIN ANALYZE 쿼리 프로파일링 (2026-06-03)
+
+> **무엇을 했나:** 뉴스레터 목록 API(993ms 경고 수치)의 실제 DB 병목을 1,000건·10,000건 환경에서 EXPLAIN ANALYZE로 측정.  
+> **결론:** DB 쿼리는 빠름. 병목은 WordPress 부트스트랩. 현재 구간에선 조치 불필요.
+
+---
+
+### 22-1. 측정 대상 — getNewsletters() 메인 쿼리
+
+```sql
+SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
+       COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
+       COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count
+FROM wp_crmbiz_newsletters n
+LEFT JOIN wp_posts p ON p.ID = n.post_id
+LEFT JOIN wp_crmbiz_nl_events e ON e.newsletter_id = n.id
+GROUP BY n.id
+ORDER BY COALESCE(n.sent_at, n.scheduled_at, n.created_at) DESC
+LIMIT 20 OFFSET 0
+```
+
+이 쿼리가 목록 API 응답 시간의 주요 용의자였다.
+
+---
+
+### 22-2. 측정 결과
+
+**쿼리 실행 시간 (순수 DB):**
+
+| 데이터 규모 | 이벤트 수 | 평균 (warm) | 최초 (cold) |
+|------------|---------|------------|------------|
+| 1,000건 | 5,149건 | **11ms** | 19ms |
+| 10,000건 | 5,149건 | **27ms** | 43ms |
+
+**API 전체 응답 시간 (Playwright 측정):**
+
+| 항목 | 측정값 |
+|------|-------|
+| WordPress 부트스트랩 + REST 오버헤드 | ~380ms |
+| DB 쿼리 (10,000건 기준) | 27ms |
+| **API 총 응답** | **~407ms** |
+
+**993ms의 실체:** §16 서버 부하 테스트 당시의 cold start 측정값이었다. 이후 데이터 규모와 무관하게 WP 부트스트랩이 ~380ms를 차지한다. DB 쿼리를 아무리 최적화해도 API 응답을 400ms 아래로 내리기 어렵다.
+
+---
+
+### 22-3. EXPLAIN ANALYZE 해석
+
+```
+10,000건 기준:
+-> Limit: 20 row(s)  (actual time=20.6ms)
+    -> Sort row IDs: COALESCE(sent_at, scheduled_at, created_at) DESC  ← filesort
+        -> Temporary table (10,000 rows)                                ← GROUP BY
+            -> Group aggregate: COUNT(DISTINCT ...)
+                -> Nested loop left join
+                    -> Index scan on n using PRIMARY (10,000 rows)
+                    -> Single-row index lookup on p using PRIMARY        ← 빠름
+                -> Covering index lookup on e using idx_nl_email_type   ← 빠름
+```
+
+**이미 최적화된 부분:**
+- `idx_nl_email_type (newsletter_id, email, type)` — 이벤트 JOIN이 커버링 인덱스로 처리됨
+- `wp_posts` JOIN — PRIMARY KEY 단일행 조회로 루프당 ~50μs
+
+**개선 여지가 있는 부분:**
+- `ORDER BY COALESCE(sent_at, scheduled_at, created_at)` — 함수식이라 인덱스 미사용 → filesort
+- `GROUP BY n.id` — 전체 테이블을 임시 테이블에 올려야 함 (LIMIT 이전 단계)
+
+---
+
+### 22-4. getNewsletterDetail() 쿼리 — 이미 최적
+
+```sql
+SELECT email, MAX(CASE WHEN type IN ('open','click') THEN 1 ELSE 0 END) AS opened, ...
+FROM wp_crmbiz_nl_events
+WHERE newsletter_id = ?
+GROUP BY email
+```
+
+```
+-> Index lookup on wp_crmbiz_nl_events using idx_nl_email_type (newsletter_id=2)
+   (actual time=0.005ms, rows=22)
+```
+
+0ms (서브밀리초). `idx_nl_email_type`이 `newsletter_id, email, type` 모두 커버하므로 인덱스만으로 처리된다.
+
+---
+
+### 22-5. 스케일링 예측 및 대응 시점
+
+**선형 스케일링 추정:**
+
+```
+1,000건:   11ms  → API ~391ms  ✅
+10,000건:  27ms  → API ~407ms  ✅
+100,000건: ~270ms → API ~650ms  ✅ (한도 이내)
+500,000건: ~1350ms → API ~1730ms ❌ (한도 초과)
+```
+
+**50만 건 이상이 되면 적용할 최적화:**
+
+```sql
+-- DB 2.2.0 마이그레이션으로 추가
+ALTER TABLE wp_crmbiz_newsletters
+    ADD COLUMN sort_date DATETIME
+        GENERATED ALWAYS AS (COALESCE(sent_at, scheduled_at, created_at)) STORED,
+    ADD KEY idx_sort_date (sort_date);
+```
+
+그리고 기본 정렬(`sort_by=date`) 시 서브쿼리 패턴으로 변경:
+
+```sql
+-- 개선된 쿼리 (sort_by=date 전용)
+SELECT n.*, ...
+FROM (
+    SELECT id FROM wp_crmbiz_newsletters
+    ORDER BY sort_date DESC LIMIT 20
+) AS top20
+JOIN wp_crmbiz_newsletters n ON n.id = top20.id
+LEFT JOIN wp_posts p ON p.ID = n.post_id
+LEFT JOIN wp_crmbiz_nl_events e ON e.newsletter_id = n.id
+GROUP BY n.id ORDER BY n.sort_date DESC
+```
+
+이 패턴의 효과: 이벤트 JOIN을 20건에만 적용 → 규모와 무관하게 일정한 응답 시간.
+
+---
+
+### 22-6. 현재 결론
+
+```
+□ DB 쿼리: 10,000건에서 27ms — 조치 불필요
+□ API 병목: WordPress 부트스트랩 ~380ms — DB 최적화로 해결 불가
+□ 대응 시점: 뉴스레터 레코드가 50만건 이상 쌓일 때 Generated Column 추가
+□ getNewsletterDetail: idx_nl_email_type 완벽 동작, 0ms
 ```
