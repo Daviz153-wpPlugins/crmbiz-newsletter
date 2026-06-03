@@ -29,6 +29,9 @@
 15. [FluentCRM 연동 E2E 테스트 실전 기록 (2026-06-03)](#15-fluentcrm-연동-e2e-테스트-실전-기록-2026-06-03-v110)
 16. [서버 부하 E2E 테스트 실전 기록 (2026-06-03)](#16-서버-부하-e2e-테스트-실전-기록-2026-06-03)
 17. [WordPress 환경 안정성 E2E 테스트 실전 기록 (2026-06-03)](#17-wordpress-환경-안정성-e2e-테스트-실전-기록-2026-06-03)
+18. [v1.2.0 실전 기록 — ESLint 설정 + 데드코드 정리 (2026-06-03)](#18-v120-실전-기록--eslint-설정--데드코드-정리-2026-06-03)
+19. [1001명 부하 테스트 실전 기록 (2026-06-03)](#19-1001명-부하-테스트-실전-기록-2026-06-03)
+20. [호스팅 호환성 테스트 실전 기록 (2026-06-03, v1.2.0)](#20-호스팅-호환성-테스트-실전-기록-2026-06-03-v120)
 
 ---
 
@@ -1799,7 +1802,7 @@ Phase C 시작 전:
 
 ---
 
-### 기술 부채 추적 — 현재 상태 (v1.1.0 기준)
+### 기술 부채 추적 — 현재 상태 (v1.2.0 기준)
 
 ```markdown
 ## TODO (다음 이터레이션)
@@ -1810,32 +1813,16 @@ Phase C 시작 전:
 - [x] handleCleanup() 고아 큐 안전망 (JOIN DELETE)
 - [x] idx_nl_email_type 커버링 인덱스 추가 (DB 2.1.0)
 
-### v1.x 남은 것 — 우선 과제
+### v1.2.0에서 완료
+- [x] JavaScript ESLint 설정 (eslint.config.js + CI job)
+- [x] 데드코드 제거: fluent_crm/parse_campaign_email_text 필터 (동작 안 함 확인)
+- [x] 1001명 부하 테스트 (성공률 100%, 소요 34초)
+- [x] 호스팅 호환성 테스트 3종 (transient eviction, DISABLE_WP_CRON, 공유 호스팅 제약)
+- [x] 배치 크기 50 → 30 (공유 호스팅 30초 한도 안전 마진 확보)
 
-#### 🔴 1순위: JavaScript ESLint 설정
-
-**무엇인가:** JS 코드의 문법 오류·스타일 문제를 자동으로 잡아주는 정적 분석 도구.
-PHP의 PHPUnit이 "로직이 맞는가"를 검사한다면, ESLint는 "JS 코드가 올바르게 작성됐는가"를 검사한다.
-
-**왜 필요한가:**
-- Vue 앱(`assets/vue/`)과 E2E 스펙(`tests/e2e/specs/`)의 오타·실수를 저장 순간 IDE에서 바로 잡아줌
-- 현재는 JS 오류가 빌드·런타임이 될 때까지 발견 안 됨
-- Phase B에서 JS 코드를 많이 새로 작성하기 전에 잡아두면 이후 비용 감소
-
-**해야 할 것:**
-```
-□ eslint.config.js 파일 작성 (vue3 + playwright 규칙)
-□ package.json에 lint 스크립트 추가
-□ .github/workflows/test.yml 또는 e2e.yml에 CI 단계 추가
-  → npx eslint assets/vue/ tests/e2e/
-□ 기존 코드 위반 사항 일괄 수정 (--fix로 자동 처리 가능한 것)
-```
-
-**난이도:** 반나절. `eslint.config.js` 파일 하나 + CI 한 줄.
-
----
-
+### v1.x 남은 것
 - [ ] EXPLAIN ANALYZE로 실제 느린 쿼리 프로파일링 (real MySQL with 1k+ rows)
+- [ ] 실 SMTP(SendGrid/SES) 환경에서 배치 시간 측정 (§19 참고)
 
 ### 영구 보류
 - [~~FOR UPDATE SKIP LOCKED 큐 잠금~~] — GET_LOCK이 이미 올바름 (§14 참고)
@@ -2422,3 +2409,317 @@ await expect(notice).toBeHidden({ timeout: 3_000 })
 | **합계** | **43개** | **22 pass / 17 skip / 0 fail** |
 
 skip 17개는 FluentCRM 스텁(ENABLE_FLUENTCRM_STUB=1 없음) 또는 Gutenberg hidden 모드로 인한 정상 skip이다. 실패 0개.
+
+---
+
+## 18. v1.2.0 실전 기록 — ESLint 설정 + 데드코드 정리 (2026-06-03)
+
+> **무엇을 했나:** ESLint 도입(Vue3 + Playwright), 기존 코드 오류 35건 수정, 데드코드 2건 제거.  
+> PHPUnit 329 tests / 601 assertions. CI에 ESLint job 추가.
+
+---
+
+### 18-1. ESLint flat config — Vue3 + E2E 분리 설계
+
+ESLint v9의 flat config 방식으로 작성. `eslint-plugin-vue`의 `flat/essential`을 사용한다.
+
+```js
+// eslint.config.js 핵심 구조
+const vueConfigs = pluginVue.configs['flat/essential'].map(cfg => ({
+  ...cfg,
+  files: ['resources/js/**/*.{js,vue}'],
+}))
+
+export default [
+  ...vueConfigs,
+  {
+    files: ['resources/js/**/*.{js,vue}'],
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-empty': ['error', { allowEmptyCatch: true }],  // ← 의도적 빈 catch 허용
+    },
+  },
+  {
+    files: ['tests/e2e/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        window: 'readonly',    // ← page.evaluate() 안에서 사용하는 브라우저 globals
+        document: 'readonly',
+        getComputedStyle: 'readonly',
+      },
+    },
+  },
+]
+```
+
+**`flat/essential` vs `flat/recommended` 선택 이유:**  
+`recommended`는 HTML 줄바꿈·속성 순서 등 포맷팅 규칙을 포함해 기존 코드에서 경고가 수백 건 나온다. `essential`은 버그 유발 가능성이 있는 규칙만 포함 — 기존 코드에 의미 없는 스타일 강제를 피한다.
+
+**`package.json`에 `"type": "module"` 추가 필수:**  
+없으면 ESLint가 `eslint.config.js`를 CommonJS로 파싱 시도해 경고가 발생한다.
+
+---
+
+### 18-2. 기존 코드에서 발견된 오류 패턴
+
+| 파일 | 오류 | 원인 |
+|------|------|------|
+| `auth.setup.js` 외 2개 | `expect` import 미사용 | 초기 템플릿 복사 후 정리 안 됨 |
+| `access-control.spec.js` | `playwrightRequest` 미사용 | import했지만 직접 호출 안 함 |
+| `history.spec.js` 외 2개 | `API_BASE` 선언 후 미사용 | 나중에 쓰려다 잊음 |
+| `pagination.spec.js` | `nextBtn`, `beforeCount` 등 미사용 | 리팩토링 중 삭제 안 된 변수 |
+| `unsubscribers.spec.js` | BOM 리터럴 (`﻿`) | CSV BOM 처리 코드에 문자 직접 삽입 |
+| `fluent-crm-integration.spec.js` 외 3개 | `no-empty` (빈 catch) | 의도적 — `allowEmptyCatch: true`로 허용 |
+
+**BOM 리터럴 수정:**
+```js
+// 나쁜 예 — 소스 파일에 U+FEFF 바이트 직접 포함
+text.replace(/^﻿/, '')
+
+// 좋은 예 — 유니코드 이스케이프
+text.replace(/^﻿/, '')
+```
+
+---
+
+### 18-3. 데드코드 제거 — EmailTemplateRenderer
+
+**제거 1: `fluent_crm/parse_campaign_email_text` 필터**
+
+```php
+// 제거된 코드
+$content = apply_filters('fluent_crm/parse_campaign_email_text', $content, $subscriber);
+```
+
+1001명 부하 테스트(§19)에서 실제로 치환이 안 됨을 확인했다. FluentCRM이 이 필터를 처리하는 건 자체 캠페인 발송 컨텍스트에서만이다. 이 플러그인은 WordPress 포스트를 그대로 이메일로 변환하는 설계 — 개인화 태그 치환 기능이 없다.
+
+**제거 2: `buildHtml` 배열의 `subscriber` 키**
+
+```php
+// 제거된 코드
+'subscriber' => $subscriber,
+```
+
+`templates/email.php`에서 `$subscriber` 변수를 참조하지 않음을 확인.
+
+---
+
+### 18-4. wpEval 코드에 주석 금지 규칙
+
+E2E 테스트에서 PHP 코드를 `wp eval`로 전달할 때 `wpEval()` 함수가 `replace(/\s+/g, ' ')`로 코드를 한 줄로 평탄화한다. 이때 `//` 주석이 뒤따르는 코드를 전부 삼킨다.
+
+```js
+// 나쁜 예 — 평탄화 시 주석 뒤 코드가 날아감
+wpEval(`
+  $ids = $wpdb->get_col("SELECT id ...");
+  // 태그 연결
+  $pivotVals = [];  // ← 이 줄부터 전부 주석 처리됨!
+`)
+
+// 좋은 예 — 주석 없이 작성
+wpEval(`
+  $ids = $wpdb->get_col("SELECT id ...");
+  $pivotVals = [];
+`)
+```
+
+**규칙:** `wpEval()` 템플릿 리터럴 안에는 `//` 주석을 쓰지 않는다. `/* */` 블록 주석도 마찬가지 (평탄화 후 다음 줄과 합쳐질 수 있음). 설명이 필요하면 JS 변수명이나 JS 주석(템플릿 리터럴 바깥)을 사용한다.
+
+---
+
+## 19. 1001명 부하 테스트 실전 기록 (2026-06-03)
+
+> **무엇을 했나:** Mailpit(로컬 SMTP) 환경에서 FluentCRM 연락처 1001명 실 발송.  
+> 성공률 100%, 총 소요 34초, 실패 0건.
+
+---
+
+### 19-1. 테스트 환경 및 구성
+
+- SMTP: Mailpit (localhost:1025) — WP Mail SMTP를 통해 연결
+- FluentCRM 태그 1개(뉴스레터구독)에 1001명 연결
+- 배치 크기: 50건 (당시 기본값, 이후 30건으로 축소)
+- WP Cron: 수동 `sendFromRecord()` 직접 호출로 측정
+
+**FluentCRM 연락처 직접 삽입 시 주의점:**
+
+```sql
+-- fc_subscriber_pivot의 object_type 컬럼을 반드시 지정해야 한다
+INSERT INTO wp_fc_subscriber_pivot
+  (subscriber_id, object_id, object_type, is_public, created_at, updated_at)
+VALUES
+  (1, 1, 'FluentCrm\\App\\Models\\Tag', 1, NOW(), NOW())
+-- object_type이 빈 문자열이면 FluentCRM API 조회에서 해당 연락처를 찾지 못함
+```
+
+---
+
+### 19-2. 측정 결과
+
+| 항목 | 수치 |
+|------|------|
+| 수신자 수 | 1,001명 |
+| 성공 | 1,001건 (100%) |
+| 실패 | 0건 |
+| SMTP 거부 | 0건 (Mailpit SMTPAccepted: 1,007) |
+| 총 소요 시간 | **34초** |
+| 배치 수 | 21배치 × 50건 |
+| 이메일 크기 | ~13KB / 건 |
+
+**실 운영 환경 환산 (WP Cron 1분 간격):**
+
+```
+1001명 = 21배치
+WP Cron 간격: 60초/배치
+→ 총 시간: 21분 (Mailpit 기준 34초와 다름)
+
+Mailpit은 로컬 메모리 SMTP라 wp_mail() 응답이 즉시.
+실 SMTP(SES, SendGrid)는 배치당 2~5초 추가 → 총 25~30분 예상.
+```
+
+---
+
+### 19-3. SMTP는 이 플러그인의 책임 범위 밖이다
+
+이 플러그인은 `wp_mail()`을 호출한다. SMTP 설정·연결·전달률은 WP Mail SMTP 또는 PHP mailer가 담당한다. FluentCRM은 연락처 목록 조회에만 사용된다.
+
+```
+이 플러그인 → wp_mail() → WP Mail SMTP → SMTP 서버
+FluentCRM: 연락처 목록/태그 조회 전용 (SMTP 관여 없음)
+```
+
+**실 배포 시 권장 사항:** README에 SendGrid 또는 SES 같은 트랜잭셔널 SMTP 설정을 권장한다. 공유 호스팅 기본 PHP mail()은 스팸 필터링과 속도 문제가 있다.
+
+---
+
+### 19-4. 발송 내용 검증 결과
+
+Mailpit에서 수신된 이메일 실제 확인:
+
+| 항목 | 결과 |
+|------|------|
+| 오픈 트래킹 픽셀 | ✅ 삽입됨 (`crmbiz_nl_action=open`) |
+| 클릭 트래킹 URL | ✅ 수신자별 고유 URL로 래핑됨 |
+| 수신거부 링크 | ✅ 수신자별 고유 토큰 생성됨 |
+| 개인화 (`{{subscriber.first_name}}`) | 해당 없음 — 이 플러그인은 개인화 기능 없음 |
+
+---
+
+## 20. 호스팅 호환성 테스트 실전 기록 (2026-06-03, v1.2.0)
+
+> **무엇을 했나:** 호스팅 환경 3종 테스트 설계 및 구현.  
+> PHPUnit 7개 + E2E 6개 추가. 배치 크기 50 → 30으로 조정.
+
+---
+
+### 20-1. 테스트 도구 선택 원칙
+
+시간·메모리 측정을 PHPUnit으로 하면 안 되는 이유:
+
+```
+PHPUnit 컨텍스트에서 sendFromRecord()를 호출하면:
+  FluentCRMBridge::isAvailable() → false
+  → 발송 루프 진입 없이 즉시 return
+
+wp_mail() 스텁도 배열에 push하는 no-op.
+→ 시간 측정 = PHP 코드 진입 오버헤드만 (실제 0.001초)
+→ 이 수치로 "30초 안에 완료된다"고 판단하면 거짓 안심
+```
+
+| 테스트 | 도구 | 이유 |
+|--------|------|------|
+| Transient eviction | PHPUnit ✅ | getDashboard는 FluentCRM 불필요 |
+| DISABLE_WP_CRON | E2E ✅ | 실 FluentCRM + 실 훅 트리거 필요 |
+| 배치 시간·메모리 | E2E (WP-CLI) ✅ | 실 FluentCRM subscriber 50개 로드 필요 |
+
+---
+
+### 20-2. Transient Eviction — PHPUnit
+
+**검증 내용:** getDashboard()가 캐시 miss 상태에서도 정확한 데이터를 반환하는가.
+
+```php
+// 시뮬레이션 방법: _wp_transients를 직접 비워서 매 호출을 강제 cache miss로
+$GLOBALS['_wp_transients'] = []; // Eviction 시뮬레이션
+
+$data1 = $this->api->getDashboard($req)->get_data();
+$GLOBALS['_wp_transients'] = []; // 다시 eviction
+$data2 = $this->api->getDashboard($req)->get_data();
+
+$this->assertSame($data1['stats'], $data2['stats']); // 동일한 결과
+```
+
+**결과:** 7개 테스트 통과. `clearDashboardCache()`도 transient 없는 상태에서 안전하게 동작 확인.
+
+---
+
+### 20-3. DISABLE_WP_CRON — E2E
+
+**핵심 설계 결정:** `wp cron event run <hook> --due-now` 대신 `do_action()` 직접 호출.
+
+```js
+// wp cron event run crmbiz_nl_send_newsletter --due-now 가 실패하는 이유:
+// - wp_schedule_single_event()로 등록한 직후, WP의 HTTP 루프백 cron이
+//   먼저 해당 이벤트를 소비해버림
+// - WP-CLI가 확인할 시점엔 이미 없음 → "Invalid cron event" 오류
+
+// 올바른 접근: WP Cron이 실제로 하는 것을 직접 재현
+function triggerSend(nlId) {
+  return wpEval(`do_action("crmbiz_nl_send_newsletter", ${nlId});`)
+}
+// wp cron event run은 내부적으로 do_action()을 호출할 뿐이므로 동등함
+```
+
+**검증 시나리오 3가지:**
+1. `do_action()` 트리거 → queued → sent 전환
+2. 발송 완료 후 큐 잔여 0건 (이중 발송 없음)
+3. 두 번 연속 트리거 → success_count 변화 없음 (GET_LOCK 보호)
+
+---
+
+### 20-4. 공유 호스팅 제약 — E2E 실측
+
+**측정 방법:** WP-CLI `wp eval` 안에서 `microtime()` + `memory_get_peak_usage()` 직접 측정.
+
+**결과 (배치 30건, Mailpit 환경):**
+
+| 항목 | 측정값 | 기준 |
+|------|--------|------|
+| PHP 오버헤드 | **0.28초** | - |
+| 피크 메모리 증가 | **2MB** | 128MB 한도 |
+| 실 SMTP 예산/건 | **0.99초** | - |
+| SMTP 0.5초/건 기준 총 소요 | 0.28 + 15 = **15.28초** | 30초 한도 ✅ |
+
+**배치 크기 50 → 30 변경 근거:**
+
+```
+배치 50건 기준:
+  PHP 오버헤드: 0.47초
+  SMTP 예산/건: 0.59초
+  SMTP 0.5초/건 기준 총 소요: 0.47 + 25 = 25.47초 → 한도 직전
+
+배치 30건 기준:
+  PHP 오버헤드: 0.28초
+  SMTP 예산/건: 0.99초
+  SMTP 0.5초/건 기준 총 소요: 0.28 + 15 = 15.28초 → 여유 충분
+```
+
+느린 SMTP(0.8초/건)에서도: 0.28 + 24 = 24.28초 → 30초 한도 안에 든다.
+
+**한계:** Mailpit은 로컬 메모리 SMTP라 실 SMTP 지연이 0. 실 SendGrid/SES 환경에서의 재측정이 필요하다. 그때까지는 30건이 보수적으로 안전한 배치 크기다.
+
+---
+
+### 20-5. v1.2.0 완료 체크리스트
+
+```markdown
+✅ ESLint 설정: eslint.config.js + CI job + 기존 오류 35건 수정
+✅ 데드코드 제거: fluent_crm 필터, buildHtml subscriber 키
+✅ Transient Eviction: PHPUnit 7개 (329 tests / 601 assertions)
+✅ DISABLE_WP_CRON: E2E 4개 통과
+✅ 공유 호스팅 제약: E2E 2개 통과 (배치 시간 0.28초, 메모리 2MB)
+✅ 배치 크기: 50 → 30 (SMTP 예산 0.59초 → 0.99초/건)
+
+PHPUnit: 329 tests / 601 assertions (0 failures)
+```
