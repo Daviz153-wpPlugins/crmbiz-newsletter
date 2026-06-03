@@ -5,6 +5,20 @@
 
 ---
 
+## [1.2.0] — 2026-06-03
+
+### Fixed
+- **배치 크기 50 → 30** — 공유 호스팅(`max_execution_time=30`) 환경에서 SMTP 응답 지연이 쌓여 PHP 타임아웃이 발생할 수 있는 문제 완화. 실측: PHP 오버헤드 0.28초, SMTP 예산 0.99초/건으로 여유 확보.
+- **데드코드 제거** — `EmailTemplateRenderer::render()`의 `fluent_crm/parse_campaign_email_text` 필터 호출 제거(1001명 부하 테스트에서 실제로 동작 안 함 확인). `buildHtml` 배열에서 미사용 `subscriber` 키 제거.
+
+### Tests
+- **ESLint 설정** — `eslint.config.js` 추가(Vue3 essential + Playwright). `package.json`에 `lint`/`lint:fix` 스크립트. GitHub Actions CI job 추가. 기존 오류 35건 수정(미사용 import·변수, BOM 리터럴 등).
+- **Transient Eviction PHPUnit 7개** — Managed 호스팅(WP Engine/Kinsta)의 Redis 기반 캐시 강제 소거 환경에서 `getDashboard()`가 정확한 데이터를 반환하는지 검증.
+- **DISABLE_WP_CRON E2E 4개** — 외부 cron(`do_action` 직접 트리거)으로 queued→sent 전환, 큐 완전 소진, GET_LOCK 이중 발송 방지 검증.
+- **공유 호스팅 제약 E2E 2개** — 배치 30건 PHP 오버헤드(0.28초)·피크 메모리(2MB) 실측.
+
+---
+
 ## [1.1.0] — 2026-06-03
 
 ### Performance
