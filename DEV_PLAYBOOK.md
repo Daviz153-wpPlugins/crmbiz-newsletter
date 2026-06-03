@@ -1810,8 +1810,31 @@ Phase C 시작 전:
 - [x] handleCleanup() 고아 큐 안전망 (JOIN DELETE)
 - [x] idx_nl_email_type 커버링 인덱스 추가 (DB 2.1.0)
 
-### v1.x 남은 것
-- [ ] JavaScript ESLint 설정 추가
+### v1.x 남은 것 — 우선 과제
+
+#### 🔴 1순위: JavaScript ESLint 설정
+
+**무엇인가:** JS 코드의 문법 오류·스타일 문제를 자동으로 잡아주는 정적 분석 도구.
+PHP의 PHPUnit이 "로직이 맞는가"를 검사한다면, ESLint는 "JS 코드가 올바르게 작성됐는가"를 검사한다.
+
+**왜 필요한가:**
+- Vue 앱(`assets/vue/`)과 E2E 스펙(`tests/e2e/specs/`)의 오타·실수를 저장 순간 IDE에서 바로 잡아줌
+- 현재는 JS 오류가 빌드·런타임이 될 때까지 발견 안 됨
+- Phase B에서 JS 코드를 많이 새로 작성하기 전에 잡아두면 이후 비용 감소
+
+**해야 할 것:**
+```
+□ eslint.config.js 파일 작성 (vue3 + playwright 규칙)
+□ package.json에 lint 스크립트 추가
+□ .github/workflows/test.yml 또는 e2e.yml에 CI 단계 추가
+  → npx eslint assets/vue/ tests/e2e/
+□ 기존 코드 위반 사항 일괄 수정 (--fix로 자동 처리 가능한 것)
+```
+
+**난이도:** 반나절. `eslint.config.js` 파일 하나 + CI 한 줄.
+
+---
+
 - [ ] EXPLAIN ANALYZE로 실제 느린 쿼리 프로파일링 (real MySQL with 1k+ rows)
 
 ### 영구 보류
