@@ -109,11 +109,12 @@ class UnsubscribeHandler {
         $wpdb->replace(
             $wpdb->prefix . 'crmbiz_nl_unsubscribers',
             [
-                'email'           => $email,
-                'unsubscribed_at' => current_time('mysql'),
-                'token_used'      => substr($token, 0, 64),
+                'email'               => $email,
+                'unsubscribed_at'     => current_time('mysql'),
+                'unsubscribed_at_gmt' => current_time('mysql', true),
+                'token_used'          => substr($token, 0, 64),
             ],
-            ['%s', '%s', '%s']
+            ['%s', '%s', '%s', '%s']
         );
     }
 
@@ -127,11 +128,12 @@ class UnsubscribeHandler {
         $wpdb->replace(
             $wpdb->prefix . 'crmbiz_nl_unsubscribers',
             [
-                'email'           => $subscriber->email,
-                'unsubscribed_at' => current_time('mysql'),
-                'token_used'      => 'fc_' . $reason,
+                'email'               => $subscriber->email,
+                'unsubscribed_at'     => current_time('mysql'),
+                'unsubscribed_at_gmt' => current_time('mysql', true),
+                'token_used'          => 'fc_' . $reason,
             ],
-            ['%s', '%s', '%s']
+            ['%s', '%s', '%s', '%s']
         );
         Logger::info('바운스 수신거부 자동 등록', ['email' => $subscriber->email, 'reason' => $reason]);
     }

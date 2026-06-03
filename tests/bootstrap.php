@@ -95,7 +95,20 @@ function add_query_arg($args, string $url = ''): string {
 }
 
 function current_time(string $type, bool $gmt = false) {
-    return $type === 'timestamp' ? time() : date('Y-m-d H:i:s');
+    if ($type === 'timestamp') {
+        return $gmt ? time() : time() + 9 * 3600; // UTC+9
+    }
+    return $gmt ? gmdate('Y-m-d H:i:s') : date('Y-m-d H:i:s');
+}
+
+function get_gmt_from_date(string $localDate): string {
+    try {
+        $dt = new \DateTime($localDate, new \DateTimeZone('Asia/Seoul'));
+        $dt->setTimezone(new \DateTimeZone('UTC'));
+        return $dt->format('Y-m-d H:i:s');
+    } catch (\Throwable $e) {
+        return gmdate('Y-m-d H:i:s');
+    }
 }
 
 function wp_create_nonce($action = -1): string {

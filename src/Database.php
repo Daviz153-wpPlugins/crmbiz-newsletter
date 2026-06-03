@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class Database {
 
-    const DB_VERSION = '2.1.0';
+    const DB_VERSION = '2.2.0';
     const DB_VERSION_OPTION = 'crmbiz_nl_db_version';
 
     /**
@@ -166,13 +166,45 @@ class Database {
         // 2.0.0: crmbiz_nl_logs 시스템 로그 테이블 추가 (dbDelta가 처리)
 
         // 2.1.0: crmbiz_nl_events 커버링 인덱스 추가
-        // getNewsletterDetail()의 WHERE newsletter_id=? GROUP BY email 쿼리에서
-        // 기존 idx_nl_type(newsletter_id, type)은 email 컬럼 미포함 → filesort 발생.
-        // (newsletter_id, email, type)으로 확장하면 GROUP BY email을 인덱스만으로 처리.
         if (version_compare(self::getVersion(), '2.1.0', '<')) {
             $evIndexes = $wpdb->get_col("SHOW INDEX FROM {$wpdb->prefix}crmbiz_nl_events", 2);
             if (is_array($evIndexes) && !in_array('idx_nl_email_type', $evIndexes, true)) {
                 $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_events ADD KEY idx_nl_email_type (newsletter_id, email, type)");
+            }
+        }
+
+        // 2.2.0: *_gmt UTC 컬럼 추가 — 사이트 TZ 변경·서버 이전 시 데이터 무결성 보호.
+        // 기존 로컬 컬럼은 유지, 신규 레코드부터 로컬+UTC 이중 저장.
+        if (version_compare(self::getVersion(), '2.2.0', '<')) {
+            $nlCols   = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_newsletters");
+            $addNl    = static function(string $col, string $after) use ($wpdb, $nlCols): void {
+                if (is_array($nlCols) && !in_array($col, $nlCols, true)) {
+                    $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_newsletters ADD COLUMN {$col} DATETIME NULL AFTER {$after}");
+                }
+            };
+            $addNl('scheduled_at_gmt', 'scheduled_at');
+            $addNl('sent_at_gmt',      'sent_at');
+            $addNl('created_at_gmt',   'created_at');
+            $addNl('updated_at_gmt',   'updated_at');
+
+            $unsubCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_nl_unsubscribers");
+            if (is_array($unsubCols) && !in_array('unsubscribed_at_gmt', $unsubCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_unsubscribers ADD COLUMN unsubscribed_at_gmt DATETIME NULL AFTER unsubscribed_at");
+            }
+
+            $evCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_nl_events");
+            if (is_array($evCols) && !in_array('occurred_at_gmt', $evCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_events ADD COLUMN occurred_at_gmt DATETIME NULL AFTER occurred_at");
+            }
+
+            $sendCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_nl_sends");
+            if (is_array($sendCols) && !in_array('sent_at_gmt', $sendCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_sends ADD COLUMN sent_at_gmt DATETIME NULL AFTER sent_at");
+            }
+
+            $logCols = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}crmbiz_nl_logs");
+            if (is_array($logCols) && !in_array('occurred_at_gmt', $logCols, true)) {
+                $wpdb->query("ALTER TABLE {$wpdb->prefix}crmbiz_nl_logs ADD COLUMN occurred_at_gmt DATETIME NULL AFTER occurred_at");
             }
         }
 
