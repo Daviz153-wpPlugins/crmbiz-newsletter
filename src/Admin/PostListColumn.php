@@ -20,7 +20,7 @@ class PostListColumn {
         foreach ($columns as $key => $label) {
             $new[$key] = $label;
             if ($key === 'title') {
-                $new['crmbiz_newsletter'] = '뉴스레터';
+                $new['crmbiz_newsletter'] = __('뉴스레터', 'crmbiz-newsletter');
             }
         }
         return $new;
@@ -81,14 +81,14 @@ class PostListColumn {
             return;
         }
 
-        static $statusMap = [
-            'sent'      => ['발송 완료', '#065f46', '#d1fae5'],
-            'sending'   => ['발송 중',   '#1d4ed8', '#dbeafe'],
-            'queued'    => ['발송 대기', '#92400e', '#fef3c7'],
-            'scheduled' => ['예약 발송', '#5b21b6', '#ede9fe'],
-            'draft'     => ['임시저장',  '#374151', '#f3f4f6'],
-            'failed'    => ['발송 실패', '#991b1b', '#fee2e2'],
-            'cancelled' => ['취소됨',    '#6b7280', '#f3f4f6'],
+        $statusMap = [
+            'sent'      => [__('발송 완료', 'crmbiz-newsletter'), '#065f46', '#d1fae5'],
+            'sending'   => [__('발송 중',   'crmbiz-newsletter'), '#1d4ed8', '#dbeafe'],
+            'queued'    => [__('발송 대기', 'crmbiz-newsletter'), '#92400e', '#fef3c7'],
+            'scheduled' => [__('예약 발송', 'crmbiz-newsletter'), '#5b21b6', '#ede9fe'],
+            'draft'     => [__('임시저장',  'crmbiz-newsletter'), '#374151', '#f3f4f6'],
+            'failed'    => [__('발송 실패', 'crmbiz-newsletter'), '#991b1b', '#fee2e2'],
+            'cancelled' => [__('취소됨',    'crmbiz-newsletter'), '#6b7280', '#f3f4f6'],
         ];
 
         [$label, $color, $bg] = $statusMap[$row->status] ?? [$row->status, '#374151', '#f3f4f6'];

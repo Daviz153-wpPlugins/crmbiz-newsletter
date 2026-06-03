@@ -25,14 +25,14 @@ class UnsubscribeHandler {
 
         // 레이트 리밋: IP당 10분 10회
         if (!Database::checkRateLimit('unsub', 10, 600)) {
-            wp_die('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', '요청 제한', ['response' => 429]);
+            wp_die(__('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 'crmbiz-newsletter'), __('요청 제한', 'crmbiz-newsletter'), ['response' => 429]);
         }
 
         if (!$email || !$this->verifyToken($email, $token, $exp)) {
             $msg = ($exp > 0 && time() > $exp)
-                ? '수신거부 링크가 만료되었습니다. 최신 뉴스레터의 수신거부 링크를 사용해 주세요.'
-                : '유효하지 않은 수신거부 링크입니다.';
-            wp_die($msg, '수신거부 오류', ['response' => 403]);
+                ? __('수신거부 링크가 만료되었습니다. 최신 뉴스레터의 수신거부 링크를 사용해 주세요.', 'crmbiz-newsletter')
+                : __('유효하지 않은 수신거부 링크입니다.', 'crmbiz-newsletter');
+            wp_die($msg, __('수신거부 오류', 'crmbiz-newsletter'), ['response' => 403]);
         }
 
         $this->processUnsubscribe($email, $token);
@@ -61,7 +61,7 @@ class UnsubscribeHandler {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>수신거부 완료 — ' . $siteName . '</title>
+<title>' . esc_html__('수신거부 완료', 'crmbiz-newsletter') . ' — ' . $siteName . '</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -77,11 +77,11 @@ class UnsubscribeHandler {
 <body>
   <div class="card">
     <div class="icon">✅</div>
-    <h1>수신거부가 완료되었습니다</h1>
-    <p>아래 이메일 주소로 더 이상<br>뉴스레터가 발송되지 않습니다.</p>
+    <h1>' . esc_html__('수신거부가 완료되었습니다', 'crmbiz-newsletter') . '</h1>
+    <p>' . esc_html__('아래 이메일 주소로 더 이상 뉴스레터가 발송되지 않습니다.', 'crmbiz-newsletter') . '</p>
     <div class="email">' . esc_html($maskedEmail) . '</div>
-    <p style="margin-bottom:24px">다시 구독을 원하시면<br>' . $siteName . '에서 신청하세요.</p>
-    <a href="' . $homeUrl . '">홈으로 돌아가기</a>
+    <p style="margin-bottom:24px">' . sprintf(esc_html__('다시 구독을 원하시면 %s에서 신청하세요.', 'crmbiz-newsletter'), $siteName) . '</p>
+    <a href="' . $homeUrl . '">' . esc_html__('홈으로 돌아가기', 'crmbiz-newsletter') . '</a>
   </div>
 </body>
 </html>',

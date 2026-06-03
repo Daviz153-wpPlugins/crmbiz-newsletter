@@ -89,7 +89,7 @@
       <p style="margin:0 0 8px;font-size:13px;color:<?php echo $headerColor; ?>;opacity:.5"><?php echo $postDate; ?></p>
       <?php endif; ?>
       <?php if ($showWebView): ?>
-      <a href="<?php echo $postUrl; ?>" style="font-size:13px;color:<?php echo $accentColor; ?>;text-decoration:underline">웹에서 보기</a>
+      <a href="<?php echo $postUrl; ?>" style="font-size:13px;color:<?php echo $accentColor; ?>;text-decoration:underline"><?php esc_html_e('웹에서 보기', 'crmbiz-newsletter'); ?></a>
       <?php endif; ?>
     </td>
   </tr>
@@ -188,9 +188,20 @@
   <tr>
     <td class="nl-foot" style="background:#f9fafb;padding:16px 32px;border-top:1px solid #e5e7eb">
       <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
-        이 이메일은 <strong><?php echo $siteName; ?></strong> 뉴스레터 구독자에게 발송됩니다.<br>
-        더 이상 받지 않으시려면
-        <a href="<?php echo $unsubscribeUrl; ?>" style="color:<?php echo $accentColor; ?>;text-decoration:underline">수신거부</a>를 클릭하세요.
+        <?php printf(
+            wp_kses(
+                __('이 이메일은 <strong>%s</strong> 뉴스레터 구독자에게 발송됩니다.', 'crmbiz-newsletter'),
+                ['strong' => []]
+            ),
+            $siteName
+        ); ?><br>
+        <?php printf(
+            wp_kses(
+                __('더 이상 받지 않으시려면 <a href="%s" style="color:' . $accentColor . ';text-decoration:underline">수신거부</a>를 클릭하세요.', 'crmbiz-newsletter'),
+                ['a' => ['href' => [], 'style' => []]]
+            ),
+            $unsubscribeUrl
+        ); ?>
       </p>
     </td>
   </tr>

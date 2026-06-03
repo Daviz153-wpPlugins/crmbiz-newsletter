@@ -154,7 +154,7 @@ class EmailTemplateRenderer {
                 );
             }
             $recentSection = '<div style="margin-top:40px;padding-top:24px;border-top:1px solid #e5e7eb">'
-                . '<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px">최근 뉴스레터</p>'
+                . '<p style="font-size:14px;font-weight:600;color:#374151;margin:0 0 12px">' . esc_html__('최근 뉴스레터', 'crmbiz-newsletter') . '</p>'
                 . '<ul style="margin:0;padding-left:18px;color:#374151;font-size:14px">' . $items . '</ul>'
                 . '</div>';
         }

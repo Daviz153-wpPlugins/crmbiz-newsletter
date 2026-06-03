@@ -59,7 +59,7 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'fail_reason' => 'FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요.', 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
+                ['status' => 'failed', 'fail_reason' => __('FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요.', 'crmbiz-newsletter'), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                 ['id' => $newsletterId, 'status' => 'queued'],
                 ['%s', '%s', '%s'], ['%d', '%s']
             );
@@ -245,7 +245,7 @@ class NewsletterSender {
             global $wpdb;
             $wpdb->update(
                 $wpdb->prefix . 'crmbiz_newsletters',
-                ['status' => 'failed', 'fail_reason' => '수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요.', 'sent_at' => current_time('mysql'), 'sent_at_gmt' => current_time('mysql', true), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
+                ['status' => 'failed', 'fail_reason' => __('수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요.', 'crmbiz-newsletter'), 'sent_at' => current_time('mysql'), 'sent_at_gmt' => current_time('mysql', true), 'updated_at' => current_time('mysql'), 'updated_at_gmt' => current_time('mysql', true)],
                 ['id' => $newsletterId],
                 ['%s', '%s', '%s', '%s'], ['%d']
             );
@@ -290,7 +290,7 @@ class NewsletterSender {
 
         $allFailed  = (int)$final->success_count === 0 && (int)$final->fail_count > 0;
         $status     = $allFailed ? 'failed' : 'sent';
-        $failReason = $allFailed ? '모든 이메일 발송에 실패했습니다. SMTP 설정 및 수신자 이메일 주소를 확인하세요.' : null;
+        $failReason = $allFailed ? __('모든 이메일 발송에 실패했습니다. SMTP 설정 및 수신자 이메일 주소를 확인하세요.', 'crmbiz-newsletter') : null;
 
         $wpdb->update(
             $wpdb->prefix . 'crmbiz_newsletters',
@@ -318,7 +318,7 @@ class NewsletterSender {
         }
 
         $title   = get_the_title($postId) ?: "Newsletter #{$newsletterId}";
-        $label   = $status === 'sent' ? '발송 완료' : '발송 실패';
+        $label   = $status === 'sent' ? __('발송 완료', 'crmbiz-newsletter') : __('발송 실패', 'crmbiz-newsletter');
         $histUrl = admin_url('admin.php?page=crmbiz-nl-history');
         $total   = $success + $fail;
         $rate    = $total > 0 ? round($success / $total * 100) : 0;
@@ -326,15 +326,15 @@ class NewsletterSender {
         $body = sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
             '<div style="max-width:540px;margin:0 auto;background:#fff;padding:32px;border-radius:8px">' .
-            '<h2 style="color:#1a1a2e;margin:0 0 16px">뉴스레터 %s</h2>' .
-            '<p style="color:#555;margin:0 0 20px">아래 뉴스레터 발송이 완료되었습니다.</p>' .
+            '<h2 style="color:#1a1a2e;margin:0 0 16px">' . esc_html__('뉴스레터', 'crmbiz-newsletter') . ' %s</h2>' .
+            '<p style="color:#555;margin:0 0 20px">' . esc_html__('아래 뉴스레터 발송이 완료되었습니다.', 'crmbiz-newsletter') . '</p>' .
             '<table style="font-size:14px;color:#374151;border-collapse:collapse;width:100%%">' .
-            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">제목</td><td>%s</td></tr>' .
-            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">성공</td><td style="color:#0f5132">%s 건</td></tr>' .
-            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">실패</td><td style="color:%s">%s 건</td></tr>' .
-            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">성공률</td><td>%s%%</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">' . esc_html__('제목', 'crmbiz-newsletter') . '</td><td>%s</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">' . esc_html__('성공', 'crmbiz-newsletter') . '</td><td style="color:#0f5132">%s ' . esc_html__('건', 'crmbiz-newsletter') . '</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">' . esc_html__('실패', 'crmbiz-newsletter') . '</td><td style="color:%s">%s ' . esc_html__('건', 'crmbiz-newsletter') . '</td></tr>' .
+            '<tr><td style="padding:6px 16px 6px 0;color:#6b7280">' . esc_html__('성공률', 'crmbiz-newsletter') . '</td><td>%s%%</td></tr>' .
             '</table>' .
-            '<p style="margin:24px 0 0"><a href="%s" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">발송 이력 보기</a></p>' .
+            '<p style="margin:24px 0 0"><a href="%s" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">' . esc_html__('발송 이력 보기', 'crmbiz-newsletter') . '</a></p>' .
             '</div></body></html>',
             esc_html($label),
             esc_html($title),

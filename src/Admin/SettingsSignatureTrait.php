@@ -15,7 +15,7 @@ trait SettingsSignatureTrait {
 
     private function renderSignatureFields(array $sig): void { ?>
         <div class="crmbiz-settings-field crmbiz-settings-field--flush">
-            <label class="crmbiz-settings-field-label" for="sig_photo_url">프로필 사진</label>
+            <label class="crmbiz-settings-field-label" for="sig_photo_url"><?php esc_html_e('프로필 사진', 'crmbiz-newsletter'); ?></label>
             <div class="crmbiz-settings-field-body">
                 <div class="crmbiz-sig-photo-row">
                     <div id="crmbiz-sig-photo-wrap" <?php echo $sig['photo_url'] ? '' : 'style="display:none"'; ?>>
@@ -28,7 +28,7 @@ trait SettingsSignatureTrait {
                                class="crmbiz-settings-input crmbiz-sig-input--narrow" placeholder="https://">
                         <button type="button" id="crmbiz-upload-sig-photo"
                                 class="crmbiz-btn crmbiz-btn--secondary crmbiz-btn--sm">
-                            사진 선택
+                            <?php esc_html_e('사진 선택', 'crmbiz-newsletter'); ?>
                         </button>
                     </div>
                 </div>
@@ -39,14 +39,14 @@ trait SettingsSignatureTrait {
             <div class="crmbiz-settings-field-label crmbiz-settings-field-label--top">
                 <label class="crmbiz-settings-checkbox-label">
                     <input type="checkbox" id="sig_show_name" name="sig_show_name" value="1" <?php checked($sig['show_name']); ?>>
-                    이름 / 직함
+                    <?php esc_html_e('이름 / 직함', 'crmbiz-newsletter'); ?>
                 </label>
             </div>
             <div class="crmbiz-settings-field-body">
                 <input type="text" id="sig_name" name="sig_name"
                        value="<?php echo esc_attr($sig['name']); ?>"
                        class="crmbiz-settings-input<?php echo $sig['show_name'] ? '' : ' crmbiz-input--inactive'; ?>"
-                       placeholder="예: 당신의 재무 파트너 신 팀장입니다.">
+                       placeholder="<?php esc_attr_e('예: 당신의 재무 파트너 신 팀장입니다.', 'crmbiz-newsletter'); ?>">
             </div>
         </div>
 
@@ -54,45 +54,45 @@ trait SettingsSignatureTrait {
             <div class="crmbiz-settings-field-label crmbiz-settings-field-label--top">
                 <label class="crmbiz-settings-checkbox-label">
                     <input type="checkbox" id="sig_show_bio" name="sig_show_bio" value="1" <?php checked($sig['show_bio']); ?>>
-                    소개 문구
+                    <?php esc_html_e('소개 문구', 'crmbiz-newsletter'); ?>
                 </label>
             </div>
             <div class="crmbiz-settings-field-body">
                 <textarea id="sig_bio" name="sig_bio" rows="3"
                           class="crmbiz-settings-input crmbiz-sig-textarea<?php echo $sig['show_bio'] ? '' : ' crmbiz-input--inactive'; ?>"
-                          placeholder="예: 재무상담 17년 차이며..."><?php echo esc_textarea($sig['bio']); ?></textarea>
-                <p class="crmbiz-settings-hint">HTML 사용 가능: <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;a href="..."&gt;</code></p>
+                          placeholder="<?php esc_attr_e('예: 재무상담 17년 차이며...', 'crmbiz-newsletter'); ?>"><?php echo esc_textarea($sig['bio']); ?></textarea>
+                <p class="crmbiz-settings-hint"><?php esc_html_e('HTML 사용 가능:', 'crmbiz-newsletter'); ?> <code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;a href="..."&gt;</code></p>
             </div>
         </div>
 
         <div class="crmbiz-settings-field crmbiz-settings-field--flush">
-            <label class="crmbiz-settings-field-label">사진 테두리</label>
+            <label class="crmbiz-settings-field-label"><?php esc_html_e('사진 테두리', 'crmbiz-newsletter'); ?></label>
             <div class="crmbiz-settings-field-body">
                 <?php $this->renderRgbaPicker('sig_border_color', 'sig_border_opacity', $sig['border_color'], $sig['border_opacity'], 'crmbiz-border-picker'); ?>
-                <p class="crmbiz-settings-hint">투명도 0% = 테두리 없음</p>
+                <p class="crmbiz-settings-hint"><?php esc_html_e('투명도 0% = 테두리 없음', 'crmbiz-newsletter'); ?></p>
             </div>
         </div>
 
         <div class="crmbiz-settings-field crmbiz-settings-field--flush">
-            <label class="crmbiz-settings-field-label">배경 색상</label>
+            <label class="crmbiz-settings-field-label"><?php esc_html_e('배경 색상', 'crmbiz-newsletter'); ?></label>
             <div class="crmbiz-settings-field-body">
                 <?php $this->renderRgbaPicker('sig_bg_color', 'sig_bg_opacity', $sig['bg_color'], $sig['bg_opacity'], 'crmbiz-bg-picker'); ?>
-                <p class="crmbiz-settings-hint">투명도 0% = 배경 없음</p>
+                <p class="crmbiz-settings-hint"><?php esc_html_e('투명도 0% = 배경 없음', 'crmbiz-newsletter'); ?></p>
             </div>
         </div>
 
         <div class="crmbiz-settings-field crmbiz-settings-field--flush">
-            <label class="crmbiz-settings-field-label">간격</label>
+            <label class="crmbiz-settings-field-label"><?php esc_html_e('간격', 'crmbiz-newsletter'); ?></label>
             <div class="crmbiz-settings-field-body crmbiz-sig-gap-col">
                 <div>
-                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label">사진 ↔ 텍스트</p>
+                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label"><?php esc_html_e('사진 ↔ 텍스트', 'crmbiz-newsletter'); ?></p>
                     <div class="crmbiz-sig-range-row">
                         <input type="range" id="sig_photo_gap" name="sig_photo_gap" class="crmbiz-sig-range" min="0" max="80" step="2" value="<?php echo esc_attr($sig['photo_gap']); ?>">
                         <span id="crmbiz-photo-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['photo_gap']; ?>px</span>
                     </div>
                 </div>
                 <div>
-                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label">이름 ↔ 소개</p>
+                    <p class="crmbiz-settings-hint crmbiz-sig-hint-label"><?php esc_html_e('이름 ↔ 소개', 'crmbiz-newsletter'); ?></p>
                     <div class="crmbiz-sig-range-row">
                         <input type="range" id="sig_text_gap" name="sig_text_gap" class="crmbiz-sig-range" min="0" max="40" step="2" value="<?php echo esc_attr($sig['text_gap']); ?>">
                         <span id="crmbiz-text-gap-val" class="crmbiz-sig-range-val"><?php echo $sig['text_gap']; ?>px</span>
@@ -102,9 +102,9 @@ trait SettingsSignatureTrait {
         </div>
 
         <div class="crmbiz-settings-field crmbiz-settings-field--flush">
-            <label class="crmbiz-settings-field-label">사진 위치</label>
+            <label class="crmbiz-settings-field-label"><?php esc_html_e('사진 위치', 'crmbiz-newsletter'); ?></label>
             <div class="crmbiz-settings-field-body crmbiz-sig-position-row">
-                <?php foreach (['left' => '왼쪽', 'top' => '위', 'right' => '오른쪽'] as $val => $lbl): ?>
+                <?php foreach (['left' => __('왼쪽', 'crmbiz-newsletter'), 'top' => __('위', 'crmbiz-newsletter'), 'right' => __('오른쪽', 'crmbiz-newsletter')] as $val => $lbl): ?>
                 <label class="crmbiz-sig-position-label">
                     <input type="radio" name="sig_photo_position" value="<?php echo $val; ?>" <?php checked($sig['photo_position'], $val); ?>>
                     <?php echo $lbl; ?>
@@ -133,7 +133,7 @@ trait SettingsSignatureTrait {
 
         <hr class="crmbiz-settings-hr">
         <div class="crmbiz-preview-header">
-            <h3>시그니처 미리보기</h3>
+            <h3><?php esc_html_e('시그니처 미리보기', 'crmbiz-newsletter'); ?></h3>
         </div>
 
         <div id="crmbiz-preview-viewport" class="crmbiz-preview-viewport">

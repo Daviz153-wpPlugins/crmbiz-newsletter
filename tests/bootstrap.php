@@ -139,9 +139,13 @@ function admin_url(string $path = ''): string {
 function esc_html(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
 function esc_attr(string $text): string   { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
 function esc_url(string $url): string     { return htmlspecialchars($url,  ENT_QUOTES, 'UTF-8'); }
-function esc_html__(string $text, string $domain = 'default'): string { return esc_html($text); }
-function esc_attr_e(string $text, string $domain = 'default'): void  { echo esc_attr($text); }
-function esc_html_e(string $text, string $domain = 'default'): void  { echo esc_html($text); }
+function __( string $text, string $domain = 'default' ): string        { return $text; }
+function _e( string $text, string $domain = 'default' ): void         { echo $text; }
+function esc_html__(string $text, string $domain = 'default'): string  { return esc_html($text); }
+function esc_attr__(string $text, string $domain = 'default'): string  { return esc_attr($text); }
+function esc_attr_e(string $text, string $domain = 'default'): void    { echo esc_attr($text); }
+function esc_html_e(string $text, string $domain = 'default'): void    { echo esc_html($text); }
+function esc_js(string $text): string                                  { return addslashes($text); }
 function load_plugin_textdomain(string $domain, $deprecated = false, string $plugin_rel_path = ''): bool { return true; }
 function plugin_basename(string $file): string { return basename(dirname($file)) . '/' . basename($file); }
 

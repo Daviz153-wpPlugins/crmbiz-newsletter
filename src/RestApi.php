@@ -142,7 +142,7 @@ class RestApi {
         );
 
         $campaigns = $wpdb->get_results($wpdb->prepare(
-            "SELECT n.id, COALESCE(p.post_title, '(삭제된 포스트)') AS title,
+            "SELECT n.id, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS title,
                     n.success_count, n.sent_at,
                     COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS opens,
                     COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS clicks
@@ -246,7 +246,7 @@ class RestApi {
         $sortKey = sanitize_key($req->get_param('sort_by') ?? 'date');
         $orderBy = ($sortMap[$sortKey] ?? $sortMap['date']) . ' ' . $sortDir;
 
-        $select = "SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
+        $select = "SELECT n.*, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS post_title,
                           COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
                           COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count";
         $from   = "FROM {$wpdb->prefix}crmbiz_newsletters n
@@ -307,7 +307,7 @@ class RestApi {
         $id = (int) $req->get_param('id');
 
         $nl = $wpdb->get_row($wpdb->prepare(
-            "SELECT n.*, COALESCE(p.post_title, '(삭제된 포스트)') AS post_title,
+            "SELECT n.*, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS post_title,
                     COALESCE(ec.open_count, 0)  AS open_count,
                     COALESCE(ec.click_count, 0) AS click_count
              FROM {$wpdb->prefix}crmbiz_newsletters n
@@ -321,7 +321,7 @@ class RestApi {
              ) ec ON ec.newsletter_id = n.id
              WHERE n.id = %d", $id
         ));
-        if (!$nl) return new \WP_REST_Response(['message' => '없는 항목입니다.'], 404);
+        if (!$nl) return new \WP_REST_Response(['message' => __('없는 항목입니다.', 'crmbiz-newsletter')], 404);
 
         // 수신자별 이벤트 집계
         $rows = $wpdb->get_results($wpdb->prepare(
@@ -408,7 +408,7 @@ class RestApi {
             "UPDATE {$wpdb->prefix}crmbiz_newsletters SET status = 'queued'
              WHERE id = %d AND status = 'draft'", $id
         ));
-        if (!$updated) return new \WP_REST_Response(['message' => '발송 가능한 상태가 아닙니다.'], 400);
+        if (!$updated) return new \WP_REST_Response(['message' => __('발송 가능한 상태가 아닙니다.', 'crmbiz-newsletter')], 400);
 
         Scheduler::scheduleSingle(time(), 'crmbiz_nl_send_newsletter', [$id]);
         return rest_ensure_response(['status' => 'queued']);
@@ -423,7 +423,7 @@ class RestApi {
             "UPDATE {$wpdb->prefix}crmbiz_newsletters SET status = 'cancelled'
              WHERE id = %d AND status IN ('queued','sending','scheduled')", $id
         ));
-        if (!$updated) return new \WP_REST_Response(['message' => '취소할 수 없는 상태입니다.'], 400);
+        if (!$updated) return new \WP_REST_Response(['message' => __('취소할 수 없는 상태입니다.', 'crmbiz-newsletter')], 400);
 
         Scheduler::unschedule($cronHook, [$id]);
         $wpdb->delete($wpdb->prefix . 'crmbiz_nl_queue', ['newsletter_id' => $id], ['%d']);
@@ -438,7 +438,7 @@ class RestApi {
             "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d", $id
         ));
         if (!in_array($status, ['queued', 'sending'], true)) {
-            return new \WP_REST_Response(['message' => '발송 불가 상태입니다.'], 400);
+            return new \WP_REST_Response(['message' => __('발송 불가 상태입니다.', 'crmbiz-newsletter')], 400);
         }
 
         $hasMore  = (new NewsletterSender($this->settings))->sendFromRecord($id);
@@ -469,7 +469,7 @@ class RestApi {
             "SELECT * FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d", $id
         ));
         if (!$record) return new \WP_REST_Response(['message' => '없는 항목입니다.'], 404);
-        if (!get_post((int) $record->post_id)) return new \WP_REST_Response(['message' => '포스트를 찾을 수 없습니다.'], 400);
+        if (!get_post((int) $record->post_id)) return new \WP_REST_Response(['message' => __('포스트를 찾을 수 없습니다.', 'crmbiz-newsletter')], 400);
 
         $newId = (new NewsletterSender($this->settings))->createQueuedRecord((int) $record->post_id);
         $cronHook = 'crmbiz_nl_send_newsletter';
@@ -487,7 +487,7 @@ class RestApi {
             "SELECT status FROM {$wpdb->prefix}crmbiz_newsletters WHERE id = %d", $id
         ));
         if ($status === 'sending') {
-            return new \WP_REST_Response(['message' => '발송 중입니다. 취소 후 삭제하세요.'], 400);
+            return new \WP_REST_Response(['message' => __('발송 중입니다. 취소 후 삭제하세요.', 'crmbiz-newsletter')], 400);
         }
 
         Scheduler::unschedule($cronHook, [$id]);
@@ -500,19 +500,19 @@ class RestApi {
             self::clearDashboardCache();
             return rest_ensure_response(['deleted' => true]);
         }
-        return new \WP_REST_Response(['message' => '삭제 실패.'], 500);
+        return new \WP_REST_Response(['message' => __('삭제 실패.', 'crmbiz-newsletter')], 500);
     }
 
     public function resendSingle(\WP_REST_Request $req): \WP_REST_Response {
         $id       = (int) $req->get_param('id');
         $email    = sanitize_email($req->get_param('email') ?? '');
-        if (!is_email($email)) return new \WP_REST_Response(['message' => '유효하지 않은 이메일.'], 400);
+        if (!is_email($email)) return new \WP_REST_Response(['message' => __('유효하지 않은 이메일.', 'crmbiz-newsletter')], 400);
 
         $settings = new Settings();
         $sent     = (new NewsletterSender($settings))->sendToEmail($id, $email);
         return $sent
             ? rest_ensure_response(['sent' => true])
-            : new \WP_REST_Response(['message' => '발송 실패 (수신거부 또는 오류).'], 400);
+            : new \WP_REST_Response(['message' => __('발송 실패 (수신거부 또는 오류).', 'crmbiz-newsletter')], 400);
     }
 
     public function getProgress(\WP_REST_Request $req): \WP_REST_Response {
@@ -550,7 +550,7 @@ class RestApi {
         return [
             'id'              => (int) $nl->id,
             'post_id'         => $postId,
-            'post_title'      => $nl->post_title ?? '(삭제된 포스트)',
+            'post_title'      => $nl->post_title ?? __('(삭제된 포스트)', 'crmbiz-newsletter'),
             'post_url'        => $postId > 0 ? (get_permalink($postId) ?: null) : null,
             'preview_url'     => $postId > 0 ? add_query_arg([
                 'action'  => 'crmbiz_nl_preview_email',

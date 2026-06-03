@@ -17,7 +17,7 @@ class MetaBox {
     public function register(): void {
         add_meta_box(
             'crmbiz_nl_metabox',
-            '뉴스레터 발송 설정',
+            __('뉴스레터 발송 설정', 'crmbiz-newsletter'),
             [$this, 'render'],
             'post',
             'side',
@@ -29,7 +29,7 @@ class MetaBox {
         try {
             $this->renderInner($post);
         } catch (\Throwable $e) {
-            echo '<p style="color:#b91c1c;font-size:12px">뉴스레터 메타박스 오류: ' . esc_html($e->getMessage()) . '</p>';
+            echo '<p style="color:#b91c1c;font-size:12px">' . esc_html__('뉴스레터 메타박스 오류:', 'crmbiz-newsletter') . ' ' . esc_html($e->getMessage()) . '</p>';
         }
     }
 
@@ -58,13 +58,13 @@ class MetaBox {
 
             <?php if (!$fcAvailable): ?>
                 <div class="crmbiz-mb-notice crmbiz-mb-notice--warn">
-                    FluentCRM이 활성화되지 않았습니다.
+                    <?php esc_html_e('FluentCRM이 활성화되지 않았습니다.', 'crmbiz-newsletter'); ?>
                 </div>
             <?php endif; ?>
 
             <?php if ($isDryRun): ?>
                 <div class="crmbiz-mb-notice crmbiz-mb-notice--info">
-                    테스트 모드 — 실제 발송 안 됨
+                    <?php esc_html_e('테스트 모드 — 실제 발송 안 됨', 'crmbiz-newsletter'); ?>
                 </div>
             <?php endif; ?>
 
@@ -79,14 +79,14 @@ class MetaBox {
                        value="1"
                        <?php checked($enabled); ?>>
                 <span class="dashicons <?php echo $enabled ? 'dashicons-email-alt' : 'dashicons-email'; ?> crmbiz-mb-icon"></span>
-                뉴스레터로 발송
+                <?php esc_html_e('뉴스레터로 발송', 'crmbiz-newsletter'); ?>
             </label>
 
             <div id="crmbiz-nl-options" class="crmbiz-mb-options" <?php echo $enabled ? '' : 'hidden'; ?>>
 
                 <?php if (!empty($tags)): ?>
                 <div class="crmbiz-mb-section">
-                    <label class="crmbiz-mb-label">수신 태그</label>
+                    <label class="crmbiz-mb-label"><?php esc_html_e('수신 태그', 'crmbiz-newsletter'); ?></label>
                     <div class="crmbiz-mb-scroll">
                         <?php foreach ($tags as $tag): ?>
                         <label class="crmbiz-mb-check-label">
@@ -104,7 +104,7 @@ class MetaBox {
 
                 <?php if (!empty($lists)): ?>
                 <div class="crmbiz-mb-section">
-                    <label class="crmbiz-mb-label">수신 리스트</label>
+                    <label class="crmbiz-mb-label"><?php esc_html_e('수신 리스트', 'crmbiz-newsletter'); ?></label>
                     <div class="crmbiz-mb-scroll">
                         <?php foreach ($lists as $list): ?>
                         <label class="crmbiz-mb-check-label">
@@ -121,34 +121,36 @@ class MetaBox {
                 <?php endif; ?>
 
                 <?php if (empty($tags) && empty($lists) && $fcAvailable): ?>
-                    <p style="font-size:12px;color:#888">FluentCRM에 태그/리스트가 없습니다.</p>
+                    <p style="font-size:12px;color:#888"><?php esc_html_e('FluentCRM에 태그/리스트가 없습니다.', 'crmbiz-newsletter'); ?></p>
                 <?php endif; ?>
 
                 <div id="crmbiz-recipient-count" class="crmbiz-mb-count" style="display:none">
-                    예상 수신자: <strong id="crmbiz-count-value">0</strong>명
-                    <span class="crmbiz-mb-count-note">(중복·수신거부 제외는 발송 시 처리)</span>
+                    <?php esc_html_e('예상 수신자:', 'crmbiz-newsletter'); ?> <strong id="crmbiz-count-value">0</strong><?php esc_html_e('명', 'crmbiz-newsletter'); ?>
+                    <span class="crmbiz-mb-count-note"><?php esc_html_e('(중복·수신거부 제외는 발송 시 처리)', 'crmbiz-newsletter'); ?></span>
                 </div>
 
                 <div class="crmbiz-mb-section">
-                    <label class="crmbiz-mb-label">발송 시점</label>
+                    <label class="crmbiz-mb-label"><?php esc_html_e('발송 시점', 'crmbiz-newsletter'); ?></label>
                     <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="immediate" <?php checked($sendMode, 'immediate'); ?>>
-                        즉시 발송
+                        <?php esc_html_e('즉시 발송', 'crmbiz-newsletter'); ?>
                     </label>
                     <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="manual" <?php checked($sendMode, 'manual'); ?>>
-                        수동 발송
+                        <?php esc_html_e('수동 발송', 'crmbiz-newsletter'); ?>
                     </label>
                     <div id="crmbiz-manual-hint" class="crmbiz-mb-hint" <?php echo $sendMode === 'manual' ? '' : 'style="display:none"'; ?>>
                         <div class="crmbiz-mb-hint-box">
-                            발행해도 자동으로 발송되지 않습니다.<br>
-                            발행 후 <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-history')); ?>">발송 이력</a> 페이지에서
-                            <strong>▶ 발송</strong> 버튼을 눌러 직접 발송하세요.
+                            <?php esc_html_e('발행해도 자동으로 발송되지 않습니다.', 'crmbiz-newsletter'); ?><br>
+                            <?php printf(
+                                wp_kses(__('발행 후 <a href="%s">발송 이력</a> 페이지에서 <strong>▶ 발송</strong> 버튼을 눌러 직접 발송하세요.', 'crmbiz-newsletter'), ['a' => ['href' => []], 'strong' => []]),
+                                esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
+                            ); ?>
                         </div>
                     </div>
                     <label class="crmbiz-mb-mode-label">
                         <input type="radio" name="crmbiz_nl_send_mode" value="scheduled" <?php checked($sendMode, 'scheduled'); ?>>
-                        예약 발송
+                        <?php esc_html_e('예약 발송', 'crmbiz-newsletter'); ?>
                     </label>
                     <div id="crmbiz-scheduled-at" style="margin-top:6px;<?php echo $sendMode === 'scheduled' ? '' : 'display:none'; ?>">
                         <input type="datetime-local"
@@ -156,7 +158,7 @@ class MetaBox {
                                value="<?php echo esc_attr($schedAt); ?>"
                                class="crmbiz-mb-datetime">
                         <p class="crmbiz-mb-tz-note">
-                            사이트 시간대: <?php echo esc_html(wp_timezone_string()); ?>
+                            <?php echo esc_html__('사이트 시간대:', 'crmbiz-newsletter') . ' ' . esc_html(wp_timezone_string()); ?>
                         </p>
                     </div>
                 </div>
@@ -164,11 +166,11 @@ class MetaBox {
                 <a href="<?php echo esc_url(add_query_arg(['action' => 'crmbiz_nl_preview_email', 'post_id' => $post->ID, 'nonce' => wp_create_nonce('crmbiz_nl_preview_' . $post->ID)], admin_url('admin-ajax.php'))); ?>"
                    target="_blank"
                    class="crmbiz-mb-preview-link">
-                    HTML 미리보기 ↗
+                    <?php esc_html_e('HTML 미리보기 ↗', 'crmbiz-newsletter'); ?>
                 </a>
 
                 <div class="crmbiz-mb-divider">
-                    <label class="crmbiz-mb-label">테스트 발송</label>
+                    <label class="crmbiz-mb-label"><?php esc_html_e('테스트 발송', 'crmbiz-newsletter'); ?></label>
                     <input type="text"
                            id="crmbiz-nl-test-email"
                            placeholder="test@example.com"
@@ -357,23 +359,23 @@ class MetaBox {
         $status = $nl->status;
 
         $configs = [
-            'sent'      => ['bg' => '#d1e7dd', 'border' => '#0f5132', 'color' => '#0f5132', 'label' => '발송 완료'],
-            'sending'   => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => '발송 중'],
-            'queued'    => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => '발송 대기 중'],
-            'scheduled' => ['bg' => '#fff3cd', 'border' => '#997404', 'color' => '#664d03', 'label' => '예약됨'],
-            'draft'     => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => '수동 발송 대기'],
-            'failed'    => ['bg' => '#f8d7da', 'border' => '#842029', 'color' => '#842029', 'label' => '발송 실패'],
-            'cancelled' => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => '취소됨'],
+            'sent'      => ['bg' => '#d1e7dd', 'border' => '#0f5132', 'color' => '#0f5132', 'label' => __('발송 완료', 'crmbiz-newsletter')],
+            'sending'   => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => __('발송 중', 'crmbiz-newsletter')],
+            'queued'    => ['bg' => '#cfe2ff', 'border' => '#084298', 'color' => '#084298', 'label' => __('발송 대기 중', 'crmbiz-newsletter')],
+            'scheduled' => ['bg' => '#fff3cd', 'border' => '#997404', 'color' => '#664d03', 'label' => __('예약됨', 'crmbiz-newsletter')],
+            'draft'     => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => __('수동 발송 대기', 'crmbiz-newsletter')],
+            'failed'    => ['bg' => '#f8d7da', 'border' => '#842029', 'color' => '#842029', 'label' => __('발송 실패', 'crmbiz-newsletter')],
+            'cancelled' => ['bg' => '#f3f4f6', 'border' => '#9ca3af', 'color' => '#374151', 'label' => __('취소됨', 'crmbiz-newsletter')],
         ];
         $cfg = $configs[$status] ?? $configs['draft'];
 
         // 날짜 문자열
         if ($status === 'scheduled' && $nl->scheduled_at) {
-            $dateLabel = '예약 시각: ' . $this->formatLocalDate($nl->scheduled_at);
+            $dateLabel = __('예약 시각:', 'crmbiz-newsletter') . ' ' . $this->formatLocalDate($nl->scheduled_at);
         } elseif ($nl->sent_at) {
-            $dateLabel = '발송일: ' . $this->formatLocalDate($nl->sent_at);
+            $dateLabel = __('발송일:', 'crmbiz-newsletter') . ' ' . $this->formatLocalDate($nl->sent_at);
         } elseif ($nl->created_at) {
-            $dateLabel = '생성일: ' . $this->formatLocalDate($nl->created_at);
+            $dateLabel = __('생성일:', 'crmbiz-newsletter') . ' ' . $this->formatLocalDate($nl->created_at);
         } else {
             $dateLabel = '';
         }
@@ -387,14 +389,14 @@ class MetaBox {
 
                 if ($schedDt > $nowDt) {
                     if ($diff->days >= 1) {
-                        $remainingLabel = $diff->days . '일 후 발송 예정';
+                        $remainingLabel = sprintf(__('%d일 후 발송 예정', 'crmbiz-newsletter'), $diff->days);
                     } elseif ($diff->h >= 1) {
-                        $remainingLabel = $diff->h . '시간 후 발송 예정';
+                        $remainingLabel = sprintf(__('%d시간 후 발송 예정', 'crmbiz-newsletter'), $diff->h);
                     } else {
-                        $remainingLabel = $diff->i . '분 후 발송 예정';
+                        $remainingLabel = sprintf(__('%d분 후 발송 예정', 'crmbiz-newsletter'), $diff->i);
                     }
                 } else {
-                    $remainingLabel = '발송 대기 중 (처리 예정)';
+                    $remainingLabel = __('발송 대기 중 (처리 예정)', 'crmbiz-newsletter');
                 }
             } catch (\Throwable $e) {
                 // 무시
@@ -404,18 +406,18 @@ class MetaBox {
         // 수신자 정보
         $counts = '';
         if ($status === 'sent') {
-            $counts = '수신자 ' . number_format((int) $nl->success_count) . '명 발송됨';
+            $counts = sprintf(__('수신자 %s명 발송됨', 'crmbiz-newsletter'), number_format((int) $nl->success_count));
             if ((int) $nl->fail_count > 0) {
-                $counts .= ' · 실패 ' . number_format((int) $nl->fail_count) . '명';
+                $counts .= ' · ' . sprintf(__('실패 %s명', 'crmbiz-newsletter'), number_format((int) $nl->fail_count));
             }
         } elseif (in_array($status, ['sending', 'queued'], true) && (int) $nl->recipient_count > 0) {
-            $counts = '총 수신자 ' . number_format((int) $nl->recipient_count) . '명';
+            $counts = sprintf(__('총 수신자 %s명', 'crmbiz-newsletter'), number_format((int) $nl->recipient_count));
         }
 
         $historyUrl = admin_url('admin.php?page=crmbiz-nl-history');
 
         $notice = in_array($status, ['sent', 'sending', 'queued'], true)
-            ? '<div class="crmbiz-mb-status-note" style="color:' . esc_attr($cfg['color']) . '">포스트를 저장해도 재발송되지 않습니다.</div>'
+            ? '<div class="crmbiz-mb-status-note" style="color:' . esc_attr($cfg['color']) . '">' . esc_html__('포스트를 저장해도 재발송되지 않습니다.', 'crmbiz-newsletter') . '</div>'
             : '';
 
         ob_start();
@@ -427,7 +429,7 @@ class MetaBox {
                 </strong>
                 <a href="<?php echo esc_url($historyUrl); ?>"
                    class="crmbiz-mb-status-link" style="color:<?php echo esc_attr($cfg['color']); ?>">
-                    이력 보기 ↗
+                    <?php esc_html_e('이력 보기 ↗', 'crmbiz-newsletter'); ?>
                 </a>
             </div>
             <?php if ($dateLabel): ?>

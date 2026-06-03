@@ -55,11 +55,11 @@ class Privacy {
         if ($unsub) {
             $items[] = [
                 'group_id'    => 'crmbiz-newsletter-unsub',
-                'group_label' => '뉴스레터 수신거부',
+                'group_label' => __('뉴스레터 수신거부', 'crmbiz-newsletter'),
                 'item_id'     => 'unsub-' . md5($email),
                 'data'        => [
-                    ['name' => '이메일',        'value' => esc_html($unsub['email'])],
-                    ['name' => '수신거부 일시', 'value' => esc_html($unsub['unsubscribed_at'])],
+                    ['name' => __('이메일', 'crmbiz-newsletter'),        'value' => esc_html($unsub['email'])],
+                    ['name' => __('수신거부 일시', 'crmbiz-newsletter'), 'value' => esc_html($unsub['unsubscribed_at'])],
                 ],
             ];
         }
@@ -79,12 +79,12 @@ class Privacy {
         foreach ($sends as $i => $send) {
             $items[] = [
                 'group_id'    => 'crmbiz-newsletter-send',
-                'group_label' => '뉴스레터 발송 기록',
+                'group_label' => __('뉴스레터 발송 기록', 'crmbiz-newsletter'),
                 'item_id'     => 'send-' . (int) $send['newsletter_id'],
                 'data'        => [
-                    ['name' => '이메일',    'value' => esc_html($email)],
-                    ['name' => '상태',      'value' => esc_html($send['status'])],
-                    ['name' => '발송 일시', 'value' => esc_html($send['sent_at'])],
+                    ['name' => __('이메일', 'crmbiz-newsletter'),    'value' => esc_html($email)],
+                    ['name' => __('상태', 'crmbiz-newsletter'),      'value' => esc_html($send['status'])],
+                    ['name' => __('발송 일시', 'crmbiz-newsletter'), 'value' => esc_html($send['sent_at'])],
                 ],
             ];
         }
@@ -104,12 +104,12 @@ class Privacy {
         foreach ($events as $i => $event) {
             $items[] = [
                 'group_id'    => 'crmbiz-newsletter-event',
-                'group_label' => '뉴스레터 활동 기록',
+                'group_label' => __('뉴스레터 활동 기록', 'crmbiz-newsletter'),
                 'item_id'     => 'event-' . $i . '-' . md5($email),
                 'data'        => [
-                    ['name' => '이메일',    'value' => esc_html($email)],
-                    ['name' => '유형',      'value' => esc_html($event['type'])],
-                    ['name' => '발생 일시', 'value' => esc_html($event['occurred_at'])],
+                    ['name' => __('이메일', 'crmbiz-newsletter'),    'value' => esc_html($email)],
+                    ['name' => __('유형', 'crmbiz-newsletter'),      'value' => esc_html($event['type'])],
+                    ['name' => __('발생 일시', 'crmbiz-newsletter'), 'value' => esc_html($event['occurred_at'])],
                 ],
             ];
         }

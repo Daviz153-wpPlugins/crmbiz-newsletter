@@ -9,13 +9,13 @@ class UnsubscribePage {
 
     public function render(): void {
         if (!current_user_can('manage_options')) {
-            wp_die('권한이 없습니다.');
+            wp_die(__('권한이 없습니다.', 'crmbiz-newsletter'));
         }
 
         // CSV 내보내기
         if (isset($_GET['crmbiz_export']) && $_GET['crmbiz_export'] === 'unsub') {
             if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'crmbiz_export_unsub')) {
-                wp_die('보안 검증 실패.');
+                wp_die(__('보안 검증 실패.', 'crmbiz-newsletter'));
             }
             $this->exportCsv();
         }
@@ -71,15 +71,15 @@ class UnsubscribePage {
 
             <div class="crmbiz-page-header">
                 <h1 class="crmbiz-page-title" style="font-size:24px;font-weight:700;color:#111827;margin:0;padding:0;line-height:1.3">
-                    수신거부 관리
-                    <span class="crmbiz-page-title-count">(총 <?php echo esc_html(number_format($total)); ?>명)</span>
+                    <?php esc_html_e('수신거부 관리', 'crmbiz-newsletter'); ?>
+                    <span class="crmbiz-page-title-count"><?php printf(esc_html__('(총 %s명)', 'crmbiz-newsletter'), esc_html(number_format($total))); ?></span>
                 </h1>
                 <div style="display:flex;gap:8px">
                     <button type="button" id="crmbiz-unsub-add-btn" class="crmbiz-btn crmbiz-btn--secondary">
-                        + 직접 추가
+                        + <?php esc_html_e('직접 추가', 'crmbiz-newsletter'); ?>
                     </button>
                     <a href="<?php echo esc_url($exportUrl); ?>" class="crmbiz-btn crmbiz-btn--secondary">
-                        CSV 내보내기
+                        <?php esc_html_e('CSV 내보내기', 'crmbiz-newsletter'); ?>
                     </a>
                 </div>
             </div>
@@ -96,7 +96,7 @@ class UnsubscribePage {
                     </div>
                     <?php if ($search): ?>
                     <a href="<?php echo esc_url(admin_url('admin.php?page=crmbiz-nl-unsubscribers')); ?>"
-                       class="crmbiz-search-clear">초기화 ✕</a>
+                       class="crmbiz-search-clear"><?php esc_html_e('초기화 ✕', 'crmbiz-newsletter'); ?></a>
                     <?php endif; ?>
                 </div>
             </form>
@@ -119,10 +119,10 @@ class UnsubscribePage {
                             <th style="width:36px">
                                 <input type="checkbox" id="crmbiz-unsub-all">
                             </th>
-                            <th style="width:140px">이름</th>
-                            <th>이메일</th>
-                            <th style="width:180px">수신거부 일시</th>
-                            <th class="cn-right" style="width:80px">액션</th>
+                            <th style="width:140px"><?php esc_html_e('이름', 'crmbiz-newsletter'); ?></th>
+                            <th><?php esc_html_e('이메일', 'crmbiz-newsletter'); ?></th>
+                            <th style="width:180px"><?php esc_html_e('수신거부 일시', 'crmbiz-newsletter'); ?></th>
+                            <th class="cn-right" style="width:80px"><?php esc_html_e('액션', 'crmbiz-newsletter'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -153,7 +153,7 @@ class UnsubscribePage {
             <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px">
                 <button type="button" id="crmbiz-unsub-bulk-remove"
                         class="crmbiz-btn crmbiz-btn--secondary" style="font-size:12px" disabled>
-                    선택 해제
+                    <?php esc_html_e('선택 해제', 'crmbiz-newsletter'); ?>
                 </button>
                 <?php if ($totalPages > 1): ?>
                 <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--cn-muted)">
@@ -182,8 +182,8 @@ class UnsubscribePage {
                        placeholder="<?php esc_attr_e('추가할 이메일 주소', 'crmbiz-newsletter'); ?>"
                        style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--cn-border);border-radius:var(--cn-radius);font-size:13px;margin-bottom:16px">
                 <div class="crmbiz-modal-actions">
-                    <button type="button" class="crmbiz-btn crmbiz-btn--secondary" id="crmbiz-unsub-modal-cancel">취소</button>
-                    <button type="button" class="crmbiz-btn crmbiz-btn--primary" id="crmbiz-unsub-modal-confirm">추가</button>
+                    <button type="button" class="crmbiz-btn crmbiz-btn--secondary" id="crmbiz-unsub-modal-cancel"><?php esc_html_e('취소', 'crmbiz-newsletter'); ?></button>
+                    <button type="button" class="crmbiz-btn crmbiz-btn--primary" id="crmbiz-unsub-modal-confirm"><?php esc_html_e('추가', 'crmbiz-newsletter'); ?></button>
                 </div>
             </div>
         </div><!-- /crmbiz-admin-page -->
@@ -304,7 +304,7 @@ class UnsubscribePage {
         $out = fopen('php://output', 'w');
         // phpcs:ignore WordPress.WP.AlternativeFunctions
         fputs($out, "\xEF\xBB\xBF"); // UTF-8 BOM (엑셀 한글 깨짐 방지)
-        fputcsv($out, ['이름', '이메일', '수신거부 일시']);
+        fputcsv($out, [__('이름', 'crmbiz-newsletter'), __('이메일', 'crmbiz-newsletter'), __('수신거부 일시', 'crmbiz-newsletter')]);
         foreach ($rows as $row) {
             $name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
             fputcsv($out, [$name, $row['email'], $row['unsubscribed_at']]);

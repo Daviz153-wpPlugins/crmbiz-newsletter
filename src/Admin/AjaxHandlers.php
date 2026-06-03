@@ -20,10 +20,10 @@ class AjaxHandlers {
 
     private function requireAuth(string $nonce, string $cap = 'manage_options'): void {
         if (!check_ajax_referer($nonce, 'nonce', false)) {
-            wp_send_json_error(['message' => '보안 검증 실패.'], 403);
+            wp_send_json_error(['message' => __('보안 검증 실패.', 'crmbiz-newsletter')], 403);
         }
         if (!current_user_can($cap)) {
-            wp_send_json_error(['message' => '권한이 없습니다.'], 403);
+            wp_send_json_error(['message' => __('권한이 없습니다.', 'crmbiz-newsletter')], 403);
         }
     }
 
@@ -32,7 +32,7 @@ class AjaxHandlers {
 
         $to = sanitize_email($_POST['test_email'] ?? '');
         if (!is_email($to)) {
-            wp_send_json_error(['message' => '유효하지 않은 이메일 주소입니다.']);
+            wp_send_json_error(['message' => __('유효하지 않은 이메일 주소입니다.', 'crmbiz-newsletter')]);
         }
 
         if ($this->settings->isDryRun()) {
@@ -50,8 +50,8 @@ class AjaxHandlers {
         );
 
         $result
-            ? wp_send_json_success(['message' => '발송 성공: ' . $to])
-            : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
+            ? wp_send_json_success(['message' => sprintf(__('발송 성공: %s', 'crmbiz-newsletter'), $to)])
+            : wp_send_json_error(['message' => __('발송 실패. FluentSMTP 설정을 확인하세요.', 'crmbiz-newsletter')]);
     }
 
     public function handleCountRecipients(): void {
@@ -84,10 +84,10 @@ class AjaxHandlers {
     public function handleSettingsPreview(): void {
         $nonce = $_GET['nonce'] ?? '';
         if (!wp_verify_nonce($nonce, 'crmbiz_nl_settings_preview')) {
-            wp_die('보안 검증 실패.', '오류', ['response' => 403]);
+            wp_die(__('보안 검증 실패.', 'crmbiz-newsletter'), __('오류', 'crmbiz-newsletter'), ['response' => 403]);
         }
         if (!current_user_can('manage_options')) {
-            wp_die('권한이 없습니다.', '오류', ['response' => 403]);
+            wp_die(__('권한이 없습니다.', 'crmbiz-newsletter'), __('오류', 'crmbiz-newsletter'), ['response' => 403]);
         }
 
         // 가장 최근 발행된 포스트 사용, 없으면 더미 포스트 생성
@@ -133,15 +133,15 @@ class AjaxHandlers {
         $nonce  = $_GET['nonce'] ?? '';
 
         if (!wp_verify_nonce($nonce, 'crmbiz_nl_preview_' . $postId)) {
-            wp_die('보안 검증 실패.', '오류', ['response' => 403]);
+            wp_die(__('보안 검증 실패.', 'crmbiz-newsletter'), __('오류', 'crmbiz-newsletter'), ['response' => 403]);
         }
         if (!current_user_can('manage_options')) {
-            wp_die('권한이 없습니다.', '오류', ['response' => 403]);
+            wp_die(__('권한이 없습니다.', 'crmbiz-newsletter'), __('오류', 'crmbiz-newsletter'), ['response' => 403]);
         }
 
         $post = get_post($postId);
         if (!$post) {
-            wp_die('포스트를 찾을 수 없습니다.');
+            wp_die(__('포스트를 찾을 수 없습니다.', 'crmbiz-newsletter'));
         }
 
         $dummy = (object) [
@@ -167,12 +167,12 @@ class AjaxHandlers {
         $to     = sanitize_email($_POST['test_email'] ?? '');
 
         if ($postId <= 0 || !is_email($to)) {
-            wp_send_json_error(['message' => '유효하지 않은 입력입니다.']);
+            wp_send_json_error(['message' => __('유효하지 않은 입력입니다.', 'crmbiz-newsletter')]);
         }
 
         $post = get_post($postId);
         if (!$post) {
-            wp_send_json_error(['message' => '포스트를 찾을 수 없습니다.']);
+            wp_send_json_error(['message' => __('포스트를 찾을 수 없습니다.', 'crmbiz-newsletter')]);
         }
 
         $currentUser = wp_get_current_user();
@@ -198,8 +198,8 @@ class AjaxHandlers {
         );
 
         $result
-            ? wp_send_json_success(['message' => esc_html($to) . '로 테스트 발송 완료'])
-            : wp_send_json_error(['message' => '발송 실패. FluentSMTP 설정을 확인하세요.']);
+            ? wp_send_json_success(['message' => sprintf(__('%s로 테스트 발송 완료', 'crmbiz-newsletter'), esc_html($to))])
+            : wp_send_json_error(['message' => __('발송 실패. FluentSMTP 설정을 확인하세요.', 'crmbiz-newsletter')]);
     }
 
 
@@ -215,7 +215,7 @@ class AjaxHandlers {
             $ids = [(int) $_POST['id']];
         }
         if (empty($ids)) {
-            wp_send_json_error(['message' => '유효하지 않은 요청입니다.']);
+            wp_send_json_error(['message' => __('유효하지 않은 요청입니다.', 'crmbiz-newsletter')]);
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
@@ -225,7 +225,7 @@ class AjaxHandlers {
 
         $deleted
             ? wp_send_json_success(['deleted' => $deleted])
-            : wp_send_json_error(['message' => '삭제 실패 또는 이미 삭제된 항목입니다.']);
+            : wp_send_json_error(['message' => __('삭제 실패 또는 이미 삭제된 항목입니다.', 'crmbiz-newsletter')]);
     }
 
     public function handleUnsubAdd(): void {
@@ -233,7 +233,7 @@ class AjaxHandlers {
 
         $email = sanitize_email($_POST['email'] ?? '');
         if (!is_email($email)) {
-            wp_send_json_error(['message' => '유효하지 않은 이메일 주소입니다.']);
+            wp_send_json_error(['message' => __('유효하지 않은 이메일 주소입니다.', 'crmbiz-newsletter')]);
         }
 
         global $wpdb;
@@ -244,20 +244,20 @@ class AjaxHandlers {
         );
 
         $result !== false
-            ? wp_send_json_success(['message' => '추가되었습니다.'])
-            : wp_send_json_error(['message' => '추가 실패.']);
+            ? wp_send_json_success(['message' => __('추가되었습니다.', 'crmbiz-newsletter')])
+            : wp_send_json_error(['message' => __('추가 실패.', 'crmbiz-newsletter')]);
     }
 
     private function buildTestEmailBody(string $to): string {
         return sprintf(
             '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:32px;background:#f3f4f6">' .
             '<div style="max-width:500px;margin:0 auto;background:#fff;padding:32px;border-radius:8px">' .
-            '<h2 style="color:#1a1a2e;margin:0 0 16px">테스트 이메일</h2>' .
-            '<p>CRMBiz Newsletter 플러그인에서 발송한 테스트 이메일입니다.</p>' .
-            '<table style="font-size:13px;color:#555;margin-top:16px"><tr><td style="padding:3px 12px 3px 0">발신자</td><td>%s &lt;%s&gt;</td></tr>' .
-            '<tr><td>수신자</td><td>%s</td></tr>' .
-            '<tr><td>시각</td><td>%s</td></tr></table>' .
-            '<p style="margin-top:24px;color:#0f5132;background:#d1e7dd;padding:10px 14px;border-radius:4px;font-size:13px">FluentSMTP 연결이 정상입니다.</p>' .
+            '<h2 style="color:#1a1a2e;margin:0 0 16px">' . esc_html__('테스트 이메일', 'crmbiz-newsletter') . '</h2>' .
+            '<p>' . esc_html__('CRMBiz Newsletter 플러그인에서 발송한 테스트 이메일입니다.', 'crmbiz-newsletter') . '</p>' .
+            '<table style="font-size:13px;color:#555;margin-top:16px"><tr><td style="padding:3px 12px 3px 0">' . esc_html__('발신자', 'crmbiz-newsletter') . '</td><td>%s &lt;%s&gt;</td></tr>' .
+            '<tr><td>' . esc_html__('수신자', 'crmbiz-newsletter') . '</td><td>%s</td></tr>' .
+            '<tr><td>' . esc_html__('시각', 'crmbiz-newsletter') . '</td><td>%s</td></tr></table>' .
+            '<p style="margin-top:24px;color:#0f5132;background:#d1e7dd;padding:10px 14px;border-radius:4px;font-size:13px">' . esc_html__('FluentSMTP 연결이 정상입니다.', 'crmbiz-newsletter') . '</p>' .
             '</div></body></html>',
             esc_html($this->settings->getFromName()),
             esc_html($this->settings->getFromEmail()),

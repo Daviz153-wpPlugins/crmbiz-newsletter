@@ -20,7 +20,7 @@ class SettingsPage {
 
     public function render(): void {
         if (!current_user_can('manage_options')) {
-            wp_die('권한이 없습니다.');
+            wp_die(__('권한이 없습니다.', 'crmbiz-newsletter'));
         }
 
         // 로그 지우기 처리
@@ -49,23 +49,23 @@ class SettingsPage {
         <div class="crmbiz-admin-page">
 
             <div class="crmbiz-settings-header">
-                <h1 class="crmbiz-settings-title">설정</h1>
+                <h1 class="crmbiz-settings-title"><?php esc_html_e('설정', 'crmbiz-newsletter'); ?></h1>
                 <p class="crmbiz-settings-subtitle">CRMBiz Newsletter</p>
             </div>
 
             <?php if ($saved): ?>
                 <div class="crmbiz-settings-notice crmbiz-settings-notice--success">
-                    ✓ 설정이 저장되었습니다.
+                    ✓ <?php esc_html_e('설정이 저장되었습니다.', 'crmbiz-newsletter'); ?>
                 </div>
             <?php endif; ?>
 
             <div class="crmbiz-settings-tabs">
                 <a href="<?php echo esc_url($tabUrl . 'general'); ?>"
-                   class="crmbiz-settings-tab <?php echo $activeTab === 'general'   ? 'is-active' : ''; ?>">기본 설정</a>
+                   class="crmbiz-settings-tab <?php echo $activeTab === 'general'   ? 'is-active' : ''; ?>"><?php esc_html_e('기본 설정', 'crmbiz-newsletter'); ?></a>
                 <a href="<?php echo esc_url($tabUrl . 'customize'); ?>"
-                   class="crmbiz-settings-tab <?php echo $activeTab === 'customize' ? 'is-active' : ''; ?>">이메일 커스터마이징</a>
+                   class="crmbiz-settings-tab <?php echo $activeTab === 'customize' ? 'is-active' : ''; ?>"><?php esc_html_e('이메일 커스터마이징', 'crmbiz-newsletter'); ?></a>
                 <a href="<?php echo esc_url($tabUrl . 'logs'); ?>"
-                   class="crmbiz-settings-tab <?php echo $activeTab === 'logs'      ? 'is-active' : ''; ?>">시스템 로그</a>
+                   class="crmbiz-settings-tab <?php echo $activeTab === 'logs'      ? 'is-active' : ''; ?>"><?php esc_html_e('시스템 로그', 'crmbiz-newsletter'); ?></a>
             </div>
 
             <?php if ($activeTab === 'general'): ?>
@@ -100,28 +100,28 @@ class SettingsPage {
             <!-- 발신자 설정 -->
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head">
-                    <h3>발신자 설정</h3>
-                    <p>수신자에게 표시되는 이름과 이메일 주소입니다.</p>
+                    <h3><?php esc_html_e('발신자 설정', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('수신자에게 표시되는 이름과 이메일 주소입니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <div class="crmbiz-settings-section-body">
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="from_name">발신자 이름</label>
+                        <label class="crmbiz-settings-field-label" for="from_name"><?php esc_html_e('발신자 이름', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body">
                             <input type="text" id="from_name" name="from_name"
                                    value="<?php echo $fromName; ?>"
                                    class="crmbiz-settings-input"
                                    placeholder="<?php echo esc_attr($this->settings->getFromName()); ?>">
-                            <p class="crmbiz-settings-hint">비워두면 FluentCRM 전역 설정 또는 사이트 이름을 사용합니다.</p>
+                            <p class="crmbiz-settings-hint"><?php esc_html_e('비워두면 FluentCRM 전역 설정 또는 사이트 이름을 사용합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="from_email">발신자 이메일</label>
+                        <label class="crmbiz-settings-field-label" for="from_email"><?php esc_html_e('발신자 이메일', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body">
                             <input type="email" id="from_email" name="from_email"
                                    value="<?php echo $fromEmail; ?>"
                                    class="crmbiz-settings-input"
                                    placeholder="<?php echo esc_attr($this->settings->getFromEmail()); ?>">
-                            <p class="crmbiz-settings-hint">비워두면 FluentCRM 전역 설정 또는 관리자 이메일을 사용합니다.</p>
+                            <p class="crmbiz-settings-hint"><?php esc_html_e('비워두면 FluentCRM 전역 설정 또는 관리자 이메일을 사용합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                     </div>
                 </div>
@@ -130,14 +130,14 @@ class SettingsPage {
             <!-- 발송 모드 -->
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head">
-                    <h3>발송 모드</h3>
-                    <p>개발 및 테스트 환경에서 사용합니다.</p>
+                    <h3><?php esc_html_e('발송 모드', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('개발 및 테스트 환경에서 사용합니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <div class="crmbiz-settings-section-body">
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>테스트 모드</h4>
-                            <p>이메일을 실제로 발송하지 않고 로그만 기록합니다.</p>
+                            <h4><?php esc_html_e('테스트 모드', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('이메일을 실제로 발송하지 않고 로그만 기록합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="dry_run" value="1" <?php checked($isDryRun); ?>>
@@ -146,8 +146,8 @@ class SettingsPage {
                     </div>
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>디버그 모드</h4>
-                            <p>FluentCRM 시스템 로그에 상세 정보를 기록합니다.</p>
+                            <h4><?php esc_html_e('디버그 모드', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('FluentCRM 시스템 로그에 상세 정보를 기록합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="debug_mode" value="1" <?php checked($isDebug); ?>>
@@ -160,24 +160,24 @@ class SettingsPage {
             <!-- 알림 설정 -->
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head">
-                    <h3>알림 설정</h3>
-                    <p>발송 완료 또는 실패 시 결과를 받을 이메일입니다.</p>
+                    <h3><?php esc_html_e('알림 설정', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('발송 완료 또는 실패 시 결과를 받을 이메일입니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <div class="crmbiz-settings-section-body">
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="notify_email">알림 이메일</label>
+                        <label class="crmbiz-settings-field-label" for="notify_email"><?php esc_html_e('알림 이메일', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body">
                             <input type="email" id="notify_email" name="notify_email"
                                    value="<?php echo esc_attr($this->settings->get('notify_email', '')); ?>"
                                    class="crmbiz-settings-input"
                                    placeholder="<?php echo esc_attr((string) get_option('admin_email')); ?>">
-                            <p class="crmbiz-settings-hint">비워두면 WordPress 관리자 이메일로 발송됩니다.</p>
+                            <p class="crmbiz-settings-hint"><?php esc_html_e('비워두면 WordPress 관리자 이메일로 발송됩니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                     </div>
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>오류 이메일 알림 비활성화</h4>
-                            <p>ERROR 발생 시 관리자 이메일 알림을 끕니다. (기본: 알림 활성화, 동일 오류 1시간 1회)</p>
+                            <h4><?php esc_html_e('오류 이메일 알림 비활성화', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('ERROR 발생 시 관리자 이메일 알림을 끕니다. (기본: 알림 활성화, 동일 오류 1시간 1회)', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="disable_error_email" value="1" <?php checked($disableErrEmail); ?>>
@@ -189,7 +189,7 @@ class SettingsPage {
 
             <div class="crmbiz-settings-footer">
                 <button type="submit" class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form">
-                    설정 저장
+                    <?php esc_html_e('설정 저장', 'crmbiz-newsletter'); ?>
                 </button>
             </div>
         </form>
@@ -197,18 +197,18 @@ class SettingsPage {
         <!-- 테스트 이메일 -->
         <div class="crmbiz-settings-section crmbiz-settings-section--accent">
             <div class="crmbiz-settings-section-head">
-                <h3>테스트 이메일 발송</h3>
-                <p>실제 이메일을 발송하여 SMTP 연결을 확인합니다. 발신자: <strong><?php echo esc_html($this->settings->getFromName()); ?></strong> &lt;<?php echo esc_html($this->settings->getFromEmail()); ?>&gt;</p>
+                <h3><?php esc_html_e('테스트 이메일 발송', 'crmbiz-newsletter'); ?></h3>
+                <p><?php esc_html_e('실제 이메일을 발송하여 SMTP 연결을 확인합니다. 발신자:', 'crmbiz-newsletter'); ?> <strong><?php echo esc_html($this->settings->getFromName()); ?></strong> &lt;<?php echo esc_html($this->settings->getFromEmail()); ?>&gt;</p>
             </div>
             <div class="crmbiz-settings-section-body">
                 <div class="crmbiz-settings-field">
-                    <label class="crmbiz-settings-field-label" for="crmbiz-test-email">수신 이메일</label>
+                    <label class="crmbiz-settings-field-label" for="crmbiz-test-email"><?php esc_html_e('수신 이메일', 'crmbiz-newsletter'); ?></label>
                     <div class="crmbiz-settings-field-body crmbiz-test-email-row">
                         <input type="email" id="crmbiz-test-email" value="<?php echo $defaultEmail; ?>"
                                class="crmbiz-settings-input crmbiz-test-email-input" placeholder="test@example.com">
                         <button type="button" id="crmbiz-send-test"
                                 class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form crmbiz-flex-shrink-0">
-                            테스트 발송
+                            <?php esc_html_e('테스트 발송', 'crmbiz-newsletter'); ?>
                         </button>
                     </div>
                 </div>
@@ -246,25 +246,25 @@ class SettingsPage {
         <div class="crmbiz-settings-section">
             <div class="crmbiz-settings-section-head" style="display:flex;align-items:center;justify-content:space-between">
                 <div>
-                    <h3>시스템 로그</h3>
-                    <p>최근 7일간 ERROR / WARNING 기록. 최대 100건 표시.</p>
+                    <h3><?php esc_html_e('시스템 로그', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('최근 7일간 ERROR / WARNING 기록. 최대 100건 표시.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <form method="post">
                     <?php wp_nonce_field('crmbiz_nl_clear_logs', 'crmbiz_nl_clear_logs_nonce'); ?>
                     <button type="submit" class="crmbiz-btn crmbiz-btn--secondary" style="font-size:12px"
-                            onclick="return confirm('모든 로그를 삭제할까요?')">
-                        로그 지우기
+                            onclick="return confirm('<?php echo esc_js(__('모든 로그를 삭제할까요?', 'crmbiz-newsletter')); ?>')">
+                        <?php esc_html_e('로그 지우기', 'crmbiz-newsletter'); ?>
                     </button>
                 </form>
             </div>
 
             <?php if ($cleared): ?>
-                <div class="crmbiz-settings-notice crmbiz-settings-notice--success">✓ 로그가 삭제되었습니다.</div>
+                <div class="crmbiz-settings-notice crmbiz-settings-notice--success">✓ <?php esc_html_e('로그가 삭제되었습니다.', 'crmbiz-newsletter'); ?></div>
             <?php endif; ?>
 
             <!-- 레벨 필터 -->
             <div class="crmbiz-log-filters">
-                <?php foreach (['전체' => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
+                <?php foreach ([__('전체', 'crmbiz-newsletter') => '', 'ERROR' => 'ERROR', 'WARN' => 'WARN'] as $label => $val): ?>
                 <a href="<?php echo esc_url($levelUrl . ($val ? '&log_level=' . $val : '')); ?>"
                    class="crmbiz-nl-filter <?php echo $filterLevel === $val ? 'is-active' : ''; ?>">
                     <?php echo esc_html($label); ?>
@@ -275,17 +275,17 @@ class SettingsPage {
             <?php if (empty($logs)): ?>
                 <div class="crmbiz-empty" style="padding:40px 20px;text-align:center;color:#9ca3af">
                     <p style="font-size:32px;margin-bottom:8px">✅</p>
-                    <p>기록된 오류/경고가 없습니다.</p>
+                    <p><?php esc_html_e('기록된 오류/경고가 없습니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
             <?php else: ?>
             <div class="crmbiz-card" style="overflow:auto;margin:0 20px 20px">
                 <table class="crmbiz-table" style="font-size:12px">
                     <thead>
                         <tr>
-                            <th style="width:70px">레벨</th>
-                            <th style="width:140px">발생 시각</th>
-                            <th>메시지</th>
-                            <th style="width:35%">컨텍스트</th>
+                            <th style="width:70px"><?php esc_html_e('레벨', 'crmbiz-newsletter'); ?></th>
+                            <th style="width:140px"><?php esc_html_e('발생 시각', 'crmbiz-newsletter'); ?></th>
+                            <th><?php esc_html_e('메시지', 'crmbiz-newsletter'); ?></th>
+                            <th style="width:35%"><?php esc_html_e('컨텍스트', 'crmbiz-newsletter'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -323,9 +323,9 @@ class SettingsPage {
         $sig = $this->settings->getSignature();
 
         $presets = [
-            'modern'  => ['label' => '모던',   'outer_bg' => '#f3f4f6', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#1a56db'],
-            'dark'    => ['label' => '다크',   'outer_bg' => '#111827', 'header_bg' => '#1e293b', 'header_color' => '#f9fafb', 'accent_color' => '#60a5fa'],
-            'minimal' => ['label' => '미니멀', 'outer_bg' => '#ffffff', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#111827'],
+            'modern'  => ['label' => __('모던',   'crmbiz-newsletter'), 'outer_bg' => '#f3f4f6', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#1a56db'],
+            'dark'    => ['label' => __('다크',   'crmbiz-newsletter'), 'outer_bg' => '#111827', 'header_bg' => '#1e293b', 'header_color' => '#f9fafb', 'accent_color' => '#60a5fa'],
+            'minimal' => ['label' => __('미니멀', 'crmbiz-newsletter'), 'outer_bg' => '#ffffff', 'header_bg' => '#ffffff', 'header_color' => '#111827', 'accent_color' => '#111827'],
         ];
         ?>
         <form method="post">
@@ -335,8 +335,8 @@ class SettingsPage {
             <!-- 색상 & 레이아웃 -->
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head">
-                    <h3>색상 &amp; 레이아웃</h3>
-                    <p>프리셋을 선택하거나 색상을 직접 조정하세요.</p>
+                    <h3><?php esc_html_e('색상 &amp; 레이아웃', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('프리셋을 선택하거나 색상을 직접 조정하세요.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <div class="crmbiz-settings-section-body">
 
@@ -359,8 +359,8 @@ class SettingsPage {
                         <div id="crmbiz-preset-preview"
                              style="display:none;max-width:560px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);margin-bottom:12px">
                             <div id="crmbiz-preset-header" style="padding:14px 18px;border-bottom:3px solid #1a56db;background:#fff">
-                                <div id="crmbiz-preset-title" style="font-size:14px;font-weight:700;color:#111827;margin-bottom:3px">뉴스레터 제목 미리보기</div>
-                                <span id="crmbiz-preset-link" style="font-size:11px;color:#1a56db;text-decoration:underline">웹에서 보기</span>
+                                <div id="crmbiz-preset-title" style="font-size:14px;font-weight:700;color:#111827;margin-bottom:3px"><?php esc_html_e('뉴스레터 제목 미리보기', 'crmbiz-newsletter'); ?></div>
+                                <span id="crmbiz-preset-link" style="font-size:11px;color:#1a56db;text-decoration:underline"><?php esc_html_e('웹에서 보기', 'crmbiz-newsletter'); ?></span>
                             </div>
                             <div id="crmbiz-preset-body" style="background:#fff;padding:14px 18px">
                                 <div style="height:7px;background:#e5e7eb;border-radius:4px;margin-bottom:7px"></div>
@@ -378,41 +378,41 @@ class SettingsPage {
                            target="_blank"
                            class="crmbiz-btn crmbiz-btn--secondary crmbiz-btn--inline">
                             <span class="dashicons dashicons-visibility"></span>
-                            실제 이메일 전체보기 ↗
+                            <?php esc_html_e('실제 이메일 전체보기 ↗', 'crmbiz-newsletter'); ?>
                         </a>
-                        <p class="crmbiz-settings-hint">저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요.</p>
+                        <p class="crmbiz-settings-hint"><?php esc_html_e('저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요.', 'crmbiz-newsletter'); ?></p>
                     </div>
 
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="style_outer_bg">외부 배경</label>
+                        <label class="crmbiz-settings-field-label" for="style_outer_bg"><?php esc_html_e('외부 배경', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_outer_bg" name="style_outer_bg" value="<?php echo esc_attr($s['outer_bg']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint--inline">이메일 바깥 여백 색상</span>
+                            <span class="crmbiz-settings-hint--inline"><?php esc_html_e('이메일 바깥 여백 색상', 'crmbiz-newsletter'); ?></span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="style_header_bg">헤더 배경</label>
+                        <label class="crmbiz-settings-field-label" for="style_header_bg"><?php esc_html_e('헤더 배경', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_header_bg" name="style_header_bg" value="<?php echo esc_attr($s['header_bg']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint--inline">제목 영역 배경</span>
+                            <span class="crmbiz-settings-hint--inline"><?php esc_html_e('제목 영역 배경', 'crmbiz-newsletter'); ?></span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="style_header_color">헤더 텍스트</label>
+                        <label class="crmbiz-settings-field-label" for="style_header_color"><?php esc_html_e('헤더 텍스트', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_header_color" name="style_header_color" value="<?php echo esc_attr($s['header_color']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint--inline">제목/날짜 글자 색상</span>
+                            <span class="crmbiz-settings-hint--inline"><?php esc_html_e('제목/날짜 글자 색상', 'crmbiz-newsletter'); ?></span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="style_accent_color">강조 색상</label>
+                        <label class="crmbiz-settings-field-label" for="style_accent_color"><?php esc_html_e('강조 색상', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body crmbiz-color-field-body">
                             <input type="color" id="style_accent_color" name="style_accent_color" value="<?php echo esc_attr($s['accent_color']); ?>" class="crmbiz-color-input">
-                            <span class="crmbiz-settings-hint--inline">링크, 수신거부 버튼</span>
+                            <span class="crmbiz-settings-hint--inline"><?php esc_html_e('링크, 수신거부 버튼', 'crmbiz-newsletter'); ?></span>
                         </div>
                     </div>
                     <div class="crmbiz-settings-field">
-                        <label class="crmbiz-settings-field-label" for="style_content_width">콘텐츠 너비</label>
+                        <label class="crmbiz-settings-field-label" for="style_content_width"><?php esc_html_e('콘텐츠 너비', 'crmbiz-newsletter'); ?></label>
                         <div class="crmbiz-settings-field-body">
                             <div class="crmbiz-sig-range-row">
                                 <input type="range" id="style_content_width" name="style_content_width"
@@ -420,7 +420,7 @@ class SettingsPage {
                                        value="<?php echo esc_attr($s['content_width']); ?>">
                                 <span id="crmbiz-width-val" class="crmbiz-sig-range-val"><?php echo $s['content_width']; ?>px</span>
                             </div>
-                            <p class="crmbiz-settings-hint">이메일 본문 최대 너비 (480–800px)</p>
+                            <p class="crmbiz-settings-hint"><?php esc_html_e('이메일 본문 최대 너비 (480–800px)', 'crmbiz-newsletter'); ?></p>
                         </div>
                     </div>
                 </div>
@@ -429,14 +429,14 @@ class SettingsPage {
             <!-- 섹션 표시 -->
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head">
-                    <h3>섹션 표시</h3>
-                    <p>이메일에 포함할 요소를 선택합니다.</p>
+                    <h3><?php esc_html_e('섹션 표시', 'crmbiz-newsletter'); ?></h3>
+                    <p><?php esc_html_e('이메일에 포함할 요소를 선택합니다.', 'crmbiz-newsletter'); ?></p>
                 </div>
                 <div class="crmbiz-settings-section-body">
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>대표 이미지</h4>
-                            <p>포스트 대표 이미지를 이메일 상단에 표시합니다.</p>
+                            <h4><?php esc_html_e('대표 이미지', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('포스트 대표 이미지를 이메일 상단에 표시합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="style_show_featured" value="1" <?php checked($s['show_featured']); ?>>
@@ -445,8 +445,8 @@ class SettingsPage {
                     </div>
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>최근 뉴스레터</h4>
-                            <p>본문 하단에 최근 3개 뉴스레터 링크를 표시합니다.</p>
+                            <h4><?php esc_html_e('최근 뉴스레터', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('본문 하단에 최근 3개 뉴스레터 링크를 표시합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="style_show_recent" value="1" <?php checked($s['show_recent']); ?>>
@@ -455,8 +455,8 @@ class SettingsPage {
                     </div>
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>웹에서 보기</h4>
-                            <p>헤더에 "웹에서 보기" 링크를 표시합니다.</p>
+                            <h4><?php esc_html_e('웹에서 보기', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('헤더에 "웹에서 보기" 링크를 표시합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="style_show_web_view" value="1" <?php checked($s['show_web_view']); ?>>
@@ -465,8 +465,8 @@ class SettingsPage {
                     </div>
                     <div class="crmbiz-toggle-row">
                         <div class="crmbiz-toggle-info">
-                            <h4>발송 날짜</h4>
-                            <p>제목 아래 발송 날짜를 표시합니다.</p>
+                            <h4><?php esc_html_e('발송 날짜', 'crmbiz-newsletter'); ?></h4>
+                            <p><?php esc_html_e('제목 아래 발송 날짜를 표시합니다.', 'crmbiz-newsletter'); ?></p>
                         </div>
                         <label class="crmbiz-toggle-switch">
                             <input type="checkbox" name="style_show_date" value="1" <?php checked($s['show_date']); ?>>
@@ -480,8 +480,8 @@ class SettingsPage {
             <div class="crmbiz-settings-section">
                 <div class="crmbiz-settings-section-head crmbiz-section-head--toggle">
                     <div>
-                        <h3>시그니처</h3>
-                        <p>이메일 본문 하단에 표시됩니다.</p>
+                        <h3><?php esc_html_e('시그니처', 'crmbiz-newsletter'); ?></h3>
+                        <p><?php esc_html_e('이메일 본문 하단에 표시됩니다.', 'crmbiz-newsletter'); ?></p>
                     </div>
                     <label class="crmbiz-toggle-switch">
                         <input type="checkbox" id="sig_enabled" name="sig_enabled" value="1" <?php checked($sig['enabled']); ?>>
@@ -495,7 +495,7 @@ class SettingsPage {
 
             <div class="crmbiz-settings-footer">
                 <button type="submit" class="crmbiz-btn crmbiz-btn--primary crmbiz-btn--form">
-                    커스터마이징 저장
+                    <?php esc_html_e('커스터마이징 저장', 'crmbiz-newsletter'); ?>
                 </button>
             </div>
         </form>

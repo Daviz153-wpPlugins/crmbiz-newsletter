@@ -105,17 +105,17 @@ class Plugin {
     public function registerAdminPages(): void {
         add_menu_page(
             'CRMBiz Newsletter',
-            '뉴스레터',
+            __('뉴스레터', 'crmbiz-newsletter'),
             'manage_options',
             'crmbiz-newsletter',
             [$this, 'renderDashboardPage'],
             'dashicons-email-alt',
             58
         );
-        add_submenu_page('crmbiz-newsletter', '대시보드',  '대시보드',  'manage_options', 'crmbiz-newsletter',   [$this, 'renderDashboardPage']);
-        add_submenu_page('crmbiz-newsletter', '발송 이력', '발송 이력', 'manage_options', 'crmbiz-nl-history',   [$this, 'renderHistoryPage']);
-        add_submenu_page('crmbiz-newsletter', '수신 거부 관리', '수신 거부', 'manage_options', 'crmbiz-nl-unsubscribers', [$this, 'renderUnsubscribePage']);
-        add_submenu_page('crmbiz-newsletter', '설정',      '설정',      'manage_options', 'crmbiz-nl-settings',  [$this, 'renderSettingsPage']);
+        add_submenu_page('crmbiz-newsletter', __('대시보드', 'crmbiz-newsletter'),  __('대시보드', 'crmbiz-newsletter'),  'manage_options', 'crmbiz-newsletter',       [$this, 'renderDashboardPage']);
+        add_submenu_page('crmbiz-newsletter', __('발송 이력', 'crmbiz-newsletter'), __('발송 이력', 'crmbiz-newsletter'), 'manage_options', 'crmbiz-nl-history',       [$this, 'renderHistoryPage']);
+        add_submenu_page('crmbiz-newsletter', __('수신 거부 관리', 'crmbiz-newsletter'), __('수신 거부', 'crmbiz-newsletter'), 'manage_options', 'crmbiz-nl-unsubscribers', [$this, 'renderUnsubscribePage']);
+        add_submenu_page('crmbiz-newsletter', __('설정', 'crmbiz-newsletter'),      __('설정', 'crmbiz-newsletter'),      'manage_options', 'crmbiz-nl-settings',      [$this, 'renderSettingsPage']);
     }
 
     public function renderDashboardPage(): void {
@@ -337,32 +337,25 @@ class Plugin {
             return;
         }
 
-        $ago      = $lastRun > 0 ? human_time_diff($lastRun) . ' 전' : '한 번도 실행되지 않음';
+        $ago      = $lastRun > 0 ? human_time_diff($lastRun) . ' ' . __('전', 'crmbiz-newsletter') : __('한 번도 실행되지 않음', 'crmbiz-newsletter');
         $usingAs  = function_exists('as_next_scheduled_action');
 
         if ($usingAs) {
             // AS 큐 자체가 멈춘 경우 — 서버 cron 이상, WP 충돌 등으로 AS runner가 실행 안 됨
             $msg = sprintf(
-                '⚠️ <strong>CRMBiz Newsletter</strong>: 발송 큐가 %s 동안 처리되지 않았습니다. ' .
-                'Action Scheduler 큐가 멈췄을 수 있습니다. ' .
-                '<a href="%s">Action Scheduler 상태</a>를 확인하거나 ' .
-                '<a href="%s">즉시 발송</a> 버튼을 사용하세요.',
+                wp_kses(__('⚠️ <strong>CRMBiz Newsletter</strong>: 발송 큐가 %s 동안 처리되지 않았습니다. Action Scheduler 큐가 멈췄을 수 있습니다. <a href="%s">Action Scheduler 상태</a>를 확인하거나 <a href="%s">즉시 발송</a> 버튼을 사용하세요.', 'crmbiz-newsletter'), ['strong' => [], 'a' => ['href' => []]]),
                 esc_html($ago),
                 esc_url(admin_url('tools.php?page=action-scheduler')),
                 esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
             );
         } elseif (defined('DISABLE_WP_CRON') && DISABLE_WP_CRON) {
             $msg = sprintf(
-                '⚠️ <strong>CRMBiz Newsletter</strong>: <code>DISABLE_WP_CRON</code>이 활성화되어 있습니다. ' .
-                '발송이 실행되지 않을 수 있습니다. 서버 crontab에 <code>wp cron event run --due-now</code>를 등록하거나, ' .
-                '<a href="%s">즉시 발송</a> 버튼을 사용하세요.',
+                wp_kses(__('⚠️ <strong>CRMBiz Newsletter</strong>: <code>DISABLE_WP_CRON</code>이 활성화되어 있습니다. 발송이 실행되지 않을 수 있습니다. 서버 crontab에 <code>wp cron event run --due-now</code>를 등록하거나, <a href="%s">즉시 발송</a> 버튼을 사용하세요.', 'crmbiz-newsletter'), ['strong' => [], 'code' => [], 'a' => ['href' => []]]),
                 esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
             );
         } else {
             $msg = sprintf(
-                '⚠️ <strong>CRMBiz Newsletter</strong>: WP Cron이 마지막으로 실행된 시간 — %s. ' .
-                '트래픽이 없으면 예약 발송이 지연됩니다. ' .
-                '<a href="%s">즉시 발송</a> 버튼을 이용하거나 서버 cron 설정을 확인하세요.',
+                wp_kses(__('⚠️ <strong>CRMBiz Newsletter</strong>: WP Cron이 마지막으로 실행된 시간 — %s. 트래픽이 없으면 예약 발송이 지연됩니다. <a href="%s">즉시 발송</a> 버튼을 이용하거나 서버 cron 설정을 확인하세요.', 'crmbiz-newsletter'), ['strong' => [], 'a' => ['href' => []]]),
                 esc_html($ago),
                 esc_url(admin_url('admin.php?page=crmbiz-nl-history'))
             );
