@@ -17,6 +17,7 @@
         <input
           v-model="searchInput"
           type="text"
+          aria-label="제목으로 검색"
           placeholder="제목으로 검색..."
           class="flex-1 py-2 text-sm bg-transparent focus:outline-none"
           style="box-shadow:none;border:none;padding-left:0;padding-right:0;margin:0"
@@ -25,13 +26,13 @@
       </div>
       <!-- 날짜 범위 -->
       <div class="overflow-hidden rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-        <input v-model="dateFrom" type="date" @change="applyFilters"
+        <input v-model="dateFrom" type="date" aria-label="시작 날짜" @change="applyFilters"
                class="px-3 py-2 text-sm text-gray-600 bg-transparent focus:outline-none"
                style="-webkit-appearance:none;appearance:none;border:none;box-shadow:none" />
       </div>
       <span class="self-center text-xs text-gray-400">~</span>
       <div class="overflow-hidden rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-        <input v-model="dateTo" type="date" @change="applyFilters"
+        <input v-model="dateTo" type="date" aria-label="종료 날짜" @change="applyFilters"
                class="px-3 py-2 text-sm text-gray-600 bg-transparent focus:outline-none"
                style="-webkit-appearance:none;appearance:none;border:none;box-shadow:none" />
       </div>
@@ -182,7 +183,7 @@
 
                 <!-- Preview -->
                 <a v-if="item.preview_url" :href="item.preview_url" target="_blank"
-                   title="미리보기"
+                   :aria-label="'미리보기: ' + item.title" title="미리보기"
                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                   <Eye class="w-3.5 h-3.5" />
                 </a>
