@@ -410,17 +410,17 @@ class NewsletterSender {
     }
 
     // 배치 이메일 목록으로 구독자 객체 조회 — 배치당 1회, batch_size건만 조회
-    private function getSubscribersByEmails(array $emails) {
+    private function getSubscribersByEmails(array $emails): iterable {
         if (empty($emails)) {
-            return new \Illuminate\Support\Collection();
+            return [];
         }
         try {
             return \FluentCrm\App\Models\Subscriber::whereIn('email', $emails)
-            ->where('status', 'subscribed')
-            ->get();
+                ->where('status', 'subscribed')
+                ->get();
         } catch (\Throwable $e) {
             Logger::error('FluentCRM 배치 구독자 조회 실패', ['error' => $e->getMessage()]);
-            return new \Illuminate\Support\Collection();
+            return [];
         }
     }
 

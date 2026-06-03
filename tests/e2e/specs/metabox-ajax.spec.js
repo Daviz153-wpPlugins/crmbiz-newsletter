@@ -104,6 +104,7 @@ test.describe('메타박스 — 테스트 이메일 발송 AJAX', () => {
   })
 
   test('잘못된 이메일 형식 → 발송 안 됨', async ({ page }) => {
+    test.skip(gutenbergHiddenEmail, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     await page.locator('#crmbiz-nl-test-email').fill('not-valid')
     await page.locator('#crmbiz-nl-send-test').click()
     // HTML5 type=email 유효성 검사로 차단되거나 오류 메시지

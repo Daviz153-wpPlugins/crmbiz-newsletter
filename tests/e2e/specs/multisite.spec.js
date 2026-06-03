@@ -66,6 +66,11 @@ test.describe('멀티사이트 — 네트워크 활성화', () => {
 
 test.describe('단일 사이트 — 멀티사이트 코드와 호환성', () => {
 
+  test.beforeAll(() => {
+    // lifecycle 테스트 후 플러그인이 비활성화 상태일 수 있으므로 재활성화
+    try { wp('plugin activate crmbiz-newsletter') } catch { /* 이미 활성화 */ }
+  })
+
   test('is_multisite() false 환경에서 REST API 정상 동작', async ({ request }) => {
     // 표준 단일 사이트에서 우리 코드가 multisite 코드를 호출하지 않음
     const res = await request.get(`${API_BASE}/dashboard`)
