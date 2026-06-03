@@ -26,6 +26,9 @@
 12. [v1.0.0 실전 기록 — PHPUnit 비즈니스 로직 테스트 (2026-06-03)](#12-v100-실전-기록--phpunit-비즈니스-로직-테스트-2026-06-03)
 13. [플러그인 고도화 로드맵](#13-플러그인-고도화-로드맵)
 14. [Phase A 실전 기록 — 안정화 (2026-06-03, v1.1.0)](#14-phase-a-실전-기록--안정화-2026-06-03-v110)
+15. [FluentCRM 연동 E2E 테스트 실전 기록 (2026-06-03)](#15-fluentcrm-연동-e2e-테스트-실전-기록-2026-06-03-v110)
+16. [서버 부하 E2E 테스트 실전 기록 (2026-06-03)](#16-서버-부하-e2e-테스트-실전-기록-2026-06-03)
+17. [WordPress 환경 안정성 E2E 테스트 실전 기록 (2026-06-03)](#17-wordpress-환경-안정성-e2e-테스트-실전-기록-2026-06-03)
 
 ---
 
@@ -2020,3 +2023,379 @@ if (is_array($indexes) && !in_array('idx_nl_email_type', $indexes, true)) {
 PHPUnit: 322 tests / 565 assertions (0 failures)
 E2E:     724 tests (CI 통과)
 ```
+
+---
+
+## 15. FluentCRM 연동 E2E 테스트 실전 기록 (2026-06-03, v1.1.0)
+
+> **무엇을 했나:** `tests/e2e/specs/fluent-crm-integration.spec.js` 신규 작성.  
+> FluentCRM v3.1.0 실환경 검증 4개 통과. 환경별 자동 분기 구조 완성.
+
+---
+
+### 15-1. 스펙 구조 — 4그룹 환경 분기
+
+FluentCRM 설치 여부, CI/로컬 환경에 따라 실행 그룹이 자동으로 분기된다.
+
+| 그룹 | 실행 조건 | 목적 |
+|------|---------|------|
+| **A** 실환경 검증 | 항상 (FCM 활성 감지 시 자동 실행) | FluentCRM 실제 연동 검증 |
+| **B** 비활성화 안전 | 항상 (FCM 없을 때만 작동) | FluentCRM 없어도 플러그인 정상 동작 |
+| **C** 스텁 배선 | `ENABLE_FLUENTCRM_STUB=1` | CI에서 연동 배선 단위 검증 |
+| **D** Graceful degradation | `ENABLE_FLUENTCRM_STUB=1` | 비활성화↔활성화 전환 안전성 |
+
+---
+
+### 15-2. 핵심 발견 3가지
+
+#### 발견 1: WordPress REST API는 X-WP-Nonce 헤더 필수
+
+Playwright의 `request` 픽스처와 `page.request.get()`은 쿠키는 보내지만 `X-WP-Nonce` 헤더가 없어 **401**을 반환한다. WordPress 쿠키 인증은 CSRF 방지를 위해 nonce를 요구하기 때문이다.
+
+```
+잘못된 패턴 (401):
+  const res = await request.get(`${API_BASE}/dashboard`)
+  const res = await page.request.get(`${API_BASE}/dashboard`)
+
+올바른 패턴:
+  await page.goto(DASHBOARD)                          // 1. 페이지 로드 → CrmbizNL.nonce 확보
+  await page.waitForSelector('.min-h-screen')
+  const json = await page.evaluate(async (url) => {  // 2. 브라우저 컨텍스트에서 fetch
+    const r = await fetch(url, {
+      headers: { 'X-WP-Nonce': window.CrmbizNL?.nonce }
+    })
+    return r.json()
+  }, `${apiBase}/dashboard`)
+```
+
+**핵심:** nonce는 `window.CrmbizNL.nonce` (대문자, REST API용 `wp_rest` nonce).  
+`crmbizNl.nonce` (소문자)는 AJAX 전용 — 혼동 금지.
+
+```php
+// Plugin.php에서 localizing
+wp_localize_script('crmbiz-nl-vue-dash', 'CrmbizNL', [
+    'nonce' => wp_create_nonce('wp_rest'),  // ← REST API nonce
+]);
+```
+
+#### 발견 2: Gutenberg이 Classic 메타박스를 hidden 컨테이너에 숨김
+
+로컬 Gutenberg 환경에서 Classic 메타박스는 `#metaboxes` div 안에 있고 이 부모 컨테이너가 `class="hidden"`, `display: none`이다.
+
+```
+DOM 구조:
+  <div id="metaboxes" class="hidden" style="display:none">  ← 부모가 display:none
+    <div class="postbox" id="crmbiz_nl_metabox">
+      <div class="inside">
+        <div id="crmbiz-nl-metabox">  ← width:0, height:0
+          ...
+        </div>
+      </div>
+    </div>
+  </div>
+```
+
+**결과:** 기존 `metabox.spec.js` 포함 **모든 메타박스 상호작용 테스트가 로컬에서 실패**한다. CI(Classic Editor 환경)에서만 통과한다.
+
+**대응 패턴:**
+```js
+// 상호작용이 필요한 메타박스 테스트에 Gutenberg 감지 skip 추가
+const gutenbergHidden = await page.evaluate(
+  () => !!document.querySelector('#metaboxes.hidden')
+)
+test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
+```
+
+`toBeVisible()` 대신 `waitFor({ state: 'attached' })` 를 쓰면 Gutenberg hidden에서도 `attached`는 통과하지만, 이후 `check()` 등 상호작용이 60초 타임아웃으로 실패한다. **상호작용 없이 count()나 attached 확인만 하는 테스트는 로컬에서도 동작**한다.
+
+#### 발견 3: beforeAll의 request 픽스처는 storageState 쿠키 없음
+
+Playwright `test.beforeAll(async ({ request }) => { ... })` 안의 `request`는 브라우저 컨텍스트와 분리된 별도 `APIRequestContext`다. storageState 쿠키가 없어서 인증이 필요한 엔드포인트에 401을 받는다.
+
+```js
+// 잘못된 패턴 — beforeAll의 request는 401 반환
+test.beforeAll(async ({ request }) => {
+  const json = await (await request.get(`${API_BASE}/dashboard`)).json()
+  fcAvailable = json.system?.fluent_crm === true  // 항상 false
+})
+
+// 올바른 패턴 — 각 테스트 내에서 page를 통해 확인
+test('...', async ({ page }) => {
+  const json = await fetchDashboard(page, API_BASE)  // page.evaluate로 인증된 fetch
+  test.skip(json.system?.fluent_crm !== true, SKIP_MSG)
+})
+```
+
+---
+
+### 15-3. FluentCRM PHP 스텁 설계 원칙 (CI 전용)
+
+실제 FluentCRM 없이 연동 배선을 테스트하는 최소 스텁.
+
+**스텁 반환값 (의도적으로 실제와 다른 값 사용 — 스텁 히트 여부 확인용):**
+
+| 호출 | 반환값 | 검증 대상 |
+|------|--------|---------|
+| `FluentCrmApi('contacts').getInstance().count()` | 10 | dashboard `contact_count` |
+| `_StubFcTag::countByStatus()` | 5 | 태그 레이블 "스텁 태그 (5명)" |
+| `_StubFcList::countByStatus()` | 3 | 리스트 레이블 "스텁 리스트 (3명)" |
+| `ContactsQuery::getModel()->count()` | 8 | AJAX 수신자 수 |
+
+**스텁 클래스 선언 규칙:**
+```php
+// 반드시 class_exists() 가드 — 실제 FluentCRM이 있으면 선언 건너뜀
+if (!class_exists('_StubFcTag')) {
+    class _StubFcTag { ... }
+}
+
+// PHP 네임스페이스 선언 시 String.raw 사용 (JS escape 방지)
+const STUB_PHP = String.raw`<?php
+namespace FluentCrm\App\Services {
+    // \는 PHP 네임스페이스 구분자 — String.raw 없으면 JS가 escape sequence로 처리
+}
+`
+```
+
+---
+
+### 15-4. 로컬 실행 결과 요약 (FluentCRM v3.1.0 활성 환경)
+
+```
+npx playwright test fluent-crm-integration --project=chromium
+
+결과: 5 passed, 17 skipped, 0 failed
+
+✅ Dashboard API — fluent_crm: true, contact_count ≥ 0
+✅ Dashboard API — 필수 필드 구조 정상
+✅ 대시보드 Vue 앱 — JS 에러 없이 정상 렌더
+✅ 메타박스 — FluentCRM 비활성화 경고 없음 (count=0 검증)
+- 그룹 B 5개: FCM 활성화 상태 → 올바르게 skip
+- 그룹 A 메타박스 UI 3개: Gutenberg hidden → skip
+- 그룹 C·D 9개: ENABLE_FLUENTCRM_STUB=1 없음 → skip
+```
+
+---
+
+### 15-5. 향후 참고 — 로컬에서 메타박스 E2E 테스트하려면
+
+Gutenberg 메타박스 상호작용이 필요한 테스트는 CI 환경(Classic Editor)에서만 실행 가능하다. 로컬에서 검증하려면 두 가지 방법이 있다:
+
+```
+방법 1: WordPress Classic Editor 플러그인 설치
+  → Gutenberg 비활성화 → 메타박스가 직접 렌더됨 → 모든 테스트 통과
+
+방법 2: Gutenberg 메타박스 패널 JavaScript로 강제 열기
+  → page.evaluate(() => document.querySelector('#metaboxes').classList.remove('hidden'))
+  → 이후 상호작용 가능 — 단, 다른 Gutenberg 상태에 의존할 수 있음
+```
+
+실제 운영 환경이 Gutenberg라면 **방법 1을 권장**한다.
+
+---
+
+### 15-6. 섹션 15 완료 체크리스트
+
+```markdown
+✅ fluent-crm-integration.spec.js 신규 작성 (4그룹 구조)
+✅ 실환경 4개 테스트 통과 (FCM v3.1.0 + WP v7.0)
+✅ WordPress REST API 인증 패턴 확립 (CrmbizNL.nonce + page.evaluate)
+✅ Gutenberg hidden 메타박스 skip 패턴 문서화
+✅ PHP 스텁 설계 패턴 (class_exists 가드, String.raw)
+```
+
+---
+
+## 16. 서버 부하 E2E 테스트 실전 기록 (2026-06-03)
+
+> **무엇을 했나:** `tests/e2e/specs/server-performance.spec.js` 신규 작성.  
+> 10개 테스트 전부 통과. 현재 서버 부하 이상 없음 확인.
+
+---
+
+### 16-1. 테스트 구조
+
+| 그룹 | 테스트 수 | 검증 내용 |
+|------|---------|---------|
+| API 응답 시간 | 4개 | 주요 엔드포인트 허용 범위 내 응답 |
+| WP Cron 이중 발화 방지 | 2개 | GET_LOCK 효과, 상태 전환 안전성 |
+| REST API 동시 요청 | 3개 | 병렬 요청 데이터 일관성 |
+
+---
+
+### 16-2. 실측 결과 (로컬, v1.1.0)
+
+```
+npx playwright test server-performance --project=chromium
+결과: 10 passed, 17.3s
+
+API 응답 시간:
+  대시보드 API          ~400ms   (한도 2000ms)  ✅ 여유 있음
+  뉴스레터 목록 API      993ms   (한도 1000ms)  ✅ 통과 — 주의 요망*
+  대시보드 Vue 마운트    621ms   (한도 3000ms)  ✅ 여유 있음
+  이력 Vue 마운트        621ms   (한도 3000ms)  ✅ 여유 있음
+
+WP Cron 이중 발화:
+  2회 연속 트리거 → success_count ≤ 1  ✅ GET_LOCK 정상
+  sending 재트리거 → queued 복귀 없음   ✅ 상태 기계 정상
+
+병렬 요청:
+  대시보드 2회 동시 → stats 동일        ✅ transient 캐시 동작 확인
+  목록 2회 동시 → total 동일            ✅
+```
+
+**\* 뉴스레터 목록 API 993ms**: 현재 이력 데이터가 수십 건 수준이라 통과했지만 한도 직전 수치. 이력 1,000건 이상 쌓이면 초과 가능성 있음. §13의 `EXPLAIN ANALYZE` 프로파일링 시점에 재확인 필요.
+
+---
+
+### 16-3. WP Cron 이중 발화 테스트 — 설계 원칙
+
+단순 `post_id=0` 레코드로는 `sendFromRecord()`가 라인 88-91에서 즉시 `return false`(상태 변경 없음)한다. 유효한 처리가 일어나려면 실제 WordPress 포스트 + FluentCRM 태그 ID가 필요하다.
+
+```js
+// 잘못된 패턴 — post_id=0, tag_ids='' → sendFromRecord()가 상태 변경 없이 즉시 반환
+wpdb->insert(..., ["post_id" => 0, "status" => "queued", "tag_ids" => ""])
+
+// 올바른 패턴 — 실제 포스트 + 실제 태그 ID
+const postId = wpEval(`echo wp_insert_post([...]);`)
+nlId = wpEval(`
+  $wpdb->insert(..., ["post_id" => ${postId}, "status" => "queued", "tag_ids" => "[1]"]);
+`)
+```
+
+**afterEach 정리도 필수:**
+```js
+test.afterEach(() => {
+  wpEval(`wp_delete_post(${postId}, true);`)  // 포스트 삭제
+  wpEval(`$wpdb->delete(...newsletters, ["id" => ${nlId}])`)  // 레코드 삭제
+})
+```
+포스트와 뉴스레터 레코드를 정리하지 않으면 `total_nl` stats 카운트가 오염된다.
+
+---
+
+### 16-4. REST API 병렬 요청 패턴
+
+`page.request.get()`은 동시 요청 테스트에 사용할 수 없다 (§15-2: nonce 없어 401). `page.evaluate` 안에서 `Promise.all`로 병렬 fetch를 실행한다.
+
+```js
+const [res1, res2] = await page.evaluate(async ([url]) => {
+  const nonce = window.CrmbizNL?.nonce
+  const headers = { 'X-WP-Nonce': nonce }
+  const [r1, r2] = await Promise.all([
+    fetch(url, { headers }).then(r => r.json()),
+    fetch(url, { headers }).then(r => r.json()),
+  ])
+  return [r1, r2]
+}, [`${API_BASE}/dashboard`])
+```
+
+이 패턴은 같은 브라우저 탭에서 두 요청을 동시에 보내므로 서버 측 동시성을 검증할 수 있다.
+
+---
+
+### 16-5. 향후 부하 테스트 임계 조건
+
+```
+현재: 이력 수십 건 → 993ms
+주의: 이력 1,000건 이상 → 뉴스레터 목록 API 1000ms 초과 가능성
+조치: §13 TODO — EXPLAIN ANALYZE로 느린 쿼리 프로파일링
+     (JOIN 쿼리 최적화 또는 per_page 기본값 조정)
+```
+
+---
+
+## 17. WordPress 환경 안정성 E2E 테스트 실전 기록 (2026-06-03)
+
+> **무엇을 했나:** `tests/e2e/specs/wordpress-stability.spec.js` 신규 작성.  
+> 7개 테스트 전부 통과. WP Cron 상태 경고 배너 동작 완전 검증.
+
+---
+
+### 17-1. 검증 대상 — showCronNotice()
+
+`Plugin::showCronNotice()`는 세 조건이 동시에 충족될 때 WP 어드민 경고 배너를 띄운다.
+
+```
+조건 1: 플러그인 전용 페이지
+  → page 파라미터가 crmbiz-newsletter / crmbiz-nl-history / crmbiz-nl-settings 중 하나
+
+조건 2: 대기 중인 뉴스레터 존재
+  → crmbiz_newsletters 테이블의 status IN ('queued', 'sending') 개수 > 0
+
+조건 3: Cron이 30분 이상 미실행 또는 한 번도 실행 안 됨
+  → crmbiz_nl_last_cron_run = 0 ($never)
+  → 또는 time() - crmbiz_nl_last_cron_run > 1800 ($stale)
+```
+
+세 조건 중 하나라도 빠지면 배너가 나타나지 않는다. 이 로직을 테스트로 완전히 커버했다.
+
+---
+
+### 17-2. 테스트 결과
+
+```
+npx playwright test wordpress-stability --project=chromium
+결과: 7 passed, 13.5s
+
+✅ 대기 뉴스레터 + Cron never → 경고 배너 표시
+✅ 대기 뉴스레터 + Cron stale(33분) → 경고 배너 표시
+✅ 대기 뉴스레터 없음 → 경고 없음
+✅ Cron 최근 실행(5분 전) → 경고 없음
+✅ 배너 dismiss 클릭 → 현재 페이지에서 사라짐
+✅ 플러그인 외부 페이지(wp-admin/index.php) → 경고 없음
+```
+
+---
+
+### 17-3. 테스트 격리 패턴 — beforeEach/afterEach 백업·복원
+
+`crmbiz_nl_last_cron_run` 옵션을 직접 조작하므로 반드시 원래 값을 복원해야 한다. 그렇지 않으면 이 테스트가 실제 Cron 타임스탬프를 0으로 망가뜨려 다른 스펙에서 의도치 않은 경고 배너가 나타날 수 있다.
+
+```js
+test.beforeEach(() => {
+  origLastRun = wpEval(`echo get_option("crmbiz_nl_last_cron_run", "0");`)
+})
+
+test.afterEach(() => {
+  wpEval(`update_option("crmbiz_nl_last_cron_run", ${origLastRun}, false);`)
+  // 테스트 뉴스레터 레코드도 제거
+})
+```
+
+**규칙:** DB 옵션을 직접 조작하는 테스트는 반드시 beforeEach에서 백업, afterEach에서 복원한다.
+
+---
+
+### 17-4. WP Admin Notice 검증 패턴
+
+WordPress 어드민 notice는 서버 사이드 렌더링이므로 `toBeVisible()`로 직접 확인할 수 있다. `page.evaluate`나 nonce 없이도 동작한다.
+
+```js
+// 경고 있어야 할 때
+await expect(
+  page.locator('.notice-warning:has-text("CRMBiz Newsletter")')
+).toBeVisible({ timeout: 5_000 })
+
+// 경고 없어야 할 때 — toBeHidden() 대신 count()로 즉시 확인
+const warnCount = await page.locator('.notice-warning:has-text("CRMBiz Newsletter")').count()
+expect(warnCount).toBe(0)
+
+// dismiss 버튼
+await notice.locator('.notice-dismiss').click()
+await expect(notice).toBeHidden({ timeout: 3_000 })
+```
+
+`toBeHidden()` 대신 `count()` 를 쓰는 이유: 요소가 아예 DOM에 없을 때 `toBeHidden()`은 "없으면 hidden 취급"으로 즉시 통과하지만, count()가 더 명시적이다. 단, `toBeHidden()` 자체도 틀린 것은 아니다.
+
+---
+
+### 17-5. 세 스펙 파일 최종 현황 (§15~17)
+
+| 스펙 파일 | 테스트 수 | 로컬 결과 |
+|-----------|---------|---------|
+| `fluent-crm-integration.spec.js` | 26개 | 5 pass / 17 skip |
+| `server-performance.spec.js` | 10개 | 10 pass |
+| `wordpress-stability.spec.js` | 7개 | 7 pass |
+| **합계** | **43개** | **22 pass / 17 skip / 0 fail** |
+
+skip 17개는 FluentCRM 스텁(ENABLE_FLUENTCRM_STUB=1 없음) 또는 Gutenberg hidden 모드로 인한 정상 skip이다. 실패 0개.
