@@ -400,7 +400,7 @@ async function setChartDays(days) {
 async function changeCampaignPage(p) {
   if (!data.value || p < 1 || p > data.value.campaign_pages) return
   campaignPage.value = p
-  const prev = loading.value
+  const _prev = loading.value
   loading.value = false // 차트 재초기화 방지
   try {
     const qs = new URLSearchParams({

@@ -15,10 +15,6 @@ class EmailTemplateRenderer {
         // 포스트 콘텐츠 — 블록/쇼트코드 처리
         $content = apply_filters('the_content', $post->post_content);
 
-        // FluentCRM 스마트 코드 파싱 ({{first_name}} 등)
-        // FluentCRM 없을 때는 필터 핸들러가 없어 원본 그대로 반환됨
-        $content = apply_filters('fluent_crm/parse_campaign_email_text', $content, $subscriber);
-
         // h2 앞에 구분선 삽입
         $hr      = '<hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 0">';
         $content = preg_replace('/<h2(\s)/i', $hr . '<h2$1', $content);
@@ -41,7 +37,6 @@ class EmailTemplateRenderer {
         $html = $this->buildHtml([
             'post'            => $post,
             'content'         => $content,
-            'subscriber'      => $subscriber,
             'unsubscribe_url' => $unsubscribeUrl,
             'recent_posts'    => $recentPosts,
             'featured_img'    => $featuredImg,

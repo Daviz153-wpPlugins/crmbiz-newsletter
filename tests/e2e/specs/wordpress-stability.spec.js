@@ -16,7 +16,7 @@ import { execSync }      from 'child_process'
 
 const WP_PATH  = process.env.WP_PATH    || '/Applications/MAMP/htdocs/wordpress'
 const WP_BASE  = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
-const API_BASE = WP_BASE + '/wp-json/crmbiz-nl/v1'
+const _API_BASE = WP_BASE + '/wp-json/crmbiz-nl/v1'
 
 const DASHBOARD = 'wp-admin/admin.php?page=crmbiz-newsletter'
 

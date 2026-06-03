@@ -56,7 +56,7 @@ test.describe('대시보드 캠페인 페이지네이션', () => {
       return
     }
 
-    const nextBtn = page.locator('button').filter({ hasText: '' }).nth(3) // › 버튼 위치
+    const _nextBtn = page.locator('button').filter({ hasText: '' }).nth(3) // › 버튼 위치
     // 실제로 next 버튼(disabled 아닌 것) 클릭
     const buttons = page.locator('.flex.items-center.gap-1').last().locator('button')
     const nextBtnActual = buttons.nth(3) // «(0) ‹(1) [1](2) ›(3) »(4)
@@ -107,7 +107,7 @@ test.describe('발송 이력 페이지네이션', () => {
   test('per-page 변경 → 목록 재로드', async ({ page }) => {
     const select = page.locator('select')
     await expect(select).toBeVisible()
-    const beforeCount = await page.locator('tbody tr').count()
+    const _beforeCount = await page.locator('tbody tr').count()
 
     await select.selectOption('50')
     await page.waitForTimeout(600)
@@ -118,7 +118,7 @@ test.describe('발송 이력 페이지네이션', () => {
   })
 
   test('검색 필터 적용 후 총계 변화', async ({ page }) => {
-    const totalBefore = await page.locator('text=/총계 \\d+/').textContent()
+    const _totalBefore = await page.locator('text=/총계 \\d+/').textContent()
 
     await page.fill('input[placeholder*="검색"]', '존재하지않는제목xyz')
     await page.waitForTimeout(600)

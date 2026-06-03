@@ -3,9 +3,6 @@ import { execSync } from 'child_process'
 
 const HISTORY  = 'wp-admin/admin.php?page=crmbiz-nl-history'
 const WP_PATH  = process.env.WP_PATH || '/tmp/wordpress'
-const API_BASE = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
-  + '/wp-json/crmbiz-nl/v1'
-
 function wpEval(code) {
   const flat = code.replace(/\s+/g, ' ').trim()
   return execSync(

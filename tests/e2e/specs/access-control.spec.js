@@ -4,7 +4,7 @@
  * Editor 권한 사용자가 플러그인 페이지와 REST API에 접근하면
  * WordPress가 차단하는지 검증.
  */
-import { test, expect, request as playwrightRequest } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 const BASE = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
 const API  = BASE + '/wp-json/crmbiz-nl/v1'

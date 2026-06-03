@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 
 class NewsletterSender {
 
-    private const BATCH_SIZE  = 50; // 기본값. crmbiz_nl_batch_size 필터로 조정 가능
+    private const BATCH_SIZE  = 30; // 기본값. crmbiz_nl_batch_size 필터로 조정 가능
     private const MAX_RETRIES = 3;
 
     private static function getBatchSize(): int {

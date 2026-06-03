@@ -125,7 +125,7 @@ test.describe('플러그인 삭제 후 데이터 정리', () => {
     // 절대 DB 쿼리를 실행해서는 안 됨 (exit으로 보호됨)
   })
 
-  test('삭제 후 REST API → 404, 옵션 및 테이블 정리', async ({ page, request }) => {
+  test('삭제 후 REST API → 404, 옵션 및 테이블 정리', async ({ page }) => {
     if (!runUninstall) {
       test.skip()
       return

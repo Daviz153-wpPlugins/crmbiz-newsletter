@@ -1,4 +1,4 @@
-import { test as setup, expect } from '@playwright/test'
+import { test as setup } from '@playwright/test'
 import path from 'path'
 
 const authFile = path.join('tests/e2e/.auth/admin.json')

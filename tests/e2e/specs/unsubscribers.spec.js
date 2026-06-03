@@ -205,7 +205,7 @@ test.describe('CSV 내보내기 — 파일 내용', () => {
     const text = await res.text()
 
     // BOM 제거 후 첫 줄 확인
-    const lines = text.replace(/^﻿/, '').split('\n')
+    const lines = text.replace(/^\uFEFF/, '').split('\n')
     const header = lines[0]
     expect(header).toContain('이름')
     expect(header).toContain('이메일')

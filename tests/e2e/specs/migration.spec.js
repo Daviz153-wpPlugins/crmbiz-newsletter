@@ -15,11 +15,6 @@ const API_BASE  = (process.env.WP_BASE_URL || 'http://localhost:8080').replace(/
   + '/wp-json/crmbiz-nl/v1'
 const RUN       = process.env.ENABLE_MIGRATION_TEST === '1'
 
-/** WP-CLI 실행 헬퍼 */
-function wp(cmd) {
-  return execSync(`wp ${cmd} --path=${WP_PATH}`, { encoding: 'utf-8' }).trim()
-}
-
 function wpEval(code) {
   // 줄바꿈 제거 후 단일 라인으로 전달
   const flat = code.replace(/\s+/g, ' ').trim()

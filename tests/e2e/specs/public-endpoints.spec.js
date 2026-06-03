@@ -9,7 +9,7 @@ import { execSync } from 'child_process'
 
 const BASE     = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
 const WP_PATH  = process.env.WP_PATH || '/tmp/wordpress'
-const API_BASE = BASE + '/wp-json/crmbiz-nl/v1'
+const _API_BASE = BASE + '/wp-json/crmbiz-nl/v1'
 
 // ── WP-CLI 헬퍼 ──────────────────────────────────────────────────────────────
 
@@ -104,7 +104,6 @@ test.describe('수신거부 공개 엔드포인트', () => {
     await page.goto(BASE + '/?crmbiz_nl_action=unsubscribe')
     // wp_die → "유효하지 않은 수신거부 링크" 또는 HTTP 403
     const body = await page.locator('body').textContent()
-    const status = page.url()
     expect(
       body?.includes('유효하지 않은') ||
       body?.includes('수신거부 오류') ||
