@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  php-syntax:
+    name: PHP 문법 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.2 설치
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: 문법 오류 검사
+        run: find src/ -name "*.php" -print0 | xargs -0 -n1 php -l
+
+  phpunit:
+    name: PHPUnit 테스트
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.2 설치
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: Composer 패키지 설치
+        run: composer install --no-interaction --prefer-dist
+
+      - name: 테스트 실행
+        run: vendor/bin/phpunit
+
+  vue-build:
+    name: Vue 빌드 테스트
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node.js 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: npm 패키지 설치
+        run: npm ci
+
+      - name: Vue 빌드
+        run: npm run build
