@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
 import { execSync }      from 'child_process'
 
 const WP_PATH  = process.env.WP_PATH    || '/Applications/MAMP/htdocs/wordpress'
-const WP_BASE  = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
+const _WP_BASE = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
 const CRON_HOOK = 'crmbiz_nl_send_newsletter'
 
 function wpEval(code) {

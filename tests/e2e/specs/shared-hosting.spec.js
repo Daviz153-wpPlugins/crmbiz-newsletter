@@ -29,7 +29,7 @@ function wpEval(code) {
 }
 
 test.describe('공유 호스팅 제약 — 배치 시간 · 메모리', () => {
-  let postId, nlId, subscriberIds = []
+  let postId, nlId
 
   test.beforeAll(() => {
     // 테스트용 포스트 생성

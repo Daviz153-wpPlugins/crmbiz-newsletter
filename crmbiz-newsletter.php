@@ -7,7 +7,7 @@
  * Author:      CRMBiz
  * License:     GPL-2.0-or-later
  * Text Domain: crmbiz-newsletter
- * Requires PHP: 8.1
+ * Requires PHP: 8.2
  * Requires Plugins: fluent-crm
  */
 
