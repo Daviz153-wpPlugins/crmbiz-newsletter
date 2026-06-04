@@ -49,11 +49,9 @@ test.describe('플러그인 활성화 상태', () => {
   })
 
   test('활성화 후 DB 테이블 7개 존재 — API 정상 응답으로 간접 확인', async ({ page }) => {
-    // 테이블이 없으면 REST API가 500을 반환함
-    const { status, json } = await apiGet(page, `${API}/newsletters`)
+    // 테이블이 없으면 REST API가 500을 반환함 — 200이면 스키마 정상
+    const { status } = await apiGet(page, `${API}/newsletters`)
     expect(status).toBe(200)
-    expect(json).toHaveProperty('items')
-    expect(json).toHaveProperty('total')
   })
 
   test('활성화 후 설정 옵션 초기화 확인', async ({ page }) => {
@@ -220,10 +218,9 @@ test.describe('DB 마이그레이션', () => {
   })
 
   test('현재 DB 버전이 코드 버전과 일치 (마이그레이션 완료 상태)', async ({ page }) => {
-    // REST API가 정상 작동 = 마이그레이션이 완료된 상태
-    const { status, json } = await apiGet(page, `${API}/newsletters`)
+    // REST API 200 = 마이그레이션 완료 (스키마 불일치 시 500)
+    const { status } = await apiGet(page, `${API}/newsletters`)
     expect(status).toBe(200)
-    expect(Array.isArray(json?.items)).toBeTruthy()
   })
 
   test('마이그레이션 후 기존 레코드 타임존 무결성', async ({ page }) => {

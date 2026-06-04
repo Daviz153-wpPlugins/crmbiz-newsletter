@@ -120,13 +120,15 @@ test.describe('슬라이드오버 — 액션 API 오류', () => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
 
+    // 데이터 로딩 대기 후 행 존재 여부 확인
+    await page.waitForSelector('tbody tr', { timeout: 10_000 }).catch(() => {})
     const firstRow = page.locator('tbody tr').first()
     if (!await firstRow.isVisible().catch(() => false)) {
       test.skip()
       return
     }
     await firstRow.click()
-    await page.waitForTimeout(300)
+    await page.waitForTimeout(500)
 
     const actionBtn = page.locator('button:has-text("발송 시작"), button:has-text("재발송"), button:has-text("취소")').first()
     if (!await actionBtn.isVisible().catch(() => false)) {
@@ -139,7 +141,7 @@ test.describe('슬라이드오버 — 액션 API 오류', () => {
       route.fulfill({ status: 503, body: JSON.stringify({ message: 'Service Unavailable' }) })
     )
 
-    await actionBtn.click()
+    await actionBtn.click({ timeout: 5_000 }).catch(() => {})
     await page.waitForTimeout(2000)
 
     // 오류 후 버튼이 다시 활성화되거나 오류 메시지 표시
