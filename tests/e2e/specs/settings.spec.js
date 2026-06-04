@@ -74,29 +74,30 @@ test.describe('설정 페이지', () => {
   })
 
   test('기본 설정 — dry-run 체크박스 저장 후 재로드 유지', async ({ page }) => {
+    test.setTimeout(20_000)
     await page.goto(SETTINGS)
     const checkbox = page.locator('input[name="dry_run"]')
-    await expect(checkbox).toBeVisible()
-    const before = await checkbox.isChecked()
+    await expect(checkbox).toBeVisible({ timeout: 5_000 })
+    const before = await checkbox.isChecked({ timeout: 5_000 })
     // 토글
     if (before) {
-      await checkbox.uncheck()
+      await checkbox.uncheck({ timeout: 5_000 })
     } else {
-      await checkbox.check()
+      await checkbox.check({ timeout: 5_000 })
     }
-    await page.click('button:has-text("설정 저장")')
+    await page.click('button:has-text("설정 저장")', { timeout: 5_000 })
     await expect(page.locator('text=설정이 저장되었습니다')).toBeVisible({ timeout: 5_000 })
     // 재로드 후 상태 유지
     await page.reload()
-    const after = await page.locator('input[name="dry_run"]').isChecked()
+    const after = await page.locator('input[name="dry_run"]').isChecked({ timeout: 5_000 })
     expect(after).toBe(!before)
     // 원상복구
     if (!before) {
-      await page.locator('input[name="dry_run"]').uncheck()
+      await page.locator('input[name="dry_run"]').uncheck({ timeout: 5_000 })
     } else {
-      await page.locator('input[name="dry_run"]').check()
+      await page.locator('input[name="dry_run"]').check({ timeout: 5_000 })
     }
-    await page.click('button:has-text("설정 저장")')
+    await page.click('button:has-text("설정 저장")', { timeout: 5_000 })
   })
 
   // ── [6] 설정 저장 → 재로드 후 값 유지 검증 ────────────────────────────
