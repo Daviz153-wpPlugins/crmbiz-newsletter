@@ -20,6 +20,8 @@ test.describe('글 발행 — 즉시 발송 트리거', () => {
     const title = uid()
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     // 제목 입력 (클래식/블록 에디터 모두 대응)
     const titleInput = page.locator('#title, [aria-label="Add title"], [placeholder*="제목"]').first()

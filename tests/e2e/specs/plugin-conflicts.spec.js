@@ -136,6 +136,14 @@ add_filter('rest_authentication_errors', function($result) {
 
 test.describe('기준선 — 다른 플러그인 없는 환경', () => {
 
+  test.beforeAll(() => {
+    // 이전 그룹 스텁 잔재 정리 후 플러그인 재활성화
+    for (const slug of ['yoast-stub', 'cache-stub', 'security-stub']) {
+      try { wp(`plugin deactivate ${slug} --quiet`) } catch {}
+    }
+    try { wp('plugin activate crmbiz-newsletter --quiet') } catch {}
+  })
+
   test('REST API 응답 형식 무결성', async ({ request }) => {
     const res  = await request.get(`${API_BASE}/dashboard`)
     expect(res.status()).toBe(200)

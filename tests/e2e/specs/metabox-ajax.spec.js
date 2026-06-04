@@ -118,6 +118,8 @@ test.describe('메타박스 — 미리보기 링크', () => {
   test('이메일 미리보기 링크 — 새 탭으로 열림', async ({ page, context }) => {
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) await checkbox.check()
@@ -143,6 +145,8 @@ test.describe('메타박스 — nonce 만료 시 UI 에러 처리', () => {
   test('[8-1] AJAX 응답을 403으로 가로채면 에러 표시, 무한 로딩 없음', async ({ page }) => {
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     const checkbox = page.locator('#crmbiz_nl_enabled')
     await expect(checkbox).toBeVisible({ timeout: 5_000 })
@@ -186,6 +190,8 @@ test.describe('메타박스 — nonce 만료 시 UI 에러 처리', () => {
   test('[8-2] 수신자 카운트 AJAX 실패 → 메타박스 유지, 에러로 인한 빈 화면 없음', async ({ page }) => {
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     // count_recipients 요청을 서버 오류로 가로채기
     await page.route('**/admin-ajax.php', route => {

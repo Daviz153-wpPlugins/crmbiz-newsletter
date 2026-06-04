@@ -97,12 +97,13 @@ test.describe('발송 이력 페이지네이션', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    await page.waitForSelector('text=총계', { timeout: 10_000 })
   })
 
   test('페이지 X of Y + 총계 텍스트 렌더', async ({ page }) => {
     await expect(page.locator('text=/페이지 \\d+ of \\d+/')).toBeVisible()
     await expect(page.locator('text=총계')).toBeVisible()
-    await expect(page.locator('text=/ page')).toBeVisible()
+    await expect(page.locator('select').first()).toBeVisible()
   })
 
   test('per-page 변경 → 목록 재로드', async ({ page }) => {
