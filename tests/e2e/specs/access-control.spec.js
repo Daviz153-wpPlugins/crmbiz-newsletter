@@ -93,8 +93,11 @@ test.describe('비인증 → 관리자 페이지 리다이렉트', () => {
     const ctx     = await browser.newContext()
     const anonReq = await ctx.request.newContext()
 
-    const res = await anonReq.get(`${API}/newsletters`)
-    expect(res.status()).toBe(401)
+    const res = await anonReq.get(`${API}/newsletters`, { maxRedirects: 0 })
+    expect(
+      res.status(),
+      `비인증 요청이 401을 반환해야 하지만 ${res.status()}를 반환했습니다. URL: ${API}/newsletters`
+    ).toBe(401)
 
     await anonReq.dispose()
     await ctx.close()

@@ -308,14 +308,13 @@ test.describe('개별 재발송(resend-single) 완전 흐름', () => {
         'success_count'   => 1,
         'fail_count'      => 0,
         'sent_at'         => current_time('mysql'),
-        'created_at'      => current_time('mysql'),
-      ], ['%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s']);
+      ], ['%d', '%s', '%s', '%d', '%d', '%d', '%s']);
       $nlId = $wpdb->insert_id;
       $wpdb->insert($wpdb->prefix . 'crmbiz_nl_events', [
         'newsletter_id' => $nlId,
         'email'         => '${RECIPIENT_EMAIL}',
         'type'          => 'sent',
-        'created_at'    => current_time('mysql'),
+        'occurred_at'   => current_time('mysql'),
       ], ['%d', '%s', '%s', '%s']);
       echo $nlId;
     `)

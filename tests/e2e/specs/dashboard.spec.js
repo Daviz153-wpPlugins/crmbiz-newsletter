@@ -18,6 +18,8 @@ test.describe('대시보드', () => {
     await page.goto(DASHBOARD)
     // Vue 앱 로딩 대기
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    // 캠페인 데이터 로딩 대기 (API 응답 후 섹션 렌더)
+    await page.waitForSelector('text=최근 캠페인', { timeout: 10_000 })
   })
 
   test('페이지 로드 — 주요 섹션 표시', async ({ page }) => {
@@ -54,7 +56,8 @@ test.describe('대시보드', () => {
 
   test('캠페인 페이지네이션 — 새 UI 텍스트 표시', async ({ page }) => {
     await expect(page.locator('text=총계')).toBeVisible()
-    await expect(page.locator('text=/ page')).toBeVisible()
+    // select 옵션은 DOM에 있지만 visible 체크 불가 — select 요소 자체가 보이는지 확인
+    await expect(page.locator('select').last()).toBeVisible()
     await expect(page.locator('text=/페이지 \\d+ of \\d+/')).toBeVisible()
   })
 
