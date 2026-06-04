@@ -142,7 +142,7 @@ class RestApi {
         );
 
         $campaigns = $wpdb->get_results($wpdb->prepare(
-            "SELECT n.id, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS title,
+            "SELECT n.id, COALESCE(p.post_title, %s) AS title,
                     n.success_count, n.sent_at,
                     COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS opens,
                     COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS clicks
@@ -152,7 +152,7 @@ class RestApi {
              WHERE n.status = 'sent'
              GROUP BY n.id, p.post_title, n.success_count, n.sent_at
              ORDER BY n.sent_at DESC LIMIT %d OFFSET %d",
-            $campaignPerPage, $campaignOffset
+            __('(삭제된 포스트)', 'crmbiz-newsletter'), $campaignPerPage, $campaignOffset
         ));
 
         // 현재 대기/예약 중인 캠페인 현황
@@ -246,7 +246,8 @@ class RestApi {
         $sortKey = sanitize_key($req->get_param('sort_by') ?? 'date');
         $orderBy = ($sortMap[$sortKey] ?? $sortMap['date']) . ' ' . $sortDir;
 
-        $select = "SELECT n.*, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS post_title,
+        $fallbackTitle = esc_sql(__('(삭제된 포스트)', 'crmbiz-newsletter'));
+        $select = "SELECT n.*, COALESCE(p.post_title, '{$fallbackTitle}') AS post_title,
                           COUNT(DISTINCT CASE WHEN e.type IN ('open','click') THEN e.email END) AS open_count,
                           COUNT(DISTINCT CASE WHEN e.type = 'click' THEN e.email END) AS click_count";
         $from   = "FROM {$wpdb->prefix}crmbiz_newsletters n
@@ -307,7 +308,7 @@ class RestApi {
         $id = (int) $req->get_param('id');
 
         $nl = $wpdb->get_row($wpdb->prepare(
-            "SELECT n.*, COALESCE(p.post_title, __('(삭제된 포스트)', 'crmbiz-newsletter')) AS post_title,
+            "SELECT n.*, COALESCE(p.post_title, %s) AS post_title,
                     COALESCE(ec.open_count, 0)  AS open_count,
                     COALESCE(ec.click_count, 0) AS click_count
              FROM {$wpdb->prefix}crmbiz_newsletters n
@@ -319,7 +320,8 @@ class RestApi {
                  FROM {$wpdb->prefix}crmbiz_nl_events WHERE type IN ('open','click')
                  GROUP BY newsletter_id
              ) ec ON ec.newsletter_id = n.id
-             WHERE n.id = %d", $id
+             WHERE n.id = %d",
+            __('(삭제된 포스트)', 'crmbiz-newsletter'), $id
         ));
         if (!$nl) return new \WP_REST_Response(['message' => __('없는 항목입니다.', 'crmbiz-newsletter')], 404);
 
