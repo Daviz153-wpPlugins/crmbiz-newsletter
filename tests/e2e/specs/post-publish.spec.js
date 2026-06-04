@@ -58,6 +58,8 @@ test.describe('글 발행 — 즉시 발송 트리거', () => {
     const title = uid() + '-NO-NL'
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     const titleInput = page.locator('#title, [aria-label="Add title"], [placeholder*="제목"]').first()
     await titleInput.fill(title)
@@ -87,6 +89,8 @@ test.describe('글 발행 — 수동 발송 트리거', () => {
     const title = uid() + '-MANUAL'
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     const titleInput = page.locator('#title, [aria-label="Add title"], [placeholder*="제목"]').first()
     await titleInput.fill(title)
@@ -118,6 +122,8 @@ test.describe('글 발행 — 이력 페이지 반영', () => {
     const title = uid() + '-HIST'
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    const isGutenbergHidden = await page.evaluate(() => !!document.querySelector('#metaboxes.hidden'))
+    test.skip(isGutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
 
     const titleInput = page.locator('#title, [aria-label="Add title"], [placeholder*="제목"]').first()
     await titleInput.fill(title)

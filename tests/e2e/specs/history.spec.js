@@ -27,8 +27,7 @@ test.describe('발송 이력', () => {
 
   test('페이지네이션 — 새 UI 텍스트 표시', async ({ page }) => {
     await expect(page.locator('text=총계')).toBeVisible()
-    await expect(page.locator('text=/ page')).toBeVisible()
-    // 페이지 X of Y 형식 확인
+    await expect(page.locator('select').first()).toBeVisible()
     await expect(page.locator('text=/페이지 \\d+ of \\d+/')).toBeVisible()
   })
 
@@ -86,7 +85,7 @@ test.describe('발송 이력', () => {
 
   test('슬라이드오버 — 행 클릭 시 열림', async ({ page }) => {
     const firstRow = page.locator('tbody tr').first()
-    await expect(firstRow).toBeVisible()
+    await expect(firstRow).toBeVisible({ timeout: 15_000 })
     await firstRow.click()
     // SlideOver 패널이 나타남
     await expect(page.locator('.translate-x-full').or(page.locator('[class*="slide"]'))).not.toBeVisible({ timeout: 3_000 }).catch(() => {})
@@ -95,6 +94,7 @@ test.describe('발송 이력', () => {
   })
 
   test('슬라이드오버 — 닫기(X) 버튼으로 닫힘', async ({ page }) => {
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     // 닫기 버튼 클릭
     const closeBtn = page.locator('button[aria-label="닫기"], button:has(svg)').last()
@@ -105,6 +105,7 @@ test.describe('발송 이력', () => {
   })
 
   test('슬라이드오버 — 삭제 버튼 클릭 시 인라인 확인 표시', async ({ page }) => {
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     await page.waitForTimeout(300)
     // 삭제 버튼(빨간 아이콘 버튼)

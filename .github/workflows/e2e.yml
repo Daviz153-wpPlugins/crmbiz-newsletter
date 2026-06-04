@@ -96,12 +96,14 @@ jobs:
           $tbl = $wpdb->prefix . "crmbiz_newsletters";
 
           // 액션 테스트가 각 상태별 항목을 찾을 수 있도록 다양한 상태로 시딩
-          // sent×4 + draft×1 + queued×1 + failed×1 + cancelled×1 = 8개 (페이지네이션 2페이지 보장)
+          // sent×6 = campaign_total(6) > 5 → 대시보드 페이지네이션 표시 보장
           $seeds = [
             ["CI 발송완료 #1", "sent",      3, 0],
             ["CI 발송완료 #2", "sent",      5, 0],
             ["CI 발송완료 #3", "sent",      2, 1],
             ["CI 발송완료 #4", "sent",      4, 0],
+            ["CI 발송완료 #5", "sent",      2, 0],
+            ["CI 발송완료 #6", "sent",      1, 0],
             ["CI 초안",        "draft",     0, 0],
             ["CI 대기중",      "queued",    0, 0],
             ["CI 실패",        "failed",    0, 2],

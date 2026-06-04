@@ -15,7 +15,7 @@ const API_BASE = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').
   + '/wp-json/crmbiz-nl/v1'
 const RUN      = process.env.ENABLE_MIGRATION_TEST === '1'
 
-const CURRENT_DB_VERSION = '2.1.0'
+const CURRENT_DB_VERSION = '2.2.0'
 
 function wpEval(code) {
   const flat = code.replace(/\s+/g, ' ').trim()
@@ -27,7 +27,7 @@ function wpEval(code) {
 
 // ── v1.2.x → 2.0.0 마이그레이션 (레거시 스키마 → 현재 최신) ──────────────
 
-test.describe('마이그레이션: v1.2.x → 2.0.0 → 2.1.0', () => {
+test.describe('마이그레이션: v1.2.x → 2.0.0 → 2.2.0', () => {
 
   test.skip(!RUN, 'ENABLE_MIGRATION_TEST=1 필요')
 
@@ -68,6 +68,9 @@ test.describe('마이그레이션: v1.2.x → 2.0.0 → 2.1.0', () => {
     expect(cols).not.toContain('error_log')
     expect(cols).not.toContain('subscriber_emails')
     expect(cols).toContain('fail_reason')
+    // 2.2.0 마이그레이션: *_gmt UTC 컬럼
+    expect(cols).toContain('sent_at_gmt')
+    expect(cols).toContain('scheduled_at_gmt')
 
     const indexes = wpEval(`
       global $wpdb;
@@ -88,7 +91,7 @@ test.describe('마이그레이션: v1.2.x → 2.0.0 → 2.1.0', () => {
 // wp eval 호출 자체가 WP 로드이므로, 버전을 낮춰두면 다음 wp eval에서
 // 자동 마이그레이션이 트리거된다.
 
-test.describe('마이그레이션: 2.0.0 → 2.1.0 (idx_nl_email_type 커버링 인덱스 추가)', () => {
+test.describe('마이그레이션: 2.0.0 → 2.2.0 (idx_nl_email_type 인덱스 + _gmt 컬럼 추가)', () => {
 
   test.skip(!RUN, 'ENABLE_MIGRATION_TEST=1 필요')
 
@@ -99,7 +102,7 @@ test.describe('마이그레이션: 2.0.0 → 2.1.0 (idx_nl_email_type 커버링 
 
   test('인덱스 없는 2.0.0 상태 → 다음 WP 로드 시 자동 업그레이드', () => {
     // Step 1: 2.0.0 상태 시뮬레이션
-    // 이 wp eval 호출 시 WP 로드 → Plugin::init() → 현재 버전 2.1.0 == DB_VERSION → 아무 것도 안 함
+    // 이 wp eval 호출 시 WP 로드 → Plugin::init() → 현재 버전 2.2.0 == DB_VERSION → 아무 것도 안 함
     // 그 후 index 제거 + 버전 다운그레이드 수행
     const countBefore = parseInt(wpEval(`
       global $wpdb;
@@ -112,7 +115,7 @@ test.describe('마이그레이션: 2.0.0 → 2.1.0 (idx_nl_email_type 커버링 
     `))
 
     // Step 2: 다음 WP 로드 = 실제 업그레이드 시뮬레이션
-    // Plugin::init()이 version('2.0.0') < DB_VERSION('2.1.0') 감지 → install() 자동 실행
+    // Plugin::init()이 version('2.0.0') < DB_VERSION('2.2.0') 감지 → install() 자동 실행
     const versionAfter = wpEval(`echo get_option('crmbiz_nl_db_version');`)
     expect(versionAfter).toBe(CURRENT_DB_VERSION)
 
@@ -128,7 +131,7 @@ test.describe('마이그레이션: 2.0.0 → 2.1.0 (idx_nl_email_type 커버링 
     expect(countAfter).toBe(countBefore)
   })
 
-  test('2.1.0 상태에서 WP 로드 반복해도 인덱스 중복 없음 (idempotent)', () => {
+  test('2.2.0 상태에서 WP 로드 반복해도 인덱스 중복 없음 (idempotent)', () => {
     // 정상 상태에서 wp eval 3회 반복 — 자동 마이그레이션이 중복 실행돼도 안전해야 함
     for (let i = 0; i < 3; i++) {
       wpEval(`echo get_option('crmbiz_nl_db_version');`) // WP 로드 → Plugin::init() 호출

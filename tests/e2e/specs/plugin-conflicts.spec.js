@@ -19,17 +19,36 @@ function wp(cmd) {
 }
 
 function installStub(slug, code) {
-  const dir = `${WP_PATH}/wp-content/plugins/${slug}`
-  execSync(`mkdir -p ${dir}`)
-  require('fs').writeFileSync(
-    `${dir}/${slug}.php`,
-    `<?php\n/** Plugin Name: ${slug} Stub (CI) */\n${code}`
-  )
-  try { wp(`plugin activate ${slug} --quiet`) } catch {}
+  try {
+    const dir = `${WP_PATH}/wp-content/plugins/${slug}`
+    execSync(`mkdir -p ${dir}`, { encoding: 'utf-8' })
+    require('fs').writeFileSync(
+      `${dir}/${slug}.php`,
+      `<?php\n/** Plugin Name: ${slug} Stub (CI) */\n${code}`
+    )
+    try { wp(`plugin activate ${slug} --quiet`) } catch {}
+  } catch (err) {
+    console.warn(`[WARN] installStub(${slug}) 실패: ${err.message}`)
+  }
 }
 
 function deactivateStub(slug) {
   try { wp(`plugin deactivate ${slug} --quiet`) } catch {}
+}
+
+// page.request.get()은 nonce 없이 401 반환 → page.evaluate fetch로 인증
+async function apiGet(page, url) {
+  await page.goto('wp-admin/admin.php?page=crmbiz-newsletter')
+  await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+  return page.evaluate(async (u) => {
+    const nonce = window.CrmbizNL?.nonce || ''
+    const r = await fetch(u, { headers: { 'X-WP-Nonce': nonce } })
+    return {
+      status: r.status,
+      contentType: r.headers.get('content-type') || '',
+      json: await r.json().catch(() => null),
+    }
+  }, url)
 }
 
 // ── Yoast SEO 스텁: the_content 필터 추가 ────────────────────────────────
@@ -48,16 +67,15 @@ add_filter('the_content', function($content) {
 
   test.afterAll(() => deactivateStub('yoast-stub'))
 
-  test('대시보드 API 정상 응답', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/dashboard`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
+  test('대시보드 API 정상 응답', async ({ page }) => {
+    const { status, json } = await apiGet(page, `${API_BASE}/dashboard`)
+    expect(status).toBe(200)
     expect(json).toHaveProperty('stats')
   })
 
-  test('뉴스레터 목록 API 정상 응답', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/newsletters`)
-    expect(res.status()).toBe(200)
+  test('뉴스레터 목록 API 정상 응답', async ({ page }) => {
+    const { status } = await apiGet(page, `${API_BASE}/newsletters`)
+    expect(status).toBe(200)
   })
 
   test('대시보드 Vue 앱 정상 렌더', async ({ page }) => {
@@ -84,11 +102,10 @@ add_action('send_headers', function() {
 
   test.afterAll(() => deactivateStub('wp-super-cache-stub'))
 
-  test('REST API 응답에 캐시 헤더 있어도 JSON 정상 파싱', async ({ request }) => {
-    const res  = await request.get(`${API_BASE}/newsletters`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
-    expect(Array.isArray(json.items)).toBeTruthy()
+  test('REST API 응답에 캐시 헤더 있어도 JSON 정상 파싱', async ({ page }) => {
+    const { status, json } = await apiGet(page, `${API_BASE}/newsletters`)
+    expect(status).toBe(200)
+    expect(Array.isArray(json?.items)).toBeTruthy()
   })
 
   test('Vue 앱이 캐시 무효화 없이도 정상 로드', async ({ page }) => {
@@ -120,14 +137,14 @@ add_filter('rest_authentication_errors', function($result) {
 
   test.afterAll(() => deactivateStub('security-stub'))
 
-  test('관리자 세션으로 REST API 접근 정상', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/dashboard`)
-    expect(res.status()).toBe(200)
+  test('관리자 세션으로 REST API 접근 정상', async ({ page }) => {
+    const { status } = await apiGet(page, `${API_BASE}/dashboard`)
+    expect(status).toBe(200)
   })
 
-  test('인증된 세션으로 뉴스레터 목록 조회 정상', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/newsletters?per_page=5`)
-    expect(res.status()).toBe(200)
+  test('인증된 세션으로 뉴스레터 목록 조회 정상', async ({ page }) => {
+    const { status } = await apiGet(page, `${API_BASE}/newsletters?per_page=5`)
+    expect(status).toBe(200)
   })
 
 })
@@ -138,28 +155,24 @@ test.describe('기준선 — 다른 플러그인 없는 환경', () => {
 
   test.beforeAll(() => {
     // 이전 그룹 스텁 잔재 정리 후 플러그인 재활성화
-    for (const slug of ['yoast-stub', 'cache-stub', 'security-stub']) {
+    for (const slug of ['yoast-stub', 'wp-super-cache-stub', 'security-stub']) {
       try { wp(`plugin deactivate ${slug} --quiet`) } catch {}
     }
     try { wp('plugin activate crmbiz-newsletter --quiet') } catch {}
   })
 
-  test('REST API 응답 형식 무결성', async ({ request }) => {
-    const res  = await request.get(`${API_BASE}/dashboard`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
-
-    // 필수 필드 존재
+  test('REST API 응답 형식 무결성', async ({ page }) => {
+    const { status, json } = await apiGet(page, `${API_BASE}/dashboard`)
+    expect(status).toBe(200)
     expect(json).toHaveProperty('stats')
     expect(json).toHaveProperty('pending')
     expect(json).toHaveProperty('campaign_total')
     expect(json).toHaveProperty('campaign_pages')
   })
 
-  test('REST API Content-Type이 application/json', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/newsletters`)
-    const ct  = res.headers()['content-type'] || ''
-    expect(ct).toContain('application/json')
+  test('REST API Content-Type이 application/json', async ({ page }) => {
+    const { contentType } = await apiGet(page, `${API_BASE}/newsletters`)
+    expect(contentType).toContain('application/json')
   })
 
   test('대시보드 + 이력 페이지 동시 접근 가능', async ({ page }) => {

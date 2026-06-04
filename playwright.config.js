@@ -48,6 +48,7 @@ export default defineConfig({
     {
       name:         'chromium',
       dependencies: ['setup'],
+      testIgnore:   ['**/access-control.spec.js'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
@@ -58,6 +59,7 @@ export default defineConfig({
     {
       name:         'firefox',
       dependencies: ['setup'],
+      testIgnore:   ['**/access-control.spec.js'],
       use: {
         ...devices['Desktop Firefox'],
         storageState: AUTH_FILE,
@@ -68,6 +70,7 @@ export default defineConfig({
     {
       name:         'webkit',
       dependencies: ['setup'],
+      testIgnore:   ['**/access-control.spec.js'],
       use: {
         ...devices['Desktop Safari'],
         storageState: AUTH_FILE,

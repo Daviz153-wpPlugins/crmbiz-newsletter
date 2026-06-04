@@ -14,14 +14,24 @@ const API     = BASE + '/wp-json/crmbiz-nl/v1'
 const PLUGINS = 'wp-admin/plugins.php'
 const WP_PATH = process.env.WP_PATH || '/tmp/wordpress'
 
+// page.request.get()은 nonce를 포함하지 않아 401 반환 — page.evaluate fetch로 인증
+async function apiGet(page, url) {
+  await page.goto('wp-admin/admin.php?page=crmbiz-newsletter')
+  await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+  return page.evaluate(async (u) => {
+    const nonce = window.CrmbizNL?.nonce || ''
+    const r = await fetch(u, { headers: { 'X-WP-Nonce': nonce } })
+    return { status: r.status, json: await r.json().catch(() => null) }
+  }, url)
+}
+
 // ── 활성화 상태 검증 ──────────────────────────────────────────────────────
 
 test.describe('플러그인 활성화 상태', () => {
 
-  test('활성화 후 REST API 응답 정상', async ({ request }) => {
-    const res = await request.get(`${API}/dashboard`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
+  test('활성화 후 REST API 응답 정상', async ({ page }) => {
+    const { status, json } = await apiGet(page, `${API}/dashboard`)
+    expect(status).toBe(200)
     expect(json).toHaveProperty('stats')
   })
 
@@ -38,11 +48,10 @@ test.describe('플러그인 활성화 상태', () => {
     }
   })
 
-  test('활성화 후 DB 테이블 7개 존재 — API 정상 응답으로 간접 확인', async ({ request }) => {
+  test('활성화 후 DB 테이블 7개 존재 — API 정상 응답으로 간접 확인', async ({ page }) => {
     // 테이블이 없으면 REST API가 500을 반환함
-    const res = await request.get(`${API}/newsletters`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
+    const { status, json } = await apiGet(page, `${API}/newsletters`)
+    expect(status).toBe(200)
     expect(json).toHaveProperty('items')
     expect(json).toHaveProperty('total')
   })
@@ -54,12 +63,11 @@ test.describe('플러그인 활성화 상태', () => {
     await expect(page.locator('button:has-text("설정 저장")')).toBeVisible()
   })
 
-  test('crmbiz_nl_secret 옵션 생성됨 (HMAC 키 초기화)', async ({ request }) => {
+  test('crmbiz_nl_secret 옵션 생성됨 (HMAC 키 초기화)', async ({ page }) => {
     // secret이 없으면 buildPixelUrl 등에서 빈 HMAC 생성 → 보안 실패
-    // 간접 검증: 발송 이력 API가 암호화된 이메일을 포함하는지
-    const res = await request.get(`${API}/newsletters?per_page=1`)
-    expect(res.status()).toBe(200)
-    // 응답 자체가 200이면 secret 초기화 성공 (500이면 암호화 키 없음)
+    // 간접 검증: 발송 이력 API가 200을 반환하면 secret 초기화 성공
+    const { status } = await apiGet(page, `${API}/newsletters?per_page=1`)
+    expect(status).toBe(200)
   })
 
 })
@@ -67,6 +75,11 @@ test.describe('플러그인 활성화 상태', () => {
 // ── 비활성화 상태 검증 ─────────────────────────────────────────────────────
 
 test.describe('플러그인 비활성화', () => {
+
+  test.afterAll(() => {
+    // 다른 병렬 워커가 비활성화 상태를 만나지 않도록 즉시 재활성화
+    try { execSync(`wp plugin activate crmbiz-newsletter --quiet --path=${WP_PATH}`, { encoding: 'utf-8' }) } catch {}
+  })
 
   test('비활성화 후 REST API → 404', async ({ page }) => {
     // WP-CLI로 비활성화하거나 플러그인 관리 화면에서 비활성화
@@ -206,26 +219,19 @@ test.describe('DB 마이그레이션', () => {
     } catch { /* 이미 활성화된 경우 무시 */ }
   })
 
-  test('현재 DB 버전이 코드 버전과 일치 (마이그레이션 완료 상태)', async ({ request }) => {
+  test('현재 DB 버전이 코드 버전과 일치 (마이그레이션 완료 상태)', async ({ page }) => {
     // REST API가 정상 작동 = 마이그레이션이 완료된 상태
-    // DB 버전 불일치 시 install()이 재실행되어 ALTER TABLE이 실행됨
-    const res = await request.get(`${API}/newsletters`)
-    expect(res.status()).toBe(200)
-
-    const json = await res.json()
-    // fail_reason 컬럼이 있는지 간접 확인 (1.8.0 마이그레이션)
-    // API가 200이면 스키마 현행화 완료
-    expect(Array.isArray(json.items)).toBeTruthy()
+    const { status, json } = await apiGet(page, `${API}/newsletters`)
+    expect(status).toBe(200)
+    expect(Array.isArray(json?.items)).toBeTruthy()
   })
 
-  test('마이그레이션 후 기존 레코드 타임존 무결성', async ({ request }) => {
+  test('마이그레이션 후 기존 레코드 타임존 무결성', async ({ page }) => {
     // sent_at이 있는 레코드가 있다면 날짜 형식 확인
-    const res  = await request.get(`${API}/newsletters?per_page=50`)
-    const json = await res.json()
-    const sent = (json.items ?? []).filter(i => i.sent_at)
+    const { json } = await apiGet(page, `${API}/newsletters?per_page=50`)
+    const sent = (json?.items ?? []).filter((i) => i.sent_at)
 
     for (const item of sent.slice(0, 5)) {
-      // sent_at이 유효한 날짜 형식인지 확인 (ISO 8601 또는 MySQL datetime)
       expect(new Date(item.sent_at).toString()).not.toBe('Invalid Date')
     }
   })

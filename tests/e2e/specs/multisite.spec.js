@@ -16,6 +16,17 @@ function wp(cmd) {
   return execSync(`wp ${cmd} --path=${WP_PATH}`, { encoding: 'utf-8' }).trim()
 }
 
+// page.request.get()은 nonce 없이 401 반환 → page.evaluate fetch로 인증
+async function apiGet(page, url) {
+  await page.goto('wp-admin/admin.php?page=crmbiz-newsletter')
+  await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+  return page.evaluate(async (u) => {
+    const nonce = window.CrmbizNL?.nonce || ''
+    const r = await fetch(u, { headers: { 'X-WP-Nonce': nonce } })
+    return { status: r.status, json: await r.json().catch(() => null) }
+  }, url)
+}
+
 // ── 멀티사이트 전용 (ENABLE_MULTISITE_TEST=1) ─────────────────────────────
 
 test.describe('멀티사이트 — 서브사이트 독립 설정', () => {
@@ -71,24 +82,21 @@ test.describe('단일 사이트 — 멀티사이트 코드와 호환성', () => 
     try { wp('plugin activate crmbiz-newsletter') } catch { /* 이미 활성화 */ }
   })
 
-  test('is_multisite() false 환경에서 REST API 정상 동작', async ({ request }) => {
-    // 표준 단일 사이트에서 우리 코드가 multisite 코드를 호출하지 않음
-    const res = await request.get(`${API_BASE}/dashboard`)
-    expect(res.status()).toBe(200)
-    const json = await res.json()
+  test('is_multisite() false 환경에서 REST API 정상 동작', async ({ page }) => {
+    const { status, json } = await apiGet(page, `${API_BASE}/dashboard`)
+    expect(status).toBe(200)
     expect(json).toHaveProperty('stats')
   })
 
-  test('get_option/update_option이 단일 사이트에서 정상 작동', async ({ request }) => {
-    // 설정 페이지 접근 = get_option 정상 동작 간접 확인
-    const res = await request.get(`${API_BASE}/newsletters?per_page=1`)
-    expect(res.status()).toBe(200)
+  test('get_option/update_option이 단일 사이트에서 정상 작동', async ({ page }) => {
+    const { status } = await apiGet(page, `${API_BASE}/newsletters?per_page=1`)
+    expect(status).toBe(200)
   })
 
-  test('플러그인 활성화 상태 REST API로 확인', async ({ request }) => {
-    const res = await request.get(`${API_BASE}/newsletters/progress`)
+  test('플러그인 활성화 상태 REST API로 확인', async ({ page }) => {
     // 200 = 플러그인 정상 활성화, DB 테이블 존재
-    expect(res.status()).toBe(200)
+    const { status } = await apiGet(page, `${API_BASE}/newsletters/progress`)
+    expect(status).toBe(200)
   })
 
 })

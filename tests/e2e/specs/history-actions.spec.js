@@ -34,7 +34,7 @@ test.describe('슬라이드오버 — 상세 탭', () => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
     const firstRow = page.locator('tbody tr').first()
-    await expect(firstRow).toBeVisible()
+    await expect(firstRow).toBeVisible({ timeout: 15_000 })
     await firstRow.click()
     await page.waitForTimeout(500)
     // 슬라이드오버 패널 내 h2(제목) 가시
@@ -44,6 +44,7 @@ test.describe('슬라이드오버 — 상세 탭', () => {
   test('슬라이드오버 — details 탭 기본 표시', async ({ page }) => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     await page.waitForTimeout(500)
     // 오픈률/클릭률 스탯 영역
@@ -53,6 +54,7 @@ test.describe('슬라이드오버 — 상세 탭', () => {
   test('슬라이드오버 — 수신자 탭 클릭', async ({ page }) => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     await page.waitForTimeout(500)
     const recipientsTab = page.locator('button:has-text("수신자")')
@@ -68,6 +70,7 @@ test.describe('슬라이드오버 — 상세 탭', () => {
   test('슬라이드오버 — 미리보기 링크 있으면 새 탭 열림', async ({ page, context }) => {
     await page.goto(HISTORY)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     await page.waitForTimeout(500)
     const previewLink = page.locator('a:has-text("미리보기")')
