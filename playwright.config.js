@@ -25,16 +25,19 @@ const BASE_USE = {
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60_000,
+  timeout: 30_000,
   retries: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
 
   use: {
-    baseURL:    BASE_USE.baseURL,
-    screenshot: 'only-on-failure',
-    video:      'retain-on-failure',
-    locale:     'ko-KR',
+    baseURL:        BASE_USE.baseURL,
+    screenshot:     'only-on-failure',
+    video:          'retain-on-failure',
+    locale:         'ko-KR',
+    actionTimeout:  8_000,
   },
+
+  expect: { timeout: 8_000 },
 
   projects: [
     // ── 로그인 세션 저장 (Chromium에서 1회 실행, 전 브라우저 공유) ──────
