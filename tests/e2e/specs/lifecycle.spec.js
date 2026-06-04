@@ -7,10 +7,12 @@
  * 로컬에서는 관리자 → 플러그인 화면으로 대체 가능
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test'
+import { execSync } from 'child_process'
 
 const BASE    = (process.env.WP_BASE_URL || 'http://localhost:8888/wordpress').replace(/\/$/, '')
 const API     = BASE + '/wp-json/crmbiz-nl/v1'
 const PLUGINS = 'wp-admin/plugins.php'
+const WP_PATH = process.env.WP_PATH || '/tmp/wordpress'
 
 // ── 활성화 상태 검증 ──────────────────────────────────────────────────────
 
@@ -196,6 +198,13 @@ test.describe('재활성화 후 기존 데이터 유지', () => {
 // ── 업그레이드 마이그레이션 ───────────────────────────────────────────────
 
 test.describe('DB 마이그레이션', () => {
+
+  test.beforeAll(() => {
+    // 이전 비활성화/삭제 테스트 후 플러그인이 비활성화 상태일 수 있으므로 재활성화
+    try {
+      execSync(`wp plugin activate crmbiz-newsletter --path=${WP_PATH}`, { encoding: 'utf-8' })
+    } catch { /* 이미 활성화된 경우 무시 */ }
+  })
 
   test('현재 DB 버전이 코드 버전과 일치 (마이그레이션 완료 상태)', async ({ request }) => {
     // REST API가 정상 작동 = 마이그레이션이 완료된 상태

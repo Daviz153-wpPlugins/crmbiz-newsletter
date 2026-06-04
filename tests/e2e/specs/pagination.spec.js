@@ -23,6 +23,7 @@ test.describe('대시보드 캠페인 페이지네이션', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(DASHBOARD)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
+    await page.waitForSelector('text=최근 캠페인', { timeout: 10_000 })
   })
 
   test('페이지 X of Y + 총계 텍스트 렌더', async ({ page }) => {

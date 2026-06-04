@@ -5,9 +5,15 @@ const POST_LIST = 'wp-admin/edit.php'
 
 test.describe('메타박스 (글 편집기)', () => {
 
+  let gutenbergHidden = false
+
   test.beforeEach(async ({ page }) => {
     await page.goto(NEW_POST)
     await page.waitForLoadState('domcontentloaded')
+    // Gutenberg 환경에서 메타박스가 hidden 컨테이너에 숨겨지는지 감지
+    gutenbergHidden = await page.evaluate(
+      () => !!document.querySelector('#metaboxes.hidden')
+    )
   })
 
   // ── 메타박스 렌더 ─────────────────────────────────────────────────────────
@@ -27,6 +33,7 @@ test.describe('메타박스 (글 편집기)', () => {
   })
 
   test('메타박스 — 체크 시 옵션 패널 표시', async ({ page }) => {
+    test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) {
       await checkbox.check()
@@ -39,6 +46,7 @@ test.describe('메타박스 (글 편집기)', () => {
   // ── 발송 시점 라디오 ─────────────────────────────────────────────────────
 
   test('발송 시점 — 예약 발송 선택 시 날짜 입력 표시', async ({ page }) => {
+    test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) await checkbox.check()
 
@@ -48,6 +56,7 @@ test.describe('메타박스 (글 편집기)', () => {
   })
 
   test('발송 시점 — 수동 발송 선택 시 안내문 표시', async ({ page }) => {
+    test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) await checkbox.check()
 
@@ -59,6 +68,7 @@ test.describe('메타박스 (글 편집기)', () => {
   // ── 테스트 발송 ──────────────────────────────────────────────────────────
 
   test('테스트 발송 — 이메일 입력 필드와 버튼 표시', async ({ page }) => {
+    test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) await checkbox.check()
 
@@ -67,6 +77,7 @@ test.describe('메타박스 (글 편집기)', () => {
   })
 
   test('테스트 발송 — 이메일 미입력 시 버튼 클릭 무반응', async ({ page }) => {
+    test.skip(gutenbergHidden, 'Gutenberg hidden 모드 — CI Classic Editor 환경에서만 실행')
     const checkbox = page.locator('#crmbiz_nl_enabled')
     if (!await checkbox.isChecked()) await checkbox.check()
 
