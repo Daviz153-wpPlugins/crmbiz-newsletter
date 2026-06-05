@@ -39,6 +39,7 @@
                 <div class="flex items-center gap-2 flex-shrink-0 pt-0.5">
                   <slot name="actions" />
                   <button @click="$emit('close')"
+                          aria-label="닫기"
                           class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
                     <X class="w-4 h-4" />
                   </button>

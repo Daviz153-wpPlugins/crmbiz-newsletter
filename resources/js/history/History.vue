@@ -370,6 +370,7 @@
                   @click="confirmDeleteId = selectedItem.id"
                   :disabled="selectedItem.status === 'sending'"
                   :title="selectedItem.status === 'sending' ? '발송 중 — 취소 후 삭제' : '삭제'"
+                  aria-label="삭제"
                   class="so-btn so-btn--red-outline">
             <Trash2 class="w-3.5 h-3.5 flex-shrink-0" />
           </button>

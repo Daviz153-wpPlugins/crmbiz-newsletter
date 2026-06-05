@@ -117,8 +117,12 @@ test.describe('WP Cron 상태 경고 배너 — showCronNotice()', () => {
   // ── 경고 없어야 할 조건 ────────────────────────────────────────────────────
 
   test('대기 중인 뉴스레터 없음 → 경고 배너 없음', async ({ page }) => {
-    // queued/sending 뉴스레터 없는 상태에서 Cron도 오래 전에 실행됐다 해도 배너 없음
-    wpEval(`update_option("crmbiz_nl_last_cron_run", 0, false);`)
+    // queued/sending 항목을 모두 정리 후 테스트 (seed 데이터 등 잔여 항목 제거)
+    wpEval(`
+      global $wpdb;
+      $wpdb->query("UPDATE {$wpdb->prefix}crmbiz_newsletters SET status='cancelled' WHERE status IN ('queued','sending')");
+      update_option("crmbiz_nl_last_cron_run", 0, false);
+    `)
 
     await page.goto(DASHBOARD)
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })

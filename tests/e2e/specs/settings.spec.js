@@ -64,9 +64,9 @@ test.describe('설정 페이지', () => {
 
   test('시스템 로그 — 초기화 후 cleared 파라미터 URL에 반영', async ({ page }) => {
     await page.goto(SETTINGS_LOGS)
-    const clearBtn = page.locator('button:has-text("로그 초기화"), input[value*="초기화"]').first()
+    const clearBtn = page.locator('button:has-text("로그 지우기"), input[value*="지우기"]').first()
     const canClear = await clearBtn.isVisible().catch(() => false)
-    if (!canClear) { test.skip(true, '초기화 버튼 없음'); return }
+    if (!canClear) { test.skip(true, '로그 지우기 버튼 없음'); return }
     await clearBtn.click()
     await page.waitForLoadState('domcontentloaded')
     await expect(page).toHaveURL(/cleared=1/, { timeout: 5_000 })

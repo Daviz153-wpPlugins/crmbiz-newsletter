@@ -96,8 +96,8 @@ test.describe('발송 이력', () => {
   test('슬라이드오버 — 닫기(X) 버튼으로 닫힘', async ({ page }) => {
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
-    // 닫기 버튼 클릭
-    const closeBtn = page.locator('button[aria-label="닫기"], button:has(svg)').last()
+    // 닫기 버튼 클릭 (SlideOver.vue의 aria-label="닫기" 버튼)
+    const closeBtn = page.locator('button[aria-label="닫기"]')
     await closeBtn.click()
     await page.waitForTimeout(300)
     // 슬라이드오버가 닫히면 tbody가 다시 포커스 가능
@@ -108,8 +108,8 @@ test.describe('발송 이력', () => {
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
     await page.waitForTimeout(300)
-    // 삭제 버튼(빨간 아이콘 버튼)
-    const deleteBtn = page.locator('button.so-btn--red-outline')
+    // 삭제 버튼 — 슬라이드오버(fixed overlay) 안에서만 찾기 (테이블 행 버튼과 구별)
+    const deleteBtn = page.locator('[aria-label="삭제"]')
     await expect(deleteBtn).toBeVisible()
     await deleteBtn.click()
     // "삭제할까요?" 인라인 확인 텍스트 + 예/아니오 버튼

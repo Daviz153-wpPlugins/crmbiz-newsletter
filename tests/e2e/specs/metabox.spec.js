@@ -95,8 +95,8 @@ test.describe('글 목록 — 뉴스레터 상태 컬럼', () => {
   test('글 목록 — 뉴스레터 컬럼 존재', async ({ page }) => {
     await page.goto(POST_LIST)
     await page.waitForLoadState('domcontentloaded')
-    // .column-crmbiz_newsletter 헤더가 존재
-    await expect(page.locator('.column-crmbiz_newsletter, th#crmbiz_newsletter')).toBeVisible()
+    // .column-crmbiz_newsletter 헤더가 DOM에 존재 (Screen Options로 hidden일 수 있어 attached 확인)
+    await expect(page.locator('.column-crmbiz_newsletter, th#crmbiz_newsletter')).toBeAttached()
   })
 
   test('글 목록 — 뉴스레터 상태 배지 렌더 (발송된 글 있을 때)', async ({ page }) => {

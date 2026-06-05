@@ -46,9 +46,9 @@ test.describe('슬라이드오버 — 상세 탭', () => {
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
-    await page.waitForTimeout(500)
-    // 오픈률/클릭률 스탯 영역
-    await expect(page.locator('text=오픈률').or(page.locator('text=발송 성공'))).toBeVisible({ timeout: 5_000 })
+    await page.waitForTimeout(1000)
+    // 오픈률/클릭률 스탯 영역 (detail API 응답 대기)
+    await expect(page.locator('text=오픈률').or(page.locator('text=발송된 이메일'))).toBeVisible()
   })
 
   test('슬라이드오버 — 수신자 탭 클릭', async ({ page }) => {
@@ -56,9 +56,9 @@ test.describe('슬라이드오버 — 상세 탭', () => {
     await page.waitForSelector('.min-h-screen', { timeout: 10_000 })
     await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     await page.locator('tbody tr').first().click()
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(1000)
     const recipientsTab = page.locator('button:has-text("수신자")')
-    await expect(recipientsTab).toBeVisible({ timeout: 5_000 })
+    await expect(recipientsTab).toBeVisible()
     await recipientsTab.click()
     await page.waitForTimeout(300)
     // 수신자 테이블 또는 "수신자 없음" 메시지
