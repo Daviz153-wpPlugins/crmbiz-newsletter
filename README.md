@@ -19,7 +19,7 @@ FluentCRM 연락처를 기반으로 WordPress 포스트를 뉴스레터로 자�
 
 ### 1단계 — ZIP 다운로드
 
-[릴리즈 페이지](https://github.com/Daviz153/crmbiz-newsletter/releases/latest)에서 `crmbiz-newsletter-vX.X.X.zip`을 다운로드합니다.
+[릴리즈 페이지](https://github.com/Daviz153-wpPlugins/crmbiz-newsletter/releases/latest)에서 `crmbiz-newsletter-vX.X.X.zip`을 다운로드합니다.
 
 ### 2단계 — FluentCRM 먼저 활성화
 

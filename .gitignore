@@ -4,13 +4,17 @@ node_modules/
 .DS_Store
 .phpunit.result.cache
 composer.lock
-Progress.md
-DEV_PLAYBOOK.md
+# 로컬 전용 — 개발 방향/참고 문서 (개인 문서, GitHub 미공개)
 CLAUDE.md
+DEV_PLAYBOOK.md
+Progress.md
+Roadmap.md
+*.local.md
 # assets/vue/ 는 빌드 결과물이지만 배포에 필요하므로 Git에 포함
 
 # E2E 테스트
 .env.test
+.playwright-mcp/
 tests/e2e/.auth/
 playwright-report/
 test-results/
