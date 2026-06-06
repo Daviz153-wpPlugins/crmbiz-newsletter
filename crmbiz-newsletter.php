@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: CRMBiz Newsletter
- * Plugin URI:  https://github.com/Daviz153/crmbiz-newsletter
+ * Plugin URI:  https://github.com/Daviz153-wpPlugins/crmbiz-newsletter
  * Description: FluentCRM 연락처를 기반으로 WordPress 포스트를 뉴스레터로 자동 발송
  * Version:     1.3.0
  * Author:      CRMBiz
@@ -32,7 +32,7 @@ add_action('plugins_loaded', function () {
 if ( file_exists( plugin_dir_path( __FILE__ ) . 'includes/plugin-update-checker/plugin-update-checker.php' ) ) {
     require_once plugin_dir_path( __FILE__ ) . 'includes/plugin-update-checker/plugin-update-checker.php';
     $crmbizNlUpdater = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
-        'https://github.com/Daviz153/crmbiz-newsletter/',
+        'https://github.com/Daviz153-wpPlugins/crmbiz-newsletter/',
         __FILE__,
         'crmbiz-newsletter'
     );
