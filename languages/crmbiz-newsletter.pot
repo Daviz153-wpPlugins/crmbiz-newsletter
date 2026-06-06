@@ -2,66 +2,942 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: CRMBiz Newsletter 0.9.33\n"
-"Report-Msgid-Bugs-To: https://github.com/Daviz153/crmbiz-newsletter/issues\n"
-"POT-Creation-Date: 2026-06-02T00:00:00+09:00\n"
+"Project-Id-Version: CRMBiz Newsletter 1.3.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/crmbiz-newsletter\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"X-Generator: WP-CLI i18n\n"
+"POT-Creation-Date: 2026-06-04T14:21:32+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: crmbiz-newsletter\n"
 
 #. Plugin Name of the plugin
+#: crmbiz-newsletter.php
 msgid "CRMBiz Newsletter"
 msgstr ""
 
 #. Plugin URI of the plugin
+#: crmbiz-newsletter.php
 msgid "https://github.com/Daviz153/crmbiz-newsletter"
 msgstr ""
 
 #. Description of the plugin
+#: crmbiz-newsletter.php
 msgid "FluentCRM 연락처를 기반으로 WordPress 포스트를 뉴스레터로 자동 발송"
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#. Author of the plugin
+#: crmbiz-newsletter.php
+msgid "CRMBiz"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:23
+#: src/Admin/AjaxHandlers.php:87
+#: src/Admin/AjaxHandlers.php:136
+#: src/Admin/UnsubscribePage.php:18
+msgid "보안 검증 실패."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:26
+#: src/Admin/AjaxHandlers.php:90
+#: src/Admin/AjaxHandlers.php:139
+#: src/Admin/DashboardPage.php:10
+#: src/Admin/HistoryPage.php:10
+#: src/Admin/SettingsPage.php:23
+#: src/Admin/UnsubscribePage.php:12
+msgid "권한이 없습니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:35
+#: src/Admin/AjaxHandlers.php:236
+msgid "유효하지 않은 이메일 주소입니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:53
+#, php-format
+msgid "발송 성공: %s"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:54
+#: src/Admin/AjaxHandlers.php:202
+msgid "발송 실패. FluentSMTP 설정을 확인하세요."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:87
+#: src/Admin/AjaxHandlers.php:90
+#: src/Admin/AjaxHandlers.php:136
+#: src/Admin/AjaxHandlers.php:139
+msgid "오류"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:144
+#: src/Admin/AjaxHandlers.php:175
+#: src/RestApi.php:472
+msgid "포스트를 찾을 수 없습니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:170
+msgid "유효하지 않은 입력입니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:201
+#, php-format
+msgid "%s로 테스트 발송 완료"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:218
+msgid "유효하지 않은 요청입니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:228
+msgid "삭제 실패 또는 이미 삭제된 항목입니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:247
+msgid "추가되었습니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:248
+msgid "추가 실패."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:255
+msgid "테스트 이메일"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:256
+msgid "CRMBiz Newsletter 플러그인에서 발송한 테스트 이메일입니다."
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:257
+msgid "발신자"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:258
+msgid "수신자"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:259
+msgid "시각"
+msgstr ""
+
+#: src/Admin/AjaxHandlers.php:260
+msgid "FluentSMTP 연결이 정상입니다."
+msgstr ""
+
+#: src/Admin/MetaBox.php:20
+msgid "뉴스레터 발송 설정"
+msgstr ""
+
+#: src/Admin/MetaBox.php:32
+msgid "뉴스레터 메타박스 오류:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:61
+msgid "FluentCRM이 활성화되지 않았습니다."
+msgstr ""
+
+#: src/Admin/MetaBox.php:67
+msgid "테스트 모드 — 실제 발송 안 됨"
+msgstr ""
+
+#: src/Admin/MetaBox.php:82
+msgid "뉴스레터로 발송"
+msgstr ""
+
+#: src/Admin/MetaBox.php:89
+msgid "수신 태그"
+msgstr ""
+
+#: src/Admin/MetaBox.php:107
+msgid "수신 리스트"
+msgstr ""
+
+#: src/Admin/MetaBox.php:124
+msgid "FluentCRM에 태그/리스트가 없습니다."
+msgstr ""
+
+#: src/Admin/MetaBox.php:128
+msgid "예상 수신자:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:128
+msgid "명"
+msgstr ""
+
+#: src/Admin/MetaBox.php:129
+msgid "(중복·수신거부 제외는 발송 시 처리)"
+msgstr ""
+
+#: src/Admin/MetaBox.php:133
+msgid "발송 시점"
+msgstr ""
+
+#: src/Admin/MetaBox.php:136
+msgid "즉시 발송"
+msgstr ""
+
+#: src/Admin/MetaBox.php:140
+msgid "수동 발송"
+msgstr ""
+
+#: src/Admin/MetaBox.php:144
+msgid "발행해도 자동으로 발송되지 않습니다."
+msgstr ""
+
+#: src/Admin/MetaBox.php:146
+#, php-format
+msgid "발행 후 <a href=\"%s\">발송 이력</a> 페이지에서 <strong>▶ 발송</strong> 버튼을 눌러 직접 발송하세요."
+msgstr ""
+
+#: src/Admin/MetaBox.php:153
+#: src/Admin/PostListColumn.php:88
+msgid "예약 발송"
+msgstr ""
+
+#: src/Admin/MetaBox.php:161
+msgid "사이트 시간대:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:169
+msgid "HTML 미리보기 ↗"
+msgstr ""
+
+#: src/Admin/MetaBox.php:173
+#: src/Admin/SettingsPage.php:211
+msgid "테스트 발송"
+msgstr ""
+
+#: src/Admin/MetaBox.php:362
+#: src/Admin/PostListColumn.php:85
+#: src/NewsletterSender.php:321
+msgid "발송 완료"
+msgstr ""
+
+#: src/Admin/MetaBox.php:363
+#: src/Admin/PostListColumn.php:86
+msgid "발송 중"
+msgstr ""
+
+#: src/Admin/MetaBox.php:364
+msgid "발송 대기 중"
+msgstr ""
+
+#: src/Admin/MetaBox.php:365
+msgid "예약됨"
+msgstr ""
+
+#: src/Admin/MetaBox.php:366
+msgid "수동 발송 대기"
+msgstr ""
+
+#: src/Admin/MetaBox.php:367
+#: src/Admin/PostListColumn.php:90
+#: src/NewsletterSender.php:321
+msgid "발송 실패"
+msgstr ""
+
+#: src/Admin/MetaBox.php:368
+#: src/Admin/PostListColumn.php:91
+msgid "취소됨"
+msgstr ""
+
+#: src/Admin/MetaBox.php:374
+msgid "예약 시각:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:376
+msgid "발송일:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:378
+msgid "생성일:"
+msgstr ""
+
+#: src/Admin/MetaBox.php:392
+#, php-format
+msgid "%d일 후 발송 예정"
+msgstr ""
+
+#: src/Admin/MetaBox.php:394
+#, php-format
+msgid "%d시간 후 발송 예정"
+msgstr ""
+
+#: src/Admin/MetaBox.php:396
+#, php-format
+msgid "%d분 후 발송 예정"
+msgstr ""
+
+#: src/Admin/MetaBox.php:399
+msgid "발송 대기 중 (처리 예정)"
+msgstr ""
+
+#: src/Admin/MetaBox.php:409
+#, php-format
+msgid "수신자 %s명 발송됨"
+msgstr ""
+
+#: src/Admin/MetaBox.php:411
+#, php-format
+msgid "실패 %s명"
+msgstr ""
+
+#: src/Admin/MetaBox.php:414
+#, php-format
+msgid "총 수신자 %s명"
+msgstr ""
+
+#: src/Admin/MetaBox.php:420
+msgid "포스트를 저장해도 재발송되지 않습니다."
+msgstr ""
+
+#: src/Admin/MetaBox.php:432
+msgid "이력 보기 ↗"
+msgstr ""
+
+#: src/Admin/PostListColumn.php:23
+#: src/NewsletterSender.php:329
+#: src/Plugin.php:108
+msgid "뉴스레터"
+msgstr ""
+
+#: src/Admin/PostListColumn.php:87
+msgid "발송 대기"
+msgstr ""
+
+#: src/Admin/PostListColumn.php:89
+msgid "임시저장"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:52
+#: src/Plugin.php:118
+msgid "설정"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:58
+msgid "설정이 저장되었습니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:64
+msgid "기본 설정"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:66
+msgid "이메일 커스터마이징"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:68
+#: src/Admin/SettingsPage.php:249
+msgid "시스템 로그"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:103
+msgid "발신자 설정"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:104
+msgid "수신자에게 표시되는 이름과 이메일 주소입니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:108
+msgid "발신자 이름"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:114
+msgid "비워두면 FluentCRM 전역 설정 또는 사이트 이름을 사용합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:118
+msgid "발신자 이메일"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:124
+msgid "비워두면 FluentCRM 전역 설정 또는 관리자 이메일을 사용합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:133
+msgid "발송 모드"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:134
+msgid "개발 및 테스트 환경에서 사용합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:139
+msgid "테스트 모드"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:140
+msgid "이메일을 실제로 발송하지 않고 로그만 기록합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:149
+msgid "디버그 모드"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:150
+msgid "FluentCRM 시스템 로그에 상세 정보를 기록합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:163
+msgid "알림 설정"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:164
+msgid "발송 완료 또는 실패 시 결과를 받을 이메일입니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:168
+msgid "알림 이메일"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:174
+msgid "비워두면 WordPress 관리자 이메일로 발송됩니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:179
+msgid "오류 이메일 알림 비활성화"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:180
+msgid "ERROR 발생 시 관리자 이메일 알림을 끕니다. (기본: 알림 활성화, 동일 오류 1시간 1회)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:192
+msgid "설정 저장"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:200
+msgid "테스트 이메일 발송"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:201
+msgid "실제 이메일을 발송하여 SMTP 연결을 확인합니다. 발신자:"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:205
+msgid "수신 이메일"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:250
+msgid "최근 7일간 ERROR / WARNING 기록. 최대 100건 표시."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:255
+msgid "모든 로그를 삭제할까요?"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:256
+msgid "로그 지우기"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:262
+msgid "로그가 삭제되었습니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:267
+msgid "전체"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:278
+msgid "기록된 오류/경고가 없습니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:285
+msgid "레벨"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:286
+msgid "발생 시각"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:287
+msgid "메시지"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:288
+msgid "컨텍스트"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:326
+msgid "모던"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:327
+msgid "다크"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:328
+msgid "미니멀"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:338
+msgid "색상 &amp; 레이아웃"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:339
+msgid "프리셋을 선택하거나 색상을 직접 조정하세요."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:362
+msgid "뉴스레터 제목 미리보기"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:363
+#: src/Admin/SettingsPage.php:458
+#: templates/email.php:92
+msgid "웹에서 보기"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:381
+msgid "실제 이메일 전체보기 ↗"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:383
+msgid "저장된 설정 기준으로 렌더링됩니다. 색상 변경 후에는 저장하고 확인하세요."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:387
+msgid "외부 배경"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:390
+msgid "이메일 바깥 여백 색상"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:394
+msgid "헤더 배경"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:397
+msgid "제목 영역 배경"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:401
+msgid "헤더 텍스트"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:404
+msgid "제목/날짜 글자 색상"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:408
+msgid "강조 색상"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:411
+msgid "링크, 수신거부 버튼"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:415
+msgid "콘텐츠 너비"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:423
+msgid "이메일 본문 최대 너비 (480–800px)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:432
+msgid "섹션 표시"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:433
+msgid "이메일에 포함할 요소를 선택합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:438
+msgid "대표 이미지"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:439
+msgid "포스트 대표 이미지를 이메일 상단에 표시합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:448
+#: src/EmailTemplateRenderer.php:157
+msgid "최근 뉴스레터"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:449
+msgid "본문 하단에 최근 3개 뉴스레터 링크를 표시합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:459
+msgid "헤더에 \"웹에서 보기\" 링크를 표시합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:468
+msgid "발송 날짜"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:469
+msgid "제목 아래 발송 날짜를 표시합니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:483
+msgid "시그니처"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:484
+msgid "이메일 본문 하단에 표시됩니다."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:498
+msgid "커스터마이징 저장"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:18
+msgid "프로필 사진"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:31
+msgid "사진 선택"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:42
+msgid "이름 / 직함"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:49
+msgid "예: 당신의 재무 파트너 신 팀장입니다."
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:57
+msgid "소개 문구"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:63
+msgid "예: 재무상담 17년 차이며..."
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:64
+msgid "HTML 사용 가능:"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:69
+msgid "사진 테두리"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:72
+msgid "투명도 0% = 테두리 없음"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:77
+msgid "배경 색상"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:80
+msgid "투명도 0% = 배경 없음"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:85
+msgid "간격"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:88
+msgid "사진 ↔ 텍스트"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:95
+msgid "이름 ↔ 소개"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:105
+msgid "사진 위치"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:107
+msgid "왼쪽"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:107
+msgid "위"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:107
+msgid "오른쪽"
+msgstr ""
+
+#: src/Admin/SettingsSignatureTrait.php:136
+msgid "시그니처 미리보기"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:74
+msgid "수신거부 관리"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:75
+#, php-format
+msgid "(총 %s명)"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:79
+msgid "직접 추가"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:82
+msgid "CSV 내보내기"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:94
 msgid "이름 또는 이메일로 검색..."
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#: src/Admin/UnsubscribePage.php:99
+msgid "초기화 ✕"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:108
+#, php-format
 msgid "\"%s\"에 해당하는 수신거부 이메일이 없습니다."
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#: src/Admin/UnsubscribePage.php:109
 msgid "수신거부된 이메일이 없습니다."
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#: src/Admin/UnsubscribePage.php:122
+#: src/Admin/UnsubscribePage.php:307
+msgid "이름"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:123
+#: src/Admin/UnsubscribePage.php:307
+#: src/Privacy.php:61
+#: src/Privacy.php:85
+#: src/Privacy.php:110
+msgid "이메일"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:124
+#: src/Admin/UnsubscribePage.php:307
+#: src/Privacy.php:62
+msgid "수신거부 일시"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:125
+msgid "액션"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:142
 msgid "수신거부 해제"
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#: src/Admin/UnsubscribePage.php:156
+msgid "선택 해제"
+msgstr ""
+
+#: src/Admin/UnsubscribePage.php:180
 msgid "수신거부 이메일 직접 추가"
 msgstr ""
 
-#: src/Admin/UnsubscribePage.php
+#: src/Admin/UnsubscribePage.php:182
 msgid "추가할 이메일 주소"
 msgstr ""
 
-#: src/Privacy.php
-msgid "CRMBiz Newsletter"
+#: src/Admin/UnsubscribePage.php:185
+msgid "취소"
 msgstr ""
 
-#: src/Privacy.php
+#: src/Admin/UnsubscribePage.php:186
+msgid "추가"
+msgstr ""
+
+#: src/NewsletterSender.php:62
+msgid "FluentCRM이 비활성화되어 있습니다. 플러그인 활성화 후 재발송하세요."
+msgstr ""
+
+#: src/NewsletterSender.php:248
+msgid "수신자를 찾을 수 없습니다. 태그/리스트 설정 및 FluentCRM 구독자 상태를 확인하세요."
+msgstr ""
+
+#: src/NewsletterSender.php:293
+msgid "모든 이메일 발송에 실패했습니다. SMTP 설정 및 수신자 이메일 주소를 확인하세요."
+msgstr ""
+
+#: src/NewsletterSender.php:330
+msgid "아래 뉴스레터 발송이 완료되었습니다."
+msgstr ""
+
+#: src/NewsletterSender.php:332
+msgid "제목"
+msgstr ""
+
+#: src/NewsletterSender.php:333
+msgid "성공"
+msgstr ""
+
+#: src/NewsletterSender.php:333
+#: src/NewsletterSender.php:334
+msgid "건"
+msgstr ""
+
+#: src/NewsletterSender.php:334
+msgid "실패"
+msgstr ""
+
+#: src/NewsletterSender.php:335
+msgid "성공률"
+msgstr ""
+
+#: src/NewsletterSender.php:337
+msgid "발송 이력 보기"
+msgstr ""
+
+#: src/Plugin.php:115
+msgid "대시보드"
+msgstr ""
+
+#: src/Plugin.php:116
+msgid "발송 이력"
+msgstr ""
+
+#: src/Plugin.php:117
+msgid "수신 거부 관리"
+msgstr ""
+
+#: src/Plugin.php:117
+msgid "수신 거부"
+msgstr ""
+
+#: src/Plugin.php:340
+msgid "전"
+msgstr ""
+
+#: src/Plugin.php:340
+msgid "한 번도 실행되지 않음"
+msgstr ""
+
+#: src/Plugin.php:346
+#, php-format
+msgid "⚠️ <strong>CRMBiz Newsletter</strong>: 발송 큐가 %s 동안 처리되지 않았습니다. Action Scheduler 큐가 멈췄을 수 있습니다. <a href=\"%s\">Action Scheduler 상태</a>를 확인하거나 <a href=\"%s\">즉시 발송</a> 버튼을 사용하세요."
+msgstr ""
+
+#: src/Plugin.php:353
+#, php-format
+msgid "⚠️ <strong>CRMBiz Newsletter</strong>: <code>DISABLE_WP_CRON</code>이 활성화되어 있습니다. 발송이 실행되지 않을 수 있습니다. 서버 crontab에 <code>wp cron event run --due-now</code>를 등록하거나, <a href=\"%s\">즉시 발송</a> 버튼을 사용하세요."
+msgstr ""
+
+#: src/Plugin.php:358
+#, php-format
+msgid "⚠️ <strong>CRMBiz Newsletter</strong>: WP Cron이 마지막으로 실행된 시간 — %s. 트래픽이 없으면 예약 발송이 지연됩니다. <a href=\"%s\">즉시 발송</a> 버튼을 이용하거나 서버 cron 설정을 확인하세요."
+msgstr ""
+
+#: src/Privacy.php:58
 msgid "뉴스레터 수신거부"
 msgstr ""
 
-#: src/Privacy.php
+#: src/Privacy.php:82
 msgid "뉴스레터 발송 기록"
 msgstr ""
 
-#: src/Privacy.php
+#: src/Privacy.php:86
+msgid "상태"
+msgstr ""
+
+#: src/Privacy.php:87
+msgid "발송 일시"
+msgstr ""
+
+#: src/Privacy.php:107
 msgid "뉴스레터 활동 기록"
+msgstr ""
+
+#: src/Privacy.php:111
+msgid "유형"
+msgstr ""
+
+#: src/Privacy.php:112
+msgid "발생 일시"
+msgstr ""
+
+#: src/RestApi.php:324
+msgid "없는 항목입니다."
+msgstr ""
+
+#: src/RestApi.php:411
+msgid "발송 가능한 상태가 아닙니다."
+msgstr ""
+
+#: src/RestApi.php:426
+msgid "취소할 수 없는 상태입니다."
+msgstr ""
+
+#: src/RestApi.php:441
+msgid "발송 불가 상태입니다."
+msgstr ""
+
+#: src/RestApi.php:490
+msgid "발송 중입니다. 취소 후 삭제하세요."
+msgstr ""
+
+#: src/RestApi.php:503
+msgid "삭제 실패."
+msgstr ""
+
+#: src/RestApi.php:509
+msgid "유효하지 않은 이메일."
+msgstr ""
+
+#: src/RestApi.php:515
+msgid "발송 실패 (수신거부 또는 오류)."
+msgstr ""
+
+#: src/RestApi.php:553
+msgid "(삭제된 포스트)"
+msgstr ""
+
+#: src/UnsubscribeHandler.php:28
+msgid "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
+msgstr ""
+
+#: src/UnsubscribeHandler.php:28
+msgid "요청 제한"
+msgstr ""
+
+#: src/UnsubscribeHandler.php:33
+msgid "수신거부 링크가 만료되었습니다. 최신 뉴스레터의 수신거부 링크를 사용해 주세요."
+msgstr ""
+
+#: src/UnsubscribeHandler.php:34
+msgid "유효하지 않은 수신거부 링크입니다."
+msgstr ""
+
+#: src/UnsubscribeHandler.php:35
+msgid "수신거부 오류"
+msgstr ""
+
+#: src/UnsubscribeHandler.php:64
+msgid "수신거부 완료"
+msgstr ""
+
+#: src/UnsubscribeHandler.php:80
+msgid "수신거부가 완료되었습니다"
+msgstr ""
+
+#: src/UnsubscribeHandler.php:81
+msgid "아래 이메일 주소로 더 이상 뉴스레터가 발송되지 않습니다."
+msgstr ""
+
+#: src/UnsubscribeHandler.php:83
+#, php-format
+msgid "다시 구독을 원하시면 %s에서 신청하세요."
+msgstr ""
+
+#: src/UnsubscribeHandler.php:84
+msgid "홈으로 돌아가기"
+msgstr ""
+
+#: templates/email.php:193
+#, php-format
+msgid "이 이메일은 <strong>%s</strong> 뉴스레터 구독자에게 발송됩니다."
+msgstr ""
+
+#: templates/email.php:200
+#, php-format
+msgid "더 이상 받지 않으시려면 <a href=\"%s\" style=\"color:"
 msgstr ""
