@@ -4,12 +4,28 @@ node_modules/
 .DS_Store
 .phpunit.result.cache
 composer.lock
+
 # 로컬 전용 — 개발 방향/참고 문서 (개인 문서, GitHub 미공개)
 CLAUDE.md
 DEV_PLAYBOOK.md
 Progress.md
 Roadmap.md
 *.local.md
+*.local.php
+*.local.json
+
+# 개인정보 / 인증 정보 보호 (절대 GitHub 업로드 금지)
+.env
+.env.*
+secrets.*
+secrets/
+*.credentials
+*.credentials.*
+config/local.php
+wp-config-local.php
+logs/
+*.log
+
 # assets/vue/ 는 빌드 결과물이지만 배포에 필요하므로 Git에 포함
 
 # E2E 테스트
