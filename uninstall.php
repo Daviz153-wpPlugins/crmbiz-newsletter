@@ -20,13 +20,37 @@ foreach ($tables as $table) {
 }
 
 // ── WordPress 옵션 삭제 ──────────────────────────────────────────────────
-delete_option('crmbiz_nl_settings');
-delete_option('crmbiz_nl_db_version');
-delete_option('crmbiz_nl_secret');
+$options = [
+    'crmbiz_nl_settings',
+    'crmbiz_nl_db_version',
+    'crmbiz_nl_secret',
+    'crmbiz_nl_last_cron_run',
+];
+foreach ($options as $option) {
+    delete_option($option);
+}
 
-// ── 예약 Cron 이벤트 전체 제거 ──────────────────────────────────────────
-wp_clear_scheduled_hook('crmbiz_nl_send_newsletter');
-wp_clear_scheduled_hook('crmbiz_nl_cleanup');
+// ── 트랜지언트 삭제 ──────────────────────────────────────────────────────
+delete_transient('crmbiz_nl_dash_stats');
+delete_transient('crmbiz_nl_dash_chart_7');
+delete_transient('crmbiz_nl_dash_chart_30');
+delete_transient('crmbiz_nl_dash_chart_90');
+
+// crmbiz_nl_err_{hash} 패턴 트랜지언트 일괄 삭제
+$wpdb->query(
+    "DELETE FROM {$wpdb->options}
+     WHERE option_name LIKE '_transient_crmbiz_nl_err_%'
+        OR option_name LIKE '_transient_timeout_crmbiz_nl_err_%'"
+);
+
+// ── Action Scheduler 이벤트 제거 ─────────────────────────────────────────
+$hooks = ['crmbiz_nl_send_newsletter', 'crmbiz_nl_cleanup'];
+foreach ($hooks as $hook) {
+    if (function_exists('as_unschedule_all_actions')) {
+        as_unschedule_all_actions($hook, null, 'crmbiz-newsletter');
+    }
+    wp_clear_scheduled_hook($hook);
+}
 
 // ── 포스트 메타 삭제 ─────────────────────────────────────────────────────
 $meta_keys = [
