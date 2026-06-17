@@ -255,7 +255,7 @@ const filterBtns = computed(() => {
   const rs = detail.value?.recipients ?? []
   const all   = rs.length
   const click = rs.filter(r => r.clicked).length
-  const open  = rs.filter(r => !r.clicked && (r.opened)).length
+  const open  = rs.filter(r => r.opened).length
   const unop  = rs.filter(r => !r.opened && !r.clicked && !r.unsubscribed && !r.failed).length
   const unsub = rs.filter(r => r.unsubscribed).length
   return [
@@ -269,7 +269,8 @@ const filterBtns = computed(() => {
 
 const filteredRecipients = computed(() => {
   const rs = detail.value?.recipients ?? []
-  if (filter.value === 'all') return rs
+  if (filter.value === 'all')    return rs
+  if (filter.value === 'opened') return rs.filter(r => r.opened)
   return rs.filter(r => recipientStatus(r) === filter.value)
 })
 

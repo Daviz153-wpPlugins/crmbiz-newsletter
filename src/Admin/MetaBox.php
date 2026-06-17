@@ -343,11 +343,17 @@ class MetaBox {
                 $postId
             ));
             if ($record) {
+                $recipientData = [
+                    'tag_ids'  => wp_json_encode(array_values($tagIds)),
+                    'list_ids' => wp_json_encode(array_values($listIds)),
+                ];
                 if ($sendMode === 'scheduled' && $schedAt) {
                     // 로컬 시간(서울) 그대로 저장 — sent_at/created_at과 동일하게 current_time('mysql') 기준
-                    $wpdb->update($table, ['status' => 'scheduled', 'scheduled_at' => $schedAt], ['id' => $record->id]);
+                    $wpdb->update($table, array_merge($recipientData, ['status' => 'scheduled', 'scheduled_at' => $schedAt]), ['id' => $record->id]);
                 } elseif ($sendMode !== 'scheduled' && $record->status === 'scheduled') {
-                    $wpdb->update($table, ['status' => 'queued', 'scheduled_at' => null], ['id' => $record->id]);
+                    $wpdb->update($table, array_merge($recipientData, ['status' => 'queued', 'scheduled_at' => null]), ['id' => $record->id]);
+                } else {
+                    $wpdb->update($table, $recipientData, ['id' => $record->id]);
                 }
             }
         }

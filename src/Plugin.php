@@ -194,19 +194,19 @@ class Plugin {
         $listIds  = array_filter(array_map('intval', (array) get_post_meta($postId, '_crmbiz_nl_list_ids', true)));
         $table    = $wpdb->prefix . 'crmbiz_newsletters';
 
-        // draft 레코드 태그/리스트 동기화 (수동 발송 모드에서 수신자 변경 반영)
-        $wpdb->update(
-            $table,
-            [
-                'tag_ids'        => wp_json_encode(array_values($tagIds)),
-                'list_ids'       => wp_json_encode(array_values($listIds)),
-                'updated_at'     => current_time('mysql'),
-                'updated_at_gmt' => current_time('mysql', true),
-            ],
-            ['post_id' => $postId, 'status' => 'draft'],
-            ['%s', '%s', '%s', '%s'],
-            ['%d', '%s']
-        );
+        // 대기 중인 모든 레코드(draft/scheduled/queued)에 태그/리스트 동기화
+        // Gutenberg 경쟁 조건: transition_post_status가 meta 저장보다 먼저 실행되어
+        // scheduled/queued 레코드가 빈 tag_ids/list_ids로 생성됨 → 이후 save_post에서 교정
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table}
+             SET tag_ids = %s, list_ids = %s, updated_at = %s, updated_at_gmt = %s
+             WHERE post_id = %d AND status IN ('draft','scheduled','queued')",
+            wp_json_encode(array_values($tagIds)),
+            wp_json_encode(array_values($listIds)),
+            current_time('mysql'),
+            current_time('mysql', true),
+            $postId
+        ));
 
         // queued/scheduled 레코드의 예약 상태 재동기화
         // ① Gutenberg 경쟁 조건: transition_post_status가 save_post보다 먼저 실행되어
